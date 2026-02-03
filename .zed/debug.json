@@ -1,0 +1,21 @@
+// Project-local debug tasks
+//
+// For more documentation on how to configure debug tasks,
+// see: https://zed.dev/docs/debugger
+[
+  {
+    "label": "⚡ Debug LLDB",
+    "program": "${ZED_WORKTREE_ROOT}/build/bin/app",
+    "request": "launch",
+    "adapter": "CodeLLDB",
+    "cwd": "${ZED_WORKTREE_ROOT}/build/bin",
+    "preRunCommands": ["platform settings -w ${ZED_WORKTREE_ROOT}/build/bin"],
+  },
+  {
+    "label": "⚡ Debug GDB",
+    "program": "app",
+    "cwd": "$ZED_WORKTREE_ROOT/build/bin",
+    "request": "launch",
+    "adapter": "GDB",
+  },
+]

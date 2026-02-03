@@ -1,0 +1,23 @@
+# Build artifacts
+build/
+.cache/
+*.swp
+
+# IDE settings
+
+# External dependensies
+external
+
+# AI Assistant specific folders
+.gemini/
+.qwen/
+
+# User-specified ignores
+docs/
+test2/
+
+# Common binary files that might appear in the root
+*.o
+*.a
+*.so
+compile_commands.json
