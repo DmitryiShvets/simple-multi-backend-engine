@@ -4,10 +4,16 @@
 
 namespace Window {
 
+// Initialize the static counter
+int GLFWMainWindow::s_active_windows = 0;
+
 void GLFWMainWindow::initialize(const IGpuContextStrategy& contextStrategy) {
-  if (!glfwInit()) {
-    Logger::error_log("Не удалось иницализировать GLFW!");
-    exit(EXIT_FAILURE);
+  // Only initialize GLFW if it's the first window
+  if (s_active_windows == 0) {
+    if (!glfwInit()) {
+      Logger::error_log("Не удалось иницализировать GLFW!");
+      exit(EXIT_FAILURE);
+    }
   }
 
   // Use the provided strategy to prepare window hints
@@ -17,19 +23,21 @@ void GLFWMainWindow::initialize(const IGpuContextStrategy& contextStrategy) {
                               NULL, NULL);
   if (!m_window) {
     Logger::error_log("Не удалось создать окно!");
-    glfwTerminate();
+    if (s_active_windows == 0) {
+        glfwTerminate();
+    }
     exit(EXIT_FAILURE);
   }
+
+  // Increment the counter now that the window is created
+  s_active_windows++;
 
   // Use the provided strategy to create the context
   if (!contextStrategy.createContext(this->getNativeWindow())) {
     Logger::error_log("Не удалось создать GPU контекст!");
-    glfwDestroyWindow(m_window);
-    glfwTerminate();
+    destroy(); // Use our new destroy logic
     exit(EXIT_FAILURE);
   }
-
-  glfwSwapInterval(1);
 
   glfwSetWindowUserPointer(m_window, this);
   glfwSetErrorCallback(errorHandlerCallback);
@@ -40,10 +48,19 @@ void GLFWMainWindow::initialize(const IGpuContextStrategy& contextStrategy) {
 }
 
 void GLFWMainWindow::destroy() {
-  glfwSetWindowShouldClose(m_window, 1);
-  glfwTerminate();
+  if (m_window) {
+    glfwDestroyWindow(m_window);
+    m_window = nullptr;
+    s_active_windows--;
+  }
+
+  if (s_active_windows == 0) {
+    glfwTerminate();
+  }
 }
-void GLFWMainWindow::swapBuffers() { glfwSwapBuffers(m_window); }
+void GLFWMainWindow::swapBuffers() { 
+    if (m_window) glfwSwapBuffers(m_window); 
+}
 void GLFWMainWindow::pollEvents() { glfwPollEvents(); }
 
 bool GLFWMainWindow::shouldClose() const {

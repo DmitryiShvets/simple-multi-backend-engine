@@ -13,7 +13,7 @@ VulkanResourceManager::~VulkanResourceManager() {
 }
 
 void VulkanResourceManager::free(RID rid) {
-  if (!rid.isValid()) {
+  if (!rid) { // Use the new explicit operator bool()
     return;
   }
 
@@ -27,16 +27,16 @@ void VulkanResourceManager::free(RID rid) {
   // The unique_ptr returned by remove() will go out of scope and delete the
   // object.
   switch (it->second) {
-  case ResourceType::SwapChain:
+  case ResourceType::SWAP_CHAIN: // Corrected to UPPER_CASE
     m_swap_chain_owner.remove(rid);
     break;
-  case ResourceType::Buffer:
+  case ResourceType::BUFFER: // Corrected to UPPER_CASE
     // m_buffer_owner.remove(rid);
     break;
-  case ResourceType::Texture:
+  case ResourceType::TEXTURE: // Corrected to UPPER_CASE
     // m_texture_owner.remove(rid);
     break;
-  case ResourceType::Pipeline:
+  case ResourceType::PIPELINE: // Corrected to UPPER_CASE
     // m_pipeline_owner.remove(rid);
     break;
   default:

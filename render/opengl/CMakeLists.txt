@@ -1,17 +1,17 @@
 set(OPENGL_RENDER_PUBLIC_HEADERS
     include/opengl_renderer.h
+    include/opengl_device.h
     include/opengl_shader_program.h
     include/opengl_resource_manager.h
     include/opengl_buffer_objects.h
-    include/opengl_scene.h
 )
 
 set(OPENGL_RENDER_SOURCES
     src/opengl_renderer.cpp
+    src/opengl_device.cpp
     src/opengl_shader_program.cpp
     src/opengl_resource_manager.cpp
     src/opengl_buffer_objects.cpp
-    src/opengl_scene.cpp
 )
 
 add_library(opengl_renderer STATIC ${OPENGL_RENDER_SOURCES} ${OPENGL_RENDER_PUBLIC_HEADERS})
@@ -26,7 +26,7 @@ target_include_directories(opengl_renderer
 # DEPENDENCIES
 find_package(OpenGL REQUIRED)
 target_link_libraries(opengl_renderer
-    PRIVATE ${OPENGL_LIBRARIES} glm utils_module
+    PRIVATE ${OPENGL_LIBRARIES} glm utils_module core_module
     PUBLIC glad
 )
 

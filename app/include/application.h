@@ -7,10 +7,7 @@ class IMainWindow;
 }
 namespace Render {
 class IRenderer;
-class RenderingDevice;
 } // namespace Render
-
-// ECS includes
 #include "ecs/systems/render_system.h"
 #include "flecs_world.h"
 #include "world.h"
@@ -18,27 +15,29 @@ class RenderingDevice;
 class Application {
 public:
   void init();
-
   void run();
-
   void close();
-
   ~Application();
 
   Application() = delete;
-
   Application(const Application &) = delete;
-
   Application &operator=(const Application &) = delete;
 
-  Application(std::unique_ptr<Window::IMainWindow> window,
-              std::unique_ptr<Render::IRenderer> renderer,
-              std::unique_ptr<Render::RenderingDevice> rd);
+  // The constructor now accepts two abstract IRenderer pointers
+  Application(std::unique_ptr<Window::IMainWindow> gl_window,
+              std::unique_ptr<Window::IMainWindow> vk_window,
+              std::unique_ptr<Render::IRenderer> gl_renderer,
+              std::unique_ptr<Render::IRenderer> vk_renderer);
 
 private:
-  std::unique_ptr<Window::IMainWindow> m_window;
-  std::unique_ptr<Render::IRenderer> m_renderer;
-  std::unique_ptr<Render::RenderingDevice> m_rendering_device;
+  std::unique_ptr<Window::IMainWindow> m_gl_window;
+  std::unique_ptr<Window::IMainWindow> m_vk_window;
+
+  // Both renderers are now represented by the same abstract interface
+  std::unique_ptr<Render::IRenderer> m_gl_renderer;
+  std::unique_ptr<Render::IRenderer> m_vulkan_renderer;
+
+  // ECS World and Systems
   std::unique_ptr<Core::Ecs::World<Core::Ecs::FlecsWorldImpl>> m_world;
   std::unique_ptr<Core::Ecs::System::RenderSystem<
       Core::Ecs::World<Core::Ecs::FlecsWorldImpl>>>

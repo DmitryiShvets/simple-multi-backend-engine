@@ -1,6 +1,16 @@
-add_library(core_module INTERFACE)
+set(CORE_PUBLIC_HEADERS
+  include/rid.h
+  include/resource_owner.h
+  include/scene_view.h
+)
 
-add_subdirectory(ecs_core)
-# add_subdirectory(scene)
+set(CORE_SOURCES
+    src/dummy.cpp
+)
 
-target_link_libraries(core_module INTERFACE ecs_module)
+add_library(core_module STATIC ${CORE_SOURCES} ${CORE_PUBLIC_HEADERS})
+
+target_include_directories(core_module
+    PUBLIC
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+)

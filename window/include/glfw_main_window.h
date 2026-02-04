@@ -35,6 +35,8 @@ private:
   CursorCallback m_cursorCallback = nullptr;
   ResizeCallback m_resizeCallback = nullptr;
 
+  static int s_active_windows; // Counter for active windows
+
   static int toGLFWKey(Key key);
   static Key fromGLFWKey(int glfwKey);
 

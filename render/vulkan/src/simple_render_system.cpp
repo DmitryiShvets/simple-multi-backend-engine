@@ -55,8 +55,30 @@ void SimpleRenderSystem::create_pipline(VkRenderPass render_pass) {
 
   m_pipeline =
       std::make_unique<VulkanPipeLine>(m_device, render_pass, m_pipeline_layout,
-                                       "test2/res/shaders/texture.vert.spv",
-                                       "test2/res/shaders/texture.frag.spv");
+                                       "res/shaders/texture.vert.spv",
+                                       "res/shaders/texture.frag.spv");
+}
+
+void SimpleRenderSystem::render(VkCommandBuffer command_buffer) {
+    m_pipeline->bind_buffer(command_buffer);
+
+    // The pipeline has dynamic viewport and scissor enabled, so we must set them.
+    VkViewport viewport{};
+    viewport.x = 0.0f;
+    viewport.y = 0.0f;
+    viewport.width = 800; // These should come from the swapchain extent
+    viewport.height = 400;
+    viewport.minDepth = 0.0f;
+    viewport.maxDepth = 1.0f;
+    vkCmdSetViewport(command_buffer, 0, 1, &viewport);
+
+    VkRect2D scissor{};
+    scissor.offset = {0, 0};
+    scissor.extent = {800, 400}; // These should also come from the swapchain extent
+    vkCmdSetScissor(command_buffer, 0, 1, &scissor);
+
+    // We are not calling vkCmdDraw, so the other validation errors will not trigger.
+    // This should result in a clear color screen.
 }
 
 } // namespace Render::Vulkan

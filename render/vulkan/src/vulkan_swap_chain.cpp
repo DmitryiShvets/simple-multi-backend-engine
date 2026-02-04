@@ -45,12 +45,12 @@ VulkanSwapChain::~VulkanSwapChain() {
   }
 
   // 3. Framebuffers
-  // for (auto framebuffer : m_swap_chain_framebuffers) {
-  //   vkDestroyFramebuffer(m_device.getDeviceHandle(), framebuffer, nullptr);
-  // }
+  for (auto framebuffer : m_swap_chain_framebuffers) {
+    vkDestroyFramebuffer(m_device.getDeviceHandle(), framebuffer, nullptr);
+  }
 
   // 4. Render Pass
-  // vkDestroyRenderPass(m_device.getDeviceHandle(), m_render_pass, nullptr);
+  vkDestroyRenderPass(m_device.getDeviceHandle(), m_render_pass, nullptr);
 
   // 5. Synchronization objects
  auto FRAMES_IN_FLIGHT = getImageCount();
@@ -362,11 +362,11 @@ void VulkanSwapChain::createFramebuffers() {
 
 void VulkanSwapChain::createSyncObjects() {
   // Create semaphores and fences to synchronize rendering and presentation.
-  auto FRAMES_IN_FLIGH = getImageCount();
-  m_image_available_semaphores.resize(FRAMES_IN_FLIGH);
-  m_render_finished_semaphores.resize(FRAMES_IN_FLIGH);
-  m_in_flight_fences.resize(FRAMES_IN_FLIGH);
-  m_images_in_flight.resize(FRAMES_IN_FLIGH, VK_NULL_HANDLE);
+  auto FRAMES_IN_FLIGHT = getImageCount();
+  m_image_available_semaphores.resize(FRAMES_IN_FLIGHT);
+  m_render_finished_semaphores.resize(FRAMES_IN_FLIGHT);
+  m_in_flight_fences.resize(FRAMES_IN_FLIGHT);
+  m_images_in_flight.resize(FRAMES_IN_FLIGHT, VK_NULL_HANDLE);
 
   VkSemaphoreCreateInfo semaphore_info = {};
   semaphore_info.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
@@ -376,7 +376,7 @@ void VulkanSwapChain::createSyncObjects() {
   fence_info.flags =
       VK_FENCE_CREATE_SIGNALED_BIT; // Create fences in a signaled state.
 
-  for (size_t i = 0; i < FRAMES_IN_FLIGH; i++) {
+    for (size_t i = 0; i < FRAMES_IN_FLIGHT; i++) {
     if (vkCreateSemaphore(m_device.getDeviceHandle(), &semaphore_info, nullptr,
                           &m_image_available_semaphores[i]) != VK_SUCCESS ||
         vkCreateSemaphore(m_device.getDeviceHandle(), &semaphore_info, nullptr,

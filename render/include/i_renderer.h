@@ -1,29 +1,18 @@
 #pragma once
-#include <string>
-#include <glm/glm.hpp>
+
+// Forward-declare to avoid including heavy headers in the interface
+class SceneView;
 
 namespace Render {
+// The main, top-level, API-agnostic interface for the entire rendering system.
+// The Application will only interact with this interface.
+class IRenderer {
+public:
+    virtual ~IRenderer() = default;
 
-    struct Renderable {
-        std::string mesh_id;
-        std::string shader_id;
-        glm::vec3 color = {1.0f, 1.0f, 1.0f};
-        bool visible = true;
-    };
-
-    class IRenderer {
-    public:
-        virtual ~IRenderer() = default;
-
-        virtual void initialize(int width, int height) = 0;
-        virtual void destroy() = 0;
-        virtual void drawBundle(const std::string& shader, void* bundle) = 0;
-        virtual void frame(float delta_time) = 0;
-        virtual void resize(int width, int height) = 0;
-
-        virtual void clear() = 0;
-        virtual void setViewPort(int x, int y, int width, int height) = 0;
-        virtual void setClearColor(float r, float g, float b, float a) = 0;
-    };
-
-} // namespace Render 
+    // Renders a single frame based on the provided scene data.
+    // This single call encapsulates all work, including acquiring the next image
+    // and presenting it at the end.
+    virtual void renderFrame(const SceneView& view) = 0;
+};
+} // namespace Render

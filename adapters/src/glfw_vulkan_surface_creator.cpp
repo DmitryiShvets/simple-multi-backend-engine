@@ -32,7 +32,7 @@ VkResult GlfwVulkanSurfaceCreator::createWindowSurface(VkInstance vkInstance,
   uint32_t minor = VK_VERSION_MINOR(version);
   uint32_t patch = VK_VERSION_PATCH(version);
   Logger::info_log("Initialized Vulkan version " + std::to_string(major) + "." +
-                   std::to_string(minor) + "." + std::to_string(patch));
+                   std::to_string(minor));
   return glfwCreateWindowSurface(vkInstance, m_window, nullptr, surface);
 }
 

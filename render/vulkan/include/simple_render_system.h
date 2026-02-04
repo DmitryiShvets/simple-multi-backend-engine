@@ -12,6 +12,8 @@ namespace Render::Vulkan {
 		SimpleRenderSystem(const SimpleRenderSystem&) = delete;
 		SimpleRenderSystem& operator=(const SimpleRenderSystem&) = delete;
 
+		void render(VkCommandBuffer command_buffer);
+
 	private:
 		void create_pipline_layout(VkDescriptorSetLayout descriptor_layout);
 		void create_pipline(VkRenderPass render_pass);

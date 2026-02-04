@@ -4,14 +4,12 @@ option(BUILD_VULKAN_RENDERER "Build Vulkan renderer" ON)
 # (ОБЩАЯ ЧАСТЬ)
 add_library(render_module STATIC
     src/render_factory.cpp
-    src/rendering_device_factory.cpp
+    src/render_scene.cpp
+    src/render_graph_executor.cpp
     include/render_factory.h
-    include/rendering_device_factory.h
     # RHI common headers
-    include/rendering_device.h
+    include/render_device.h
     include/render_types.h
-    include/resource_owner.h
-    include/command_queue.h
 )
 
 target_include_directories(render_module
@@ -22,7 +20,7 @@ target_include_directories(render_module
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/opengl/include>
 )
 
-target_link_libraries(render_module PUBLIC glm utils_module)
+target_link_libraries(render_module PUBLIC glm utils_module core_module)
 
 # OpenGL submodule
 if(BUILD_OPENGL_RENDERER)

@@ -1,7 +1,7 @@
 set(VULKAN_RENDER_PUBLIC_HEADERS
     include/vulkan_renderer.h
     include/vulkan_device.h
-    include/vulkan_rendering_device.h
+    include/vulkan_rhi_device.h
     include/vulkan_resource_manager.h
     include/vulkan_swap_chain.h
     include/vulkan_types.h
@@ -14,7 +14,7 @@ set(VULKAN_RENDER_PUBLIC_HEADERS
 set(VULKAN_RENDER_SOURCES
     src/vulkan_renderer.cpp
     src/vulkan_device.cpp
-    src/vulkan_rendering_device.cpp
+    src/vulkan_rhi_device.cpp
     src/vulkan_resource_manager.cpp
     src/vulkan_swap_chain.cpp
     src/vulkan_types.cpp
@@ -37,7 +37,7 @@ target_include_directories(vulkan_renderer
 find_package(Vulkan REQUIRED)
 target_link_libraries(vulkan_renderer
     PUBLIC Vulkan::Vulkan
-    PRIVATE glm utils_module
+    PRIVATE glm utils_module core_module
 )
 
 # POST BUILD

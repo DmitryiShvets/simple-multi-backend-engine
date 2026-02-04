@@ -3,9 +3,9 @@
 #include <memory>
 #include <unordered_map>
 
-#include "render_types.h"
+#include "rid.h"
 
-namespace Render {
+namespace Core {
 
 template <typename T> class ResourceOwner {
 public:

@@ -1,4 +1,5 @@
 #include "vulkan_pipeline.h"
+#include "vulkan_types.h"
 #include <cassert>
 #include <fstream>
 #include <iostream>
@@ -124,7 +125,7 @@ std::vector<char> VulkanPipeLine::read_file(const std::string &filepath) {
   std::ifstream file(filepath, std::ios::ate | std::ios::binary);
 
   if (!file.is_open()) {
-    throw std::runtime_error("failed to open file!");
+    throw std::runtime_error("failed to open file: "+filepath);
   }
 
   size_t fileSize = (size_t)file.tellg();
