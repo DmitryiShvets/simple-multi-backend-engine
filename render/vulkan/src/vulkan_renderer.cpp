@@ -3,18 +3,28 @@
 // Includes for the concrete implementation details that have been moved here
 #include "render_types.h"
 #include "simple_render_system.h" // For the test renderer
+#include "vulkan_buffer.h"        // new
 #include "vulkan_command_list.h"
 #include "vulkan_descriptor_set.h"
 #include "vulkan_swap_chain.h"
+#include "vulkan_texture.h" // new
 
+#include "render_device.h"
 #include "render_graph_executor.h"
 #include "render_scene.h"
-#include "render_device.h"
 
+#include <glm/gtc/matrix_transform.hpp>
 #include <memory>
 #include <utility>
+#include <vulkan/vulkan_core.h>
 
 namespace Render::Vulkan {
+
+struct GlobalUbo {
+  glm::mat4 projection{1.f};
+  glm::mat4 view{1.f};
+  glm::vec3 lightDir = glm::normalize(glm::vec3{1.f, -3.f, -1.f});
+};
 
 // Constructor now takes ownership of the low-level device
 VulkanRenderer::VulkanRenderer(std::unique_ptr<VulkanDevice> device)
@@ -24,17 +34,43 @@ VulkanRenderer::VulkanRenderer(std::unique_ptr<VulkanDevice> device)
   // It will be driven by the high-level application setup.
   createSwapChain();
 
-  m_set_layout = DescriptorSetLayout::Builder(*m_device)
-                     .addBinding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-                                 VK_SHADER_STAGE_VERTEX_BIT)
-                     .addBinding(1, VK_DESCRIPTOR_TYPE_SAMPLER,
-                                 VK_SHADER_STAGE_FRAGMENT_BIT)
-                     .addBinding(2, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
-                                 VK_SHADER_STAGE_FRAGMENT_BIT, 2)
-                     .build();
+  m_set_layout = DescriptorSetLayout::Builder(*m_device).build();
   m_test_rs = std::make_unique<SimpleRenderSystem>(
       *m_device, m_swap_chain->getRenderPass(),
       m_set_layout->getDescriptorSetLayout());
+
+  // ====================================================================
+  // DEMONSTRATION of VulkaDataBuffer and VulkanTexture usage
+  // ====================================================================
+
+  // 1. Create a uniform buffer using your new wrapper class
+  const int FRAMES_IN_FLIGHT = m_swap_chain->getImageCount();
+  const std::vector<Vertex> vertices = {
+      {{0.0f, -1.f, 0.f}, {1.0f, 0.0f, 0.0f}}, // вершина 1, красная
+      {{1.f, 1.0f, 0.f}, {0.0f, 1.0f, 0.0f}},  // вершина 2, зеленая
+      {{-1.f, 1.f, 0.f}, {0.0f, 0.0f, 1.0f}}  // вершина 3, синяя
+  };
+  m_vertex_buffer = std::make_unique<VulkanDataBuffer>(
+      *m_device, sizeof(vertices[0]) * vertices.size(), 1, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+      VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+          VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+  m_vertex_buffer->map();
+  m_vertex_buffer->writeToBuffer((void *)vertices.data());
+
+  // 2. Create a texture using your new wrapper class
+  m_texture =
+      std::make_unique<VulkanTexture>(*m_device, "res/textures/texture.jpg");
+
+  // 3. Create a descriptor pool
+  m_global_pool =
+      DescriptorPool::Builder(*m_device).setMaxSets(FRAMES_IN_FLIGHT).build();
+
+  // 4. Use the DescriptorWriter to bind the buffer and texture to a descriptor
+  // set
+  auto bufferInfo = m_vertex_buffer->descriptorInfo();
+  m_global_descriptor_set =
+      DescriptorWriter(*m_set_layout, *m_global_pool).build();
+  // ====================================================================
 }
 
 // Explicit destructor implementation in the .cpp file
@@ -77,8 +113,11 @@ void VulkanRenderer::renderFrame(const SceneView &view) {
   vkCmdBeginRenderPass(cmd->getHandle(), &renderPassInfo,
                        VK_SUBPASS_CONTENTS_INLINE);
 
-  m_test_rs->render(cmd->getHandle());
+  VkBuffer buffers[] = {m_vertex_buffer->getBuffer()};
+  VkDeviceSize offsets[] = {0};
+  vkCmdBindVertexBuffers(cmd->getHandle(), 0, 1, buffers, offsets);
 
+  m_test_rs->render(cmd->getHandle());
 
   vkCmdEndRenderPass(cmd->getHandle());
   cmd->end();

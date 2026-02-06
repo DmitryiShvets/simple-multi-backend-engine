@@ -1,5 +1,6 @@
 #pragma once
 #include "vulkan_device.h"
+#include <memory>
 #include <string>
 #include <vector>
 #include <vulkan/vulkan_core.h>
@@ -7,10 +8,40 @@
 namespace Render::Vulkan {
 
 struct PipelineConfigInfo {
+public:
+  class Builder {
+  public:
+    Builder();
+    ~Builder(); // Destructor for PIMPL
+
+    Builder(Builder&&) noexcept;
+    Builder& operator=(Builder&&) noexcept;
+
+    // Fluent interface setters
+    Builder &setPipelineLayout(VkPipelineLayout layout);
+    Builder &setRenderPass(VkRenderPass renderPass);
+    Builder &setSubpass(uint32_t subpass);
+    Builder &setVertexInputInfo(
+        const std::vector<VkVertexInputBindingDescription> &binding_desc,
+        const std::vector<VkVertexInputAttributeDescription> &attrib_desc);
+    Builder &setPrimitiveTopology(VkPrimitiveTopology topology);
+    Builder &setPolygonMode(VkPolygonMode mode);
+    Builder &setCullMode(VkCullModeFlags cullMode);
+    Builder &setFrontFace(VkFrontFace frontFace);
+    Builder &enableDepthTest(bool enable);
+    Builder &enableDepthWrite(bool enable);
+
+    std::unique_ptr<PipelineConfigInfo> build();
+
+  private:
+    std::unique_ptr<PipelineConfigInfo> m_config;
+  };
+
   PipelineConfigInfo() = default;
   PipelineConfigInfo(const PipelineConfigInfo &) = delete;
   PipelineConfigInfo &operator=(const PipelineConfigInfo &) = delete;
 
+  VkPipelineVertexInputStateCreateInfo vertexInputInfo;
   VkPipelineViewportStateCreateInfo viewportInfo;
   VkPipelineInputAssemblyStateCreateInfo inputAssemblyInfo;
   VkPipelineRasterizationStateCreateInfo rasterizationInfo;
@@ -27,19 +58,16 @@ struct PipelineConfigInfo {
 
 class VulkanPipeLine {
 public:
+  // Main constructor now takes the config object
   VulkanPipeLine(VulkanDevice &device, const PipelineConfigInfo &config,
                  const std::string &vert_shader_filepath,
                  const std::string &frag_shader_filepath);
-  VulkanPipeLine(VulkanDevice &device, VkRenderPass render_pass,
-                 VkPipelineLayout piplene_layout,
-                 const std::string &vert_shader_filepath,
-                 const std::string &frag_shader_filepath);
+
   ~VulkanPipeLine();
 
   void bind_buffer(VkCommandBuffer buffer);
   VulkanPipeLine(const VulkanPipeLine &) = delete;
   VulkanPipeLine &operator=(const VulkanPipeLine &) = delete;
-  static void set_default_config(PipelineConfigInfo &config);
 
 private:
   static std::vector<char> read_file(const std::string &filepath);

@@ -5,10 +5,30 @@
 #include <stdexcept>
 struct PushConstantData {
   glm::mat4 modelMatrix{1.0f};
-  int index;
+  glm::mat4 normalMatrix{1.0f};
 };
 
 namespace Render::Vulkan {
+
+std::vector<VkVertexInputBindingDescription> Vertex::get_binding_description() {
+  std::vector<VkVertexInputBindingDescription> binding_decription(1);
+  binding_decription[0].binding = 0;
+  binding_decription[0].stride = sizeof(Vertex);
+  binding_decription[0].inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+  return binding_decription;
+}
+
+std::vector<VkVertexInputAttributeDescription>
+Vertex::get_attribute_description() {
+  std::vector<VkVertexInputAttributeDescription> attribute_descriptions;
+
+  attribute_descriptions.push_back(
+      {0, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(Vertex, position)});
+  attribute_descriptions.push_back(
+      {1, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(Vertex, color)});
+
+  return attribute_descriptions;
+}
 
 SimpleRenderSystem::SimpleRenderSystem(VulkanDevice &device,
                                        VkRenderPass render_pass,
@@ -48,37 +68,42 @@ void SimpleRenderSystem::create_pipline_layout(
 }
 
 void SimpleRenderSystem::create_pipline(VkRenderPass render_pass) {
-  // assert(m_swapchain != nullptr && "Cannot create pipeline before swap
-  // chain");
   assert(m_pipeline_layout != nullptr &&
          "Cannot create pipeline before pipeline layout");
 
-  m_pipeline =
-      std::make_unique<VulkanPipeLine>(m_device, render_pass, m_pipeline_layout,
-                                       "res/shaders/texture.vert.spv",
-                                       "res/shaders/texture.frag.spv");
+  auto binding_decription = Vertex::get_binding_description();
+  auto attrib_decription = Vertex::get_attribute_description();
+
+  auto pipeline_config =
+      PipelineConfigInfo::Builder()
+          .setRenderPass(render_pass)
+          .setPipelineLayout(m_pipeline_layout)
+          .setVertexInputInfo(binding_decription, attrib_decription)
+          .build();
+  m_pipeline = std::make_unique<VulkanPipeLine>(
+      m_device, *pipeline_config, "res/shaders/v_test.vert.spv",
+      "res/shaders/f_test.frag.spv");
 }
 
 void SimpleRenderSystem::render(VkCommandBuffer command_buffer) {
-    m_pipeline->bind_buffer(command_buffer);
+  m_pipeline->bind_buffer(command_buffer);
 
-    // The pipeline has dynamic viewport and scissor enabled, so we must set them.
-    VkViewport viewport{};
-    viewport.x = 0.0f;
-    viewport.y = 0.0f;
-    viewport.width = 800; // These should come from the swapchain extent
-    viewport.height = 400;
-    viewport.minDepth = 0.0f;
-    viewport.maxDepth = 1.0f;
-    vkCmdSetViewport(command_buffer, 0, 1, &viewport);
+  // The pipeline has dynamic viewport and scissor enabled, so we must set them.
+  VkViewport viewport{};
+  viewport.x = 0.0f;
+  viewport.y = 0.0f;
+  viewport.width = 800; // These should come from the swapchain extent
+  viewport.height = 600;
+  viewport.minDepth = 0.0f;
+  viewport.maxDepth = 1.0f;
+  vkCmdSetViewport(command_buffer, 0, 1, &viewport);
 
-    VkRect2D scissor{};
-    scissor.offset = {0, 0};
-    scissor.extent = {800, 400}; // These should also come from the swapchain extent
-    vkCmdSetScissor(command_buffer, 0, 1, &scissor);
-
-    // We are not calling vkCmdDraw, so the other validation errors will not trigger.
-    // This should result in a clear color screen.
+  VkRect2D scissor{};
+  scissor.offset = {0, 0};
+  scissor.extent = {800,
+                    600}; // These should also come from the swapchain extent
+  vkCmdSetScissor(command_buffer, 0, 1, &scissor);
+  vkCmdDraw(command_buffer, 3, 1, 0, 0);
 }
 
 } // namespace Render::Vulkan

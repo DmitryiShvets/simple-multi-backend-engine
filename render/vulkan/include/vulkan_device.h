@@ -31,7 +31,7 @@ public:
   /**
    * @brief Destroys all created Vulkan objects in the correct order.
    */
-   ~VulkanDevice();
+  ~VulkanDevice();
 
   /**
    * @brief Main initialization method that triggers the entire Vulkan setup
@@ -93,11 +93,45 @@ public:
   uint32_t findMemoryType(uint32_t type_filter,
                           VkMemoryPropertyFlags properties);
   /**
+   * @brief A helper function to ...
+   */
+  VkCommandBuffer beginSingleTimeCommands();
+  /**
+   * @brief A helper function to ...
+   */
+  void endSingleTimeCommands(VkCommandBuffer commandBuffer);
+  /**
+   * @brief A helper function to ...
+   */
+  void copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width,
+                         uint32_t height, uint32_t layerCount);
+  /**
+   * @brief A helper function to ...
+   */
+  void transitionImageLayout(VkImage image, VkFormat format,
+                             VkImageLayout oldLayout, VkImageLayout newLayout);
+  /**
+   * @brief A helper function to create a VkImage.
+   */
+  void createImage(const VkImageCreateInfo &imageInfo,
+                   VkMemoryPropertyFlags properties, VkImage &image,
+                   VkDeviceMemory &imageMemory);
+  /**
    * @brief A helper function to create a VkImageView.
    * An image view describes how to access an image and which part of the image
    * to access.
    */
   VkImageView createImageView(VkImage image, VkFormat format);
+  /**
+   * @brief A helper function to create a VkDeviceMemory.
+   */
+  void createBuffer(VkDeviceSize size, VkBufferUsageFlags usage,
+                    VkMemoryPropertyFlags properties, VkBuffer &buffer,
+                    VkDeviceMemory &bufferMemory);
+  /**
+   * @brief A helper function to ...
+   */
+  void createTextureSampler(VkSampler &textureSampler);
 
 private:
   /**

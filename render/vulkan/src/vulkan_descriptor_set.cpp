@@ -184,16 +184,15 @@ DescriptorWriter::writeImage(uint32_t binding,
   return *this;
 }
 
-bool DescriptorWriter::build(VkDescriptorSet &set) {
+VkDescriptorSet DescriptorWriter::build() {
+  VkDescriptorSet set{};
   bool success =
       pool.allocateDescriptor(setLayout.getDescriptorSetLayout(), set);
   if (!success) {
-    std::cout << "failed to allocate descrtiptor: " << std::endl;
-
-    return false;
+    throw std::runtime_error("failed to allocate descrtiptor");
   }
   overwrite(set);
-  return true;
+  return set;
 }
 
 void DescriptorWriter::overwrite(VkDescriptorSet &set) {

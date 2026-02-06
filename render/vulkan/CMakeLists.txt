@@ -9,6 +9,8 @@ set(VULKAN_RENDER_PUBLIC_HEADERS
     include/vulkan_pipeline.h
     include/simple_render_system.h
     include/vulkan_descriptor_set.h
+    include/vulkan_buffer.h
+    include/vulkan_texture.h
 )
 
 set(VULKAN_RENDER_SOURCES
@@ -22,6 +24,8 @@ set(VULKAN_RENDER_SOURCES
     src/vulkan_pipeline.cpp
     src/simple_render_system.cpp
     src/vulkan_descriptor_set.cpp
+    src/vulkan_buffer.cpp
+    src/vulkan_texture.cpp
 )
 
 add_library(vulkan_renderer STATIC ${VULKAN_RENDER_SOURCES} ${VULKAN_RENDER_PUBLIC_HEADERS})
@@ -40,11 +44,53 @@ target_link_libraries(vulkan_renderer
     PRIVATE glm utils_module core_module
 )
 
-# POST BUILD
+# ======================================================================================
+# AUTOMATIC SHADER COMPILATION (in-place)
+# ======================================================================================
+
+# 1. Find the glslc compiler
+find_program(GLSLC_EXECUTABLE glslc)
+if(NOT GLSLC_EXECUTABLE)
+    message(FATAL_ERROR "glslc not found. Please install the Vulkan SDK and make sure glslc is in your PATH.")
+endif()
+
+# 2. Find all shader source files
+file(GLOB SHADER_SOURCES
+    "${CMAKE_CURRENT_SOURCE_DIR}/res/shaders/*.vert"
+    "${CMAKE_CURRENT_SOURCE_DIR}/res/shaders/*.frag"
+)
+
+# 3. Create custom commands to compile shaders in-place (in the source directory)
+set(SPIRV_OUTPUTS "")
+foreach(SHADER_SOURCE IN ITEMS ${SHADER_SOURCES})
+  get_filename_component(SHADER_NAME ${SHADER_SOURCE} NAME)
+  set(SPIRV_OUTPUT "${CMAKE_CURRENT_SOURCE_DIR}/res/shaders/${SHADER_NAME}.spv")
+  list(APPEND SPIRV_OUTPUTS ${SPIRV_OUTPUT})
+
+  add_custom_command(
+    OUTPUT  ${SPIRV_OUTPUT}
+    COMMAND ${GLSLC_EXECUTABLE} -o ${SPIRV_OUTPUT} ${SHADER_SOURCE}
+    DEPENDS ${SHADER_SOURCE}
+    COMMENT "Compiling ${SHADER_NAME} to SPIR-V (in-place)"
+    VERBATIM)
+endforeach()
+
+# 4. Create a target that depends on all compiled shaders
+add_custom_target(compile_shaders DEPENDS ${SPIRV_OUTPUTS})
+
+# 5. Make the main library depend on the shader compilation target
+# This ensures shaders are compiled before the library is built.
+add_dependencies(vulkan_renderer compile_shaders)
+
+
+# ======================================================================================
+# POST BUILD - Copy the entire 'res' directory (now containing .spv files)
+# ======================================================================================
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/res)
     add_custom_command(TARGET vulkan_renderer POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_directory
             ${CMAKE_CURRENT_SOURCE_DIR}/res
             $<TARGET_FILE_DIR:vulkan_renderer>/res
+        COMMENT "Copying res directory to build output"
     )
 endif()

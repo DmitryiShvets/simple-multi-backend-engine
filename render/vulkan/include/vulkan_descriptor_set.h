@@ -92,7 +92,7 @@ namespace Render::Vulkan {
 		DescriptorWriter& writeBuffer(uint32_t binding, VkDescriptorBufferInfo* bufferInfo);
 		DescriptorWriter& writeImage(uint32_t binding, VkDescriptorImageInfo* imageInfo);
 
-		bool build(VkDescriptorSet& set);
+		VkDescriptorSet build();
 		void overwrite(VkDescriptorSet& set);
 
 	private:

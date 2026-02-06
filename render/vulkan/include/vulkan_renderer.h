@@ -13,6 +13,9 @@ namespace Render::Vulkan {
     class SimpleRenderSystem;
     class DescriptorSetLayout;
     class VulkanCommandList;
+    class VulkanDataBuffer; // new
+    class VulkanTexture;   // new
+    class DescriptorPool;  // new
 }
 namespace Render {
     class Device;
@@ -46,6 +49,13 @@ private:
     // In the future, this will be replaced by SceneRenderer and RenderGraphExecutor
     std::unique_ptr<SimpleRenderSystem> m_test_rs;
     std::unique_ptr<DescriptorSetLayout> m_set_layout;
+
+    // --- Resource Management Demo ---
+    std::unique_ptr<DescriptorPool> m_global_pool;
+    VkDescriptorSet m_global_descriptor_set;
+    std::unique_ptr<VulkanDataBuffer> m_vertex_buffer;
+    std::unique_ptr<VulkanTexture> m_texture;
+
 
     // Private, API-dependent methods for frame lifecycle management
     void createSwapChain(); // Will be called during initialization

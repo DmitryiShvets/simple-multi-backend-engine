@@ -24,7 +24,4 @@ namespace Render {
         uint32_t height;
         bool vsync;
     };
-
-    // A placeholder definition for a type used in the opengl renderer
-    struct RenderObject {};
 }
