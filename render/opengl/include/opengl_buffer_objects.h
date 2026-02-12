@@ -1,110 +1,114 @@
 #pragma once
-#include <vector>
 #include <glad/gl.h>
+#include <vector>
+
+namespace Render::OpenGL {
 
 class VBO {
 public:
-    VBO();
+  VBO();
 
-    void init(const void* data, const unsigned int size);
+  void init(const void *data, const unsigned int size);
 
-    void update(const void* data, const unsigned int size) const;
+  void update(const void *data, const unsigned int size) const;
 
-    void bind() const;
+  void bind() const;
 
-    void unbind() const;
+  void unbind() const;
 
-    ~VBO();
+  ~VBO();
 
-    VBO(const VBO&) = delete;
+  VBO(const VBO &) = delete;
 
-    VBO& operator=(const VBO&) = delete;
+  VBO &operator=(const VBO &) = delete;
 
-    VBO(VBO&& vbo) noexcept;
+  VBO(VBO &&vbo) noexcept;
 
-    VBO& operator=(VBO&& vbo) noexcept;
+  VBO &operator=(VBO &&vbo) noexcept;
 
 private:
-    GLuint mVBO;
+  GLuint mVBO;
 };
-
 
 class EBO {
 public:
-    EBO();
+  EBO();
 
-    void init(const void* data, const unsigned int count);
+  void init(const void *data, const unsigned int count);
 
-    void bind() const;
+  void bind() const;
 
-    void unbind() const;
+  void unbind() const;
 
-    unsigned int count() const;
+  unsigned int count() const;
 
-    ~EBO();
+  ~EBO();
 
-    EBO(const EBO&) = delete;
+  EBO(const EBO &) = delete;
 
-    EBO& operator=(const EBO&) = delete;
+  EBO &operator=(const EBO &) = delete;
 
-    EBO(EBO&& ebo) noexcept;
+  EBO(EBO &&ebo) noexcept;
 
-    EBO& operator=(EBO&& ebo) noexcept;
+  EBO &operator=(EBO &&ebo) noexcept;
 
 private:
-    GLuint mEBO;
+  GLuint mEBO;
 
-    unsigned int mCount;
+  unsigned int mCount;
 };
 
 struct VBOLayoutElements {
-    GLint count;
-    GLenum type;
-    GLboolean normalized;
-    unsigned long long size;
+  GLint count;
+  GLenum type;
+  GLboolean normalized;
+  unsigned long long size;
 };
 
 class VBOLayout {
 public:
-    VBOLayout();
+  VBOLayout();
 
-    ~VBOLayout();
+  ~VBOLayout();
 
-    void addLayoutElement(GLint count, GLenum type, GLboolean normalized);
+  void addLayoutElement(GLint count, GLenum type, GLboolean normalized);
 
-    unsigned int getStride() const;
+  unsigned int getStride() const;
 
-    const std::vector<VBOLayoutElements>& getLayoutElements() const;
+  const std::vector<VBOLayoutElements> &getLayoutElements() const;
 
 private:
-    unsigned int mStride;
-    std::vector<VBOLayoutElements> mVecLayoutElements;
+  unsigned int mStride;
+  std::vector<VBOLayoutElements> mVecLayoutElements;
 };
 
 class VAO {
 public:
-    VAO();
+  VAO();
 
-    void bind() const;
+  void bind() const;
 
-    void unbind() const;
+  void unbind() const;
 
-    void addBuffer(const VBO& buffer, const VBOLayout& layout, const unsigned  int countVertex = 0);
+  void addBuffer(const VBO &buffer, const VBOLayout &layout,
+                 const unsigned int countVertex = 0);
 
-    unsigned int count() const;
+  unsigned int count() const;
 
-    ~VAO();
+  ~VAO();
 
-    VAO(const VAO&) = delete;
+  VAO(const VAO &) = delete;
 
-    VAO& operator=(const VAO&) = delete;
+  VAO &operator=(const VAO &) = delete;
 
-    VAO(VAO&& vao) noexcept;
+  VAO(VAO &&vao) noexcept;
 
-    VAO& operator=(VAO&& vao) noexcept;
+  VAO &operator=(VAO &&vao) noexcept;
 
 private:
-    GLuint mVAO;
-    unsigned int mBuffersCount = 0;
-    unsigned int mVertexCount = 0;
+  GLuint mVAO;
+  unsigned int mBuffersCount = 0;
+  unsigned int mVertexCount = 0;
 };
+
+} // namespace Render::OpenGL

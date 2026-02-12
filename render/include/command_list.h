@@ -1,7 +1,7 @@
 #pragma once
 
-#include "types.h"
-#include <span>
+#include "resource_types.h"
+#include "render_types.h"
 
 namespace Render {
 

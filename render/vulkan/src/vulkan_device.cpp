@@ -316,14 +316,11 @@ void VulkanDevice::createLogicalDevice() {
   // Create the VkDevice, which is our main interface to the physical device.
   QueueFamilyIndices indices = findQueueFamilies(m_physical_device, m_surface);
 
-  // We might need to create multiple queues from the same family (if graphics
-  // and present are the same). Using a std::set ensures we only create one
-  // VkDeviceQueueCreateInfo per unique family index.
   std::vector<VkDeviceQueueCreateInfo> queue_create_infos;
   std::set<uint32_t> unique_queue_families = {indices.graphics_family,
                                               indices.present_family};
 
-  float queue_priority = 1.0f; // We need to assign a priority (0.0 to 1.0)
+  float queue_priority = 1.0f;
   for (uint32_t queue_family : unique_queue_families) {
     VkDeviceQueueCreateInfo queue_create_info{};
     queue_create_info.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
@@ -333,11 +330,15 @@ void VulkanDevice::createLogicalDevice() {
     queue_create_infos.push_back(queue_create_info);
   }
 
-  // Specify device features we want to use (e.g., anisotropic filtering).
   VkPhysicalDeviceFeatures device_features{};
   device_features.samplerAnisotropy = VK_TRUE;
 
-  // The main creation struct for the logical device.
+  // --- Enable Dynamic Rendering Feature ---
+  VkPhysicalDeviceDynamicRenderingFeatures dynamic_rendering_feature{};
+  dynamic_rendering_feature.sType =
+      VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DYNAMIC_RENDERING_FEATURES;
+  dynamic_rendering_feature.dynamicRendering = VK_TRUE;
+
   VkDeviceCreateInfo create_info{};
   create_info.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
   create_info.queueCreateInfoCount =
@@ -347,15 +348,16 @@ void VulkanDevice::createLogicalDevice() {
   create_info.enabledExtensionCount =
       static_cast<uint32_t>(m_device_extensions.size());
   create_info.ppEnabledExtensionNames = m_device_extensions.data();
-
-  // In older Vulkan versions, you might need to specify device-level validation
-  // layers here, but it's now a deprecated practice. Instance-level layers are
-  // preferred.
+  create_info.pNext = &dynamic_rendering_feature; // Chain the feature struct
 
   if (vkCreateDevice(m_physical_device, &create_info, nullptr, &m_device) !=
       VK_SUCCESS) {
     throw std::runtime_error("failed to create logical device!");
   }
+
+  // Load extension function pointers
+  pfn_vkCmdBeginRenderingKHR = (PFN_vkCmdBeginRenderingKHR)vkGetDeviceProcAddr(m_device, "vkCmdBeginRenderingKHR");
+  pfn_vkCmdEndRenderingKHR = (PFN_vkCmdEndRenderingKHR)vkGetDeviceProcAddr(m_device, "vkCmdEndRenderingKHR");
 
   // After creating the device, get the handles to the actual queues.
   vkGetDeviceQueue(m_device, indices.graphics_family, 0, &m_graphics_queue);

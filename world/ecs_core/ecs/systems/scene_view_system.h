@@ -1,33 +1,31 @@
 #pragma once
 #include "concepts.h"
-#include "ecs/components/render_component.h"
+#include "ecs/components/runtime_component.h"
 #include "ecs/components/transform_component.h"
 #include "scene_view.h"
 #include <vector>
 
 namespace Core::Ecs::System {
 
-template <typename WorldType>
+template <typename WorldType, typename RuntimeComponent>
   requires EcsWorld<WorldType>
-class RenderSystem {
+class SceneViewSystem {
 public:
-  RenderSystem(WorldType &world)
+  SceneViewSystem(WorldType &world)
       : m_world(world),
         m_query(world.template createQuery<const Component::Transform,
-                                           const Component::Renderable>()) {}
+                                           const RuntimeComponent>()) {}
 
-  SceneView createSceneView() {
+  SceneView run() {
     SceneView sceneView;
     m_query.each([&sceneView](EntityHandle /*entity*/,
                               const Component::Transform & /*transform*/,
-                              const Component::Renderable &e) {
+                              const RuntimeComponent &e) {
       if (e.visible) {
 
-        sceneView.renderables.push_back(SceneView::Renderable{
-            .mesh_id = e.mesh_id,
-            .shader_id = e.shader_id,
-            .color = e.color,
-            .visible = e.visible,
+        sceneView.opaque_objects.push_back(SceneView::MeshRenderable{
+            .geometry_id = e.geometry_id,
+            .material_id = e.material_id,
         });
       }
     });
@@ -37,7 +35,7 @@ public:
 private:
   WorldType &m_world;
   decltype(m_world.template createQuery<const Component::Transform,
-                                        const Component::Renderable>()) m_query;
+                                        const RuntimeComponent>()) m_query;
 };
 
 } // namespace Core::Ecs::System

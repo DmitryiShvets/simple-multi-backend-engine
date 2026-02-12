@@ -1,7 +1,7 @@
 #pragma once
 
-#include "types.h"
 #include "command_list.h"
+#include "resource_types.h"
 #include <span>
 
 namespace Render {
@@ -10,23 +10,18 @@ namespace Render {
 // It is completely API-agnostic.
 class Device {
 public:
-    virtual ~Device() = default;
+  virtual ~Device() = default;
 
-    // --- Resource Management ---
-    virtual RID createBuffer(const BufferDesc& desc) = 0;
-    virtual RID createTexture(const TextureDesc& desc) = 0;
-    virtual RID createSampler(const SamplerDesc& desc) = 0;
-    virtual RID createGraphicsPipeline(const GraphicsPipelineDesc& desc) = 0;
-    // virtual RID createComputePipeline(const ComputePipelineDesc& desc) = 0;
-    virtual void free(RID rid) = 0;
-
-    // --- Command Execution ---
-    virtual CommandList* beginCommandList() = 0;
-    virtual void submitCommandLists(std::span<CommandList*> lists) = 0;
-
-    // --- Maintenance & Synchronization ---
-    virtual void tick() = 0;
-    virtual void waitIdle() = 0;
+  // --- Resource Management ---
+  virtual RID createBuffer(const BufferDesc &desc) = 0;
+  virtual RID createTexture(const TextureDesc &desc) = 0;
+  virtual RID createSampler(const SamplerDesc &desc) = 0;
+  virtual RID
+  createDescriptorSetLayout(const DescriptorSetLayoutDesc &desc) = 0;
+  virtual RID createPipelineLayout(const PipelineLayoutDesc &desc) = 0;
+  virtual RID createGraphicsPipeline(const GraphicsPipelineDesc &desc) = 0;
+  // virtual RID createComputePipeline(const ComputePipelineDesc& desc) = 0;
+  virtual void free(RID rid) = 0;
 };
 
 } // namespace Render

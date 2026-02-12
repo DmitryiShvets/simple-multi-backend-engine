@@ -1,16 +1,16 @@
 #pragma once
 
+#include "opengl_resource_manager.h"
 #include "i_renderer.h"
 #include <memory>
-
+#include "render_graph_executor.h"
 // Forward-declarations
 namespace Render {
 class Device;
-class SceneRenderer;
-class RenderGraphExecutor;
 } // namespace Render
-class OpenglResourceManager;
+namespace Core {
 class SceneView;
+}
 
 namespace Render::OpenGL {
 
@@ -21,15 +21,15 @@ public:
   OpenGLRenderer();
   ~OpenGLRenderer();
 
-  void renderFrame(const SceneView &view) override;
+  void renderFrame(const Core::SceneView &view) override;
+  Device &getRenderDeivce() override { return *m_rhi_device; };
 
 private:
   std::unique_ptr<Device> m_rhi_device;
 
   // Shared, API-agnostic systems
-  std::unique_ptr<SceneRenderer> m_scene_renderer;
   std::unique_ptr<RenderGraphExecutor> m_executor;
-  std::unique_ptr<OpenglResourceManager> m_resource_manager;
+  OpenglResourceManager m_resource_manager;
 };
 
 } // namespace Render::OpenGL

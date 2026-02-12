@@ -2,6 +2,7 @@ set(CORE_PUBLIC_HEADERS
   include/rid.h
   include/resource_owner.h
   include/scene_view.h
+  include/vertex.h
 )
 
 set(CORE_SOURCES

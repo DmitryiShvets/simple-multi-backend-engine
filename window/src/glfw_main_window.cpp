@@ -58,14 +58,19 @@ void GLFWMainWindow::destroy() {
     glfwTerminate();
   }
 }
-void GLFWMainWindow::swapBuffers() { 
-    if (m_window) glfwSwapBuffers(m_window); 
+void GLFWMainWindow::swapBuffers() {
+    if (m_window) glfwSwapBuffers(m_window);
 }
 void GLFWMainWindow::pollEvents() { glfwPollEvents(); }
 
 bool GLFWMainWindow::shouldClose() const {
   return glfwWindowShouldClose(m_window);
 }
+
+void GLFWMainWindow::setPosition(int x, int y) {
+     glfwSetWindowPos(m_window, x, y);
+}
+
 
 void GLFWMainWindow::setCursorCallback(CursorCallback cb) {
   m_cursorCallback = cb;

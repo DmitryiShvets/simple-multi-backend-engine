@@ -23,6 +23,9 @@ namespace Render::Vulkan {
  */
 class VulkanDevice {
 public:
+  PFN_vkCmdBeginRenderingKHR pfn_vkCmdBeginRenderingKHR = nullptr;
+  PFN_vkCmdEndRenderingKHR pfn_vkCmdEndRenderingKHR = nullptr;
+
   /**
    * @brief Constructs the device, initializing handles to null.
    */
@@ -200,7 +203,7 @@ private:
   const std::vector<const char *> m_validation_layers = {
       "VK_LAYER_KHRONOS_validation"};
   const std::vector<const char *> m_device_extensions = {
-      VK_KHR_SWAPCHAIN_EXTENSION_NAME};
+      VK_KHR_SWAPCHAIN_EXTENSION_NAME, VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME};
 };
 
 } // namespace Render::Vulkan

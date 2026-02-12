@@ -7,7 +7,7 @@ set(VULKAN_RENDER_PUBLIC_HEADERS
     include/vulkan_types.h
     include/vulkan_command_list.h
     include/vulkan_pipeline.h
-    include/simple_render_system.h
+    include/vulkan_pipeline_layout.h
     include/vulkan_descriptor_set.h
     include/vulkan_buffer.h
     include/vulkan_texture.h
@@ -22,7 +22,7 @@ set(VULKAN_RENDER_SOURCES
     src/vulkan_types.cpp
     src/vulkan_command_list.cpp
     src/vulkan_pipeline.cpp
-    src/simple_render_system.cpp
+    src/vulkan_pipeline_layout.cpp
     src/vulkan_descriptor_set.cpp
     src/vulkan_buffer.cpp
     src/vulkan_texture.cpp
@@ -41,7 +41,7 @@ target_include_directories(vulkan_renderer
 find_package(Vulkan REQUIRED)
 target_link_libraries(vulkan_renderer
     PUBLIC Vulkan::Vulkan
-    PRIVATE glm utils_module core_module
+    PRIVATE glm utils_module core_module render_module
 )
 
 # ======================================================================================

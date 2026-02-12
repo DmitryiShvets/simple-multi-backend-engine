@@ -1,4 +1,5 @@
 #include "vulkan_swap_chain.h"
+#include "vulkan_texture.h"
 #include "vulkan_types.h"
 
 #include <algorithm>
@@ -7,7 +8,9 @@
 #include <cstring>
 #include <iostream>
 #include <limits>
+#include <memory>
 #include <stdexcept>
+#include <vulkan/vulkan_core.h>
 
 namespace Render::Vulkan {
 
@@ -32,27 +35,21 @@ VulkanSwapChain::VulkanSwapChain(VulkanDevice &deviceRef,
 VulkanSwapChain::~VulkanSwapChain() {
   // Destroy all created objects in reverse order of creation.
 
-  // 1. Image Views
-  for (auto image_view : m_swap_chain_image_views) {
-    vkDestroyImageView(m_device.getDeviceHandle(), image_view, nullptr);
-  }
-  m_swap_chain_image_views.clear();
-
-  // 2. Swapchain object itself
+  // 1. Swapchain object itself. Image views are now owned by VulkanTexture objects.
   if (m_swap_chain != nullptr) {
     vkDestroySwapchainKHR(m_device.getDeviceHandle(), m_swap_chain, nullptr);
     m_swap_chain = nullptr;
   }
 
-  // 3. Framebuffers
+  // 2. Framebuffers
   for (auto framebuffer : m_swap_chain_framebuffers) {
     vkDestroyFramebuffer(m_device.getDeviceHandle(), framebuffer, nullptr);
   }
 
-  // 4. Render Pass
+  // 3. Render Pass
   vkDestroyRenderPass(m_device.getDeviceHandle(), m_render_pass, nullptr);
 
-  // 5. Synchronization objects
+  // 4. Synchronization objects
  auto FRAMES_IN_FLIGHT = getImageCount();
   for (size_t i = 0; i < FRAMES_IN_FLIGHT; i++) {
     vkDestroySemaphore(m_device.getDeviceHandle(),
@@ -66,7 +63,7 @@ VulkanSwapChain::~VulkanSwapChain() {
 void VulkanSwapChain::init() {
   // This function orchestrates the creation of all swapchain-related objects.
   createSwapChain();
-  createImageViews();
+  createTextureWrappers();
   createRenderPass();
   createFramebuffers();
   createSyncObjects();
@@ -248,29 +245,41 @@ void VulkanSwapChain::createSwapChain() {
   vkGetSwapchainImagesKHR(m_device.getDeviceHandle(), m_swap_chain,
                           &image_count, m_swap_chain_images.data());
 
-  // this is temprary solution see RHI_IMPLENENTATION_PLAN
-  for (auto vkimage : m_swap_chain_images) {
-    auto rid = m_resource_manager.add(vkimage);
-    m_image_rids.push_back(rid);
-  }
   // 10. Store the chosen format and extent for other parts of the renderer to
   // use.
   m_swap_chain_image_format = surface_format.format;
   m_swap_chain_extent = extent;
 }
 
-void VulkanSwapChain::createImageViews() {
+void VulkanSwapChain::createTextureWrappers() {
   // This commented-out block creates a VkImageView for each VkImage in the swap
   // chain. An image view is needed to tell Vulkan how to interpret the image
   // data (e.g., as a 2D color texture).
   auto FRAMES_IN_FLIGHT = getImageCount();
-  m_swap_chain_image_views.resize(FRAMES_IN_FLIGHT);
+  m_swap_chain_texture_rids.resize(FRAMES_IN_FLIGHT); // Resize rids vector too
   for (uint32_t i = 0; i < FRAMES_IN_FLIGHT; i++) {
-    // Use the helper function from VulkanDevice to create the image view.
-    m_swap_chain_image_views[i] = m_device.createImageView(
-        m_swap_chain_images[i], m_swap_chain_image_format);
+    auto texture = std::make_unique<VulkanTexture>(
+        m_device, m_swap_chain_images[i], m_swap_chain_image_format);
+    m_swap_chain_texture_rids[i] = m_resource_manager.add(std::move(texture));
   }
 }
+
+RID VulkanSwapChain::getTextureRID(uint32_t index) const {
+  return m_swap_chain_texture_rids[index];
+}
+
+VkImage VulkanSwapChain::getImage(uint32_t index) const {
+  auto texture =
+      m_resource_manager.get_ptr<VulkanTexture>(m_swap_chain_texture_rids[index]);
+  return texture ? texture->getImage() : VK_NULL_HANDLE;
+}
+
+VkImageView VulkanSwapChain::getImageView(uint32_t index) const {
+  auto texture =
+      m_resource_manager.get_ptr<VulkanTexture>(m_swap_chain_texture_rids[index]);
+  return texture ? texture->getImageView() : VK_NULL_HANDLE;
+}
+
 
 void VulkanSwapChain::createRenderPass() {
   // A Render Pass tells Vulkan about the framebuffer attachments that will be
@@ -340,7 +349,8 @@ void VulkanSwapChain::createFramebuffers() {
   auto FRAMES_IN_FLIGHT = getImageCount();
   m_swap_chain_framebuffers.resize(FRAMES_IN_FLIGHT);
   for (size_t i = 0; i < FRAMES_IN_FLIGHT; i++) {
-    std::array<VkImageView, 1> attachments = {m_swap_chain_image_views[i]};
+      auto texture = m_resource_manager.get_ptr<VulkanTexture>(m_swap_chain_texture_rids[i]);
+    std::array<VkImageView, 1> attachments = {texture->getImageView()};
 
     VkFramebufferCreateInfo framebuffer_info = {};
     framebuffer_info.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;

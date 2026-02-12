@@ -1,10 +1,10 @@
 set(ECS_SYSTEMS_SOURCES
- "ecs/systems/render_system.h"
+ "ecs/systems/scene_view_system.h"
 )
 
 set(ECS_COMPONENTS_SOURCES
     ecs/components/transform_component.h
- "ecs/components/render_component.h")
+ "ecs/components/runtime_component.h")
 
 set(ECS_SOURCES
     "include/world.h"
@@ -14,6 +14,8 @@ set(ECS_SOURCES
     "include/query.h"
     "include/flecs_query.h"
     "include/flecs_world.h"
+    include/objects_utils.h
+    src/objects_utils.cpp
 )
 
 add_library(ecs_module STATIC
@@ -28,4 +30,4 @@ target_include_directories(ecs_module
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
 )
 
-target_link_libraries(ecs_module PUBLIC flecs PRIVATE glm utils_module)
+target_link_libraries(ecs_module PUBLIC flecs PRIVATE glm core_module utils_module)

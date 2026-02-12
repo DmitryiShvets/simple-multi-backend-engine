@@ -1,6 +1,5 @@
 #pragma once
 
-#include "render_types.h"
 #include "vulkan_resource_manager.h"
 
 #include "vulkan_device.h"
@@ -53,14 +52,10 @@ public:
 
   // --- Getters ---
   size_t getCurrentFrameIndex() const { return m_current_frame; }
-  RID getImageRid(uint32_t index) const { return m_image_rids[index];}
   VkFramebuffer getFrameBuffer(int index) {
     return m_swap_chain_framebuffers[index];
   }
   VkRenderPass getRenderPass() { return m_render_pass; }
-  VkImageView getImageView(int index) {
-    return m_swap_chain_image_views[index];
-  }
   size_t getImageCount() { return m_swap_chain_images.size(); }
   VkFormat getSwapChainImageFormat() { return m_swap_chain_image_format; }
   VkExtent2D getSwapChainExtent() { return m_swap_chain_extent; }
@@ -70,6 +65,10 @@ public:
     return static_cast<float>(m_swap_chain_extent.width) /
            static_cast<float>(m_swap_chain_extent.height);
   }
+
+  RID getTextureRID(uint32_t index) const;
+  VkImage getImage(uint32_t index) const;
+  VkImageView getImageView(uint32_t index) const;
 
   /**
    * @brief Finds a suitable depth format supported by the physical device.
@@ -103,8 +102,8 @@ private:
   void init();
   /** @brief Creates the core `VkSwapchainKHR` object. */
   void createSwapChain();
-  /** @brief Creates a `VkImageView` for each `VkImage` in the swap chain. */
-  void createImageViews();
+  /** @brief Creates a VulkanTexture wrapper for each VkImage in the swap chain. */
+  void createTextureWrappers();
   // void createDepthResources();
   /** @brief Creates the render pass, defining the attachments, subpasses, and
    * dependencies. */
@@ -136,7 +135,7 @@ private:
   VkSwapchainKHR m_swap_chain;
   VkRenderPass m_render_pass;
   std::vector<VkImage> m_swap_chain_images;
-  std::vector<VkImageView> m_swap_chain_image_views;
+  std::vector<RID> m_swap_chain_texture_rids; // The single source of truth for swapchain textures
   std::vector<VkFramebuffer> m_swap_chain_framebuffers;
 
   // --- Synchronization Objects ---
@@ -145,9 +144,8 @@ private:
   std::vector<VkFence> m_in_flight_fences;
   std::vector<VkFence> m_images_in_flight;
 
-  //  this is temprary solution see RHI_IMPLENENTATION_PLAN
+  //  --- Resource Objects ---
   VulkanResourceManager &m_resource_manager;
-  std::vector<RID> m_image_rids;
 };
 
 } // namespace Render::Vulkan

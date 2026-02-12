@@ -14,13 +14,12 @@ public:
     Builder();
     ~Builder(); // Destructor for PIMPL
 
-    Builder(Builder&&) noexcept;
-    Builder& operator=(Builder&&) noexcept;
+    Builder(Builder &&) noexcept;
+    Builder &operator=(Builder &&) noexcept;
 
     // Fluent interface setters
     Builder &setPipelineLayout(VkPipelineLayout layout);
-    Builder &setRenderPass(VkRenderPass renderPass);
-    Builder &setSubpass(uint32_t subpass);
+    Builder &setColorAttachmentFormats(const std::vector<VkFormat>& formats);
     Builder &setVertexInputInfo(
         const std::vector<VkVertexInputBindingDescription> &binding_desc,
         const std::vector<VkVertexInputAttributeDescription> &attrib_desc);
@@ -52,8 +51,7 @@ public:
   std::vector<VkDynamicState> dynamicStateEnables;
   VkPipelineDynamicStateCreateInfo dynamicStateInfo;
   VkPipelineLayout pipelineLayout = nullptr;
-  VkRenderPass renderPass = nullptr;
-  uint32_t subpass = 0;
+  std::vector<VkFormat> colorAttachmentFormats;
 };
 
 class VulkanPipeLine {
@@ -66,6 +64,7 @@ public:
   ~VulkanPipeLine();
 
   void bind_buffer(VkCommandBuffer buffer);
+  VkPipeline getHandle() const { return m_graphics_pipeline; }
   VulkanPipeLine(const VulkanPipeLine &) = delete;
   VulkanPipeLine &operator=(const VulkanPipeLine &) = delete;
 

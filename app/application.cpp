@@ -1,15 +1,20 @@
 #include "application.h"
 #include "i_main_window.h"
-
-// The application only needs the abstract renderer interface
 #include "i_renderer.h"
-#include "scene_view.h"
 
-#include "ecs/components/render_component.h"
-#include "ecs/components/transform_component.h"
+#include "objects_utils.h"
+#include "runtime/runtime_init_system.h"
+#include "scene_view.h"
+#include "vertex.h"
+
+#include "flecs_world.h"
+#include "world.h"
+
+#include "ecs/systems/scene_view_system.h"
 
 #include <chrono>
 #include <memory>
+#include <vector>
 
 // The constructor now matches the new header, accepting two abstract renderers
 Application::Application(std::unique_ptr<Window::IMainWindow> gl_window,
@@ -18,30 +23,49 @@ Application::Application(std::unique_ptr<Window::IMainWindow> gl_window,
                          std::unique_ptr<Render::IRenderer> vk_renderer)
     : m_gl_window(std::move(gl_window)), m_vk_window(std::move(vk_window)),
       m_gl_renderer(std::move(gl_renderer)),
-      m_vulkan_renderer(std::move(vk_renderer)) {}
+      m_vk_renderer(std::move(vk_renderer)) {}
 
 Application::~Application() = default;
 
 void Application::init() {
+
+   m_gl_window->setPosition(100, 100);
+   m_vk_window->setPosition(950, 100);
+
   m_world = std::make_unique<Core::Ecs::World<Core::Ecs::FlecsWorldImpl>>();
-  m_render_system = std::make_unique<Core::Ecs::System::RenderSystem<
-      Core::Ecs::World<Core::Ecs::FlecsWorldImpl>>>(*m_world);
 
   // Create test objects in the ECS
-  auto circle = m_world->createEntity();
-  m_world->addComponent<Core::Ecs::Component::Transform>(
-      circle, glm::vec3(-0.5f, 0.0f, 0.0f), glm::vec3(0.0f), glm::vec3(0.5f));
-  m_world->addComponent<Core::Ecs::Component::Renderable>(
-      circle, "circle", "custom", glm::vec3(1.0f, 0.0f, 0.0f));
+  // auto triangle = m_world->createEntity();
+  auto pos = std::vector<Vertex>{
+      {{-0.5f, 0.5f, 0.0f}, {0.0f, 0.0f, 1.0f}},
+      {{0.f, -0.5f, 0.0f}, {0.0f, 1.0f, 0.0f}},
+      {{0.5f, 0.5f, 0.0f}, {1.0f, 0.0f, 0.0f}}, // pos, color
+  };
+  auto triangle = createMesh(*m_world, pos, "default");
 
-  auto square = m_world->createEntity();
-  m_world->addComponent<Core::Ecs::Component::Transform>(
-      square, glm::vec3(0.5f, 0.0f, 0.0f), glm::vec3(0.0f), glm::vec3(0.2f));
-  m_world->addComponent<Core::Ecs::Component::Renderable>(
-      square, "quad", "custom", glm::vec3(1.0f, 0.0f, 1.0f));
+  // --- Initialize runtime resources ---
+  // This system queries for entities with Geometry and Material and creates the
+  // corresponding GPU resources for each backend.
+  auto runtime_init_system =
+      std::make_unique<Core::Ecs::System::RuntimeInitSystem<
+          Core::Ecs::World<Core::Ecs::FlecsWorldImpl>>>(
+          *m_world, m_vk_renderer->getRenderDeivce(),
+          m_gl_renderer->getRenderDeivce());
+  runtime_init_system->initialize();
 }
 
 void Application::run() {
+  // Create a specific scene view system for each renderer
+  auto vk_scene_view_system =
+      std::make_unique<Core::Ecs::System::SceneViewSystem<
+          Core::Ecs::World<Core::Ecs::FlecsWorldImpl>,
+          Core::Ecs::Component::VkRuntime>>(*m_world);
+
+  auto gl_scene_view_system =
+      std::make_unique<Core::Ecs::System::SceneViewSystem<
+          Core::Ecs::World<Core::Ecs::FlecsWorldImpl>,
+          Core::Ecs::Component::GlRuntime>>(*m_world);
+
   auto lastTime = std::chrono::high_resolution_clock::now();
 
   // The main loop is now extremely simple and clean.
@@ -56,33 +80,25 @@ void Application::run() {
     m_gl_window->pollEvents();
     m_vk_window->pollEvents();
 
-    SceneView sceneView = m_render_system->createSceneView();
-
-    // A single, abstract call to each renderer.
-    // Each renderer is responsible for its own swapchain, commands, and
-    // presentation.
+    // A single, abstract call to each renderer, passing a view with the
+    // correct RIDs for that renderer.
     if (m_gl_renderer) {
-      m_gl_renderer->renderFrame(sceneView);
+      Core::SceneView gl_scene_view = gl_scene_view_system->run();
+      m_gl_renderer->renderFrame(gl_scene_view);
     }
-    if (m_vulkan_renderer) {
-      m_vulkan_renderer->renderFrame(sceneView);
+    if (m_vk_renderer) {
+      Core::SceneView vk_scene_view = vk_scene_view_system->run();
+      m_vk_renderer->renderFrame(vk_scene_view);
     }
     m_gl_window->swapBuffers();
-    // m_vk_window->swapBuffers();
   }
 }
 
 void Application::close() {
-  // In a real implementation, we would call a cleanup/shutdown method on each
-  // renderer which would in turn call waitIdle(). if (m_vulkan_renderer)
-  // m_vulkan_renderer->shutdown(); if (m_gl_renderer)
-  // m_gl_renderer->shutdown();
-
   if (m_gl_window) {
     m_gl_window->destroy();
   }
   if (m_vk_window) {
     m_vk_window->destroy();
   }
-
 }

@@ -7,8 +7,11 @@ class IMainWindow;
 }
 namespace Render {
 class IRenderer;
-} // namespace Render
-#include "ecs/systems/render_system.h"
+}
+// namespace Core::Ecs {
+// template <typename T> class World;
+// class FlecsWorldImpl;
+// }
 #include "flecs_world.h"
 #include "world.h"
 
@@ -33,13 +36,10 @@ private:
   std::unique_ptr<Window::IMainWindow> m_gl_window;
   std::unique_ptr<Window::IMainWindow> m_vk_window;
 
-  // Both renderers are now represented by the same abstract interface
+  // Both renderers
   std::unique_ptr<Render::IRenderer> m_gl_renderer;
-  std::unique_ptr<Render::IRenderer> m_vulkan_renderer;
+  std::unique_ptr<Render::IRenderer> m_vk_renderer;
 
   // ECS World and Systems
   std::unique_ptr<Core::Ecs::World<Core::Ecs::FlecsWorldImpl>> m_world;
-  std::unique_ptr<Core::Ecs::System::RenderSystem<
-      Core::Ecs::World<Core::Ecs::FlecsWorldImpl>>>
-      m_render_system;
 };

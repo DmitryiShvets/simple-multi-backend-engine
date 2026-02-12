@@ -1,6 +1,7 @@
 #pragma once
 #include <functional>
 #include <string>
+#include <type_traits>
 #include "i_gpu_context_strategy.h"
 
 namespace Window {
@@ -40,7 +41,7 @@ public:
   virtual bool shouldClose() const = 0;
   virtual void swapBuffers() = 0;
   virtual void pollEvents() = 0;
-
+  virtual void setPosition(int x, int y) = 0;
   virtual void setMouseCallback(MouseCallback callback) = 0;
   virtual void setKeyCallback(KeyCallback callback) = 0;
   virtual void setCursorCallback(CursorCallback callback) = 0;

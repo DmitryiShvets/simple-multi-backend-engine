@@ -18,6 +18,7 @@ public:
   bool shouldClose() const override;
   void swapBuffers() override;
   void pollEvents() override;
+  void setPosition(int x, int y) override;
 
   void setMouseCallback(MouseCallback callback) override;
   void setKeyCallback(KeyCallback callback) override;

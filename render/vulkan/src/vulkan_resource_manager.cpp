@@ -27,17 +27,26 @@ void VulkanResourceManager::free(RID rid) {
   // The unique_ptr returned by remove() will go out of scope and delete the
   // object.
   switch (it->second) {
-  case ResourceType::SWAP_CHAIN: // Corrected to UPPER_CASE
+  case ResourceType::SWAP_CHAIN:
     m_swap_chain_owner.remove(rid);
     break;
-  case ResourceType::BUFFER: // Corrected to UPPER_CASE
-    // m_buffer_owner.remove(rid);
+  case ResourceType::BUFFER:
+    m_buffers_owner.remove(rid);
     break;
-  case ResourceType::TEXTURE: // Corrected to UPPER_CASE
-    // m_texture_owner.remove(rid);
+  case ResourceType::IMAGE:
+    m_image_registry.remove(rid);
     break;
-  case ResourceType::PIPELINE: // Corrected to UPPER_CASE
-    // m_pipeline_owner.remove(rid);
+  case ResourceType::IMAGE_VIEW:
+    m_image_view_registry.remove(rid);
+    break;
+  case ResourceType::PIPELINE:
+    m_pipelines_owner.remove(rid);
+    break;
+  case ResourceType::DESCRIPTOR_SET_LAYOUT:
+    m_ds_layout_owner.remove(rid);
+    break;
+  case ResourceType::PIPELINE_LAYOUT:
+    m_pl_layout_owner.remove(rid);
     break;
   default:
     // Optional: log an error for an unhandled resource type

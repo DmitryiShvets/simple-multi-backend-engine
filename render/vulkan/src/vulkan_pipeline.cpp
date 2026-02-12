@@ -6,6 +6,7 @@
 #include <memory>
 #include <utility>
 #include <vulkan/vulkan_core.h>
+
 namespace Render::Vulkan {
 // =================================================================================================
 // PipelineConfig::Builder Implementation
@@ -38,9 +39,9 @@ PipelineConfigInfo::Builder::Builder() {
   m_config->rasterizationInfo.cullMode = VK_CULL_MODE_NONE;
   m_config->rasterizationInfo.frontFace = VK_FRONT_FACE_CLOCKWISE;
   m_config->rasterizationInfo.depthBiasEnable = VK_FALSE;
-  m_config->rasterizationInfo.depthBiasConstantFactor = 0.0f;   // Optional
-  m_config->rasterizationInfo.depthBiasClamp = 0.0f;            // Optional
-  m_config->rasterizationInfo.depthBiasSlopeFactor = 0.0f;      // Optional
+  m_config->rasterizationInfo.depthBiasConstantFactor = 0.0f; // Optional
+  m_config->rasterizationInfo.depthBiasClamp = 0.0f;          // Optional
+  m_config->rasterizationInfo.depthBiasSlopeFactor = 0.0f;    // Optional
 
   m_config->multisampleInfo.sType =
       VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
@@ -77,7 +78,7 @@ PipelineConfigInfo::Builder::Builder() {
 
   m_config->depthStencilInfo.sType =
       VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
-  m_config->depthStencilInfo.depthTestEnable = VK_FALSE;
+  m_config->depthStencilInfo.depthTestEnable = VK_TRUE; // Enable depth test
   m_config->depthStencilInfo.depthWriteEnable = VK_TRUE;
   m_config->depthStencilInfo.depthCompareOp = VK_COMPARE_OP_LESS;
   m_config->depthStencilInfo.depthBoundsTestEnable = VK_FALSE;
@@ -114,15 +115,9 @@ PipelineConfigInfo::Builder::setPipelineLayout(VkPipelineLayout layout) {
 }
 
 PipelineConfigInfo::Builder &
-PipelineConfigInfo::Builder::setRenderPass(VkRenderPass renderPass) {
-  m_config->renderPass = renderPass;
-  return *this;
-}
-
-PipelineConfigInfo::Builder &
-PipelineConfigInfo::Builder::setSubpass(uint32_t subpass) {
-  m_config->subpass = subpass;
-  return *this;
+PipelineConfigInfo::Builder::setColorAttachmentFormats(const std::vector<VkFormat>& formats) {
+    m_config->colorAttachmentFormats = formats;
+    return *this;
 }
 
 PipelineConfigInfo::Builder &PipelineConfigInfo::Builder::setVertexInputInfo(
@@ -240,14 +235,10 @@ void VulkanPipeLine::create_graphics_pipeline(
     const std::string &frag_shader_filepath, const PipelineConfigInfo &config) {
   assert(
       config.pipelineLayout != VK_NULL_HANDLE &&
-      "cannot create graphics pipeline : no pipelineLoyutd provided in config");
-  assert(config.renderPass != VK_NULL_HANDLE &&
-         "cannot create graphics pipeline : no renderPass provided in config");
+      "cannot create graphics pipeline : no pipelineLayout provided in config");
+
   auto vert_code = read_file(vert_shader_filepath);
   auto frag_code = read_file(frag_shader_filepath);
-
-  std::cout << "vert_shader size " << vert_code.size() << std::endl;
-  std::cout << "frag_shader size " << frag_code.size() << std::endl;
 
   create_shader_module(vert_code, &m_vert_shader_module);
   create_shader_module(frag_code, &m_frag_shader_module);
@@ -269,27 +260,38 @@ void VulkanPipeLine::create_graphics_pipeline(
   shader_stages[1].pNext = nullptr;
   shader_stages[1].pSpecializationInfo = nullptr;
 
-  VkGraphicsPipelineCreateInfo pipeliene_info{};
-  pipeliene_info.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
-  pipeliene_info.stageCount = 2;
-  pipeliene_info.pStages = shader_stages;
-  pipeliene_info.pVertexInputState = &config.vertexInputInfo;
-  pipeliene_info.pInputAssemblyState = &config.inputAssemblyInfo;
-  pipeliene_info.pViewportState = &config.viewportInfo;
-  pipeliene_info.pRasterizationState = &config.rasterizationInfo;
-  pipeliene_info.pMultisampleState = &config.multisampleInfo;
-  pipeliene_info.pDepthStencilState = &config.depthStencilInfo; // Optional
-  pipeliene_info.pColorBlendState = &config.colorBlendInfo;
-  pipeliene_info.pDynamicState = &config.dynamicStateInfo;
+  // --- Dynamic Rendering Setup ---
+  VkPipelineRenderingCreateInfo rendering_create_info{};
+  rendering_create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO;
+  rendering_create_info.colorAttachmentCount = static_cast<uint32_t>(config.colorAttachmentFormats.size());
+  rendering_create_info.pColorAttachmentFormats = config.colorAttachmentFormats.data();
+  // TODO: Set depth/stencil formats here later if needed
+  rendering_create_info.depthAttachmentFormat = VK_FORMAT_D32_SFLOAT;
+  rendering_create_info.stencilAttachmentFormat = VK_FORMAT_UNDEFINED;
 
-  pipeliene_info.layout = config.pipelineLayout;
-  pipeliene_info.renderPass = config.renderPass;
-  pipeliene_info.subpass = config.subpass;
-  pipeliene_info.basePipelineHandle = VK_NULL_HANDLE; // Optional
-  pipeliene_info.basePipelineIndex = -1;              // Optional
+
+  VkGraphicsPipelineCreateInfo pipeline_info{};
+  pipeline_info.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
+  pipeline_info.pNext = &rendering_create_info; // Chain the dynamic rendering info
+  pipeline_info.stageCount = 2;
+  pipeline_info.pStages = shader_stages;
+  pipeline_info.pVertexInputState = &config.vertexInputInfo;
+  pipeline_info.pInputAssemblyState = &config.inputAssemblyInfo;
+  pipeline_info.pViewportState = &config.viewportInfo;
+  pipeline_info.pRasterizationState = &config.rasterizationInfo;
+  pipeline_info.pMultisampleState = &config.multisampleInfo;
+  pipeline_info.pDepthStencilState = &config.depthStencilInfo;
+  pipeline_info.pColorBlendState = &config.colorBlendInfo;
+  pipeline_info.pDynamicState = &config.dynamicStateInfo;
+
+  pipeline_info.layout = config.pipelineLayout;
+  pipeline_info.renderPass = VK_NULL_HANDLE; // Must be null for dynamic rendering
+  pipeline_info.subpass = 0;
+  pipeline_info.basePipelineHandle = VK_NULL_HANDLE; // Optional
+  pipeline_info.basePipelineIndex = -1;              // Optional
 
   if (vkCreateGraphicsPipelines(m_device.getDeviceHandle(), VK_NULL_HANDLE, 1,
-                                &pipeliene_info, nullptr,
+                                &pipeline_info, nullptr,
                                 &m_graphics_pipeline) != VK_SUCCESS) {
     throw std::runtime_error("failed to create graphics pipeline!");
   }

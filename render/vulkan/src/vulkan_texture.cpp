@@ -1,14 +1,15 @@
 #include "vulkan_texture.h"
 #include "image_loader.h"
-#include <stdexcept>
 #include <cstring>
+#include <stdexcept>
 
 namespace Render::Vulkan {
 
+// File-loading constructor
 VulkanTexture::VulkanTexture(VulkanDevice &device, const std::string &filepath)
-    : m_device(device) {
+    : m_device(device), m_is_owned(true) {
   createTextureImage(filepath);
-  createTextureImageView();
+  createTextureImageView(VK_FORMAT_R8G8B8A8_SRGB); // Assuming this format for loaded files
   createTextureSampler();
 
   imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
@@ -16,20 +17,39 @@ VulkanTexture::VulkanTexture(VulkanDevice &device, const std::string &filepath)
   imageInfo.sampler = textureSampler;
 }
 
+// Swapchain-wrapping constructor
+VulkanTexture::VulkanTexture(VulkanDevice &device, VkImage image, VkFormat format)
+    : m_device(device), textureImage(image), textureImageMemory(VK_NULL_HANDLE),
+      textureSampler(VK_NULL_HANDLE), m_is_owned(false) {
+  createTextureImageView(format);
+  // Sampler is not created for swapchain images, as they are render targets.
+}
+
 VulkanTexture::~VulkanTexture() {
-  vkDestroySampler(m_device.getDeviceHandle(), textureSampler, nullptr);
-  vkDestroyImageView(m_device.getDeviceHandle(), textureImageView, nullptr);
-  vkDestroyImage(m_device.getDeviceHandle(), textureImage, nullptr);
-  vkFreeMemory(m_device.getDeviceHandle(), textureImageMemory, nullptr);
+  if (textureSampler != VK_NULL_HANDLE) {
+    vkDestroySampler(m_device.getDeviceHandle(), textureSampler, nullptr);
+  }
+  if (textureImageView != VK_NULL_HANDLE) {
+    vkDestroyImageView(m_device.getDeviceHandle(), textureImageView, nullptr);
+  }
+
+  // Only destroy the image and memory if we own it
+  if (m_is_owned) {
+    if (textureImage != VK_NULL_HANDLE) {
+      vkDestroyImage(m_device.getDeviceHandle(), textureImage, nullptr);
+    }
+    if (textureImageMemory != VK_NULL_HANDLE) {
+      vkFreeMemory(m_device.getDeviceHandle(), textureImageMemory, nullptr);
+    }
+  }
 }
 
 void VulkanTexture::createTextureSampler() {
   m_device.createTextureSampler(textureSampler);
 }
 
-void VulkanTexture::createTextureImageView() {
-  textureImageView =
-      m_device.createImageView(textureImage, VK_FORMAT_R8G8B8A8_SRGB);
+void VulkanTexture::createTextureImageView(VkFormat format) {
+  textureImageView = m_device.createImageView(textureImage, format);
 }
 
 void VulkanTexture::createTextureImage(const std::string &filepath) {

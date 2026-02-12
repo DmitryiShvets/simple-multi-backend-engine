@@ -5,11 +5,14 @@ option(BUILD_VULKAN_RENDERER "Build Vulkan renderer" ON)
 add_library(render_module STATIC
     src/render_factory.cpp
     src/render_scene.cpp
+    src/render_graph.cpp
+    src/render_pass.cpp
     src/render_graph_executor.cpp
     include/render_factory.h
     # RHI common headers
     include/render_device.h
     include/render_types.h
+    include/resource_types.h
 )
 
 target_include_directories(render_module
