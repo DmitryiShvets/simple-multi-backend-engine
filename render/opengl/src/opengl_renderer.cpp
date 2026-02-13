@@ -17,8 +17,9 @@ OpenGLRenderer::OpenGLRenderer() {
   // m_scene_renderer = std::make_unique<SceneRenderer>();
   // m_executor = std::make_unique<RenderGraphExecutor>(m_rhi_device.get());
   m_resource_manager.initialize();
-  glClearColor(175.0f / 255.0f, 218.0f / 255.0f, 252.0f / 255.0f, 1.0f);
-
+  // glClearColor(175.0f / 255.0f, 218.0f / 255.0f, 252.0f / 255.0f, 1.0f);
+  glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
+  glEnable(GL_FRAMEBUFFER_SRGB);
   glEnable(GL_DEPTH_TEST);
   glEnable(GL_CULL_FACE);
   glFrontFace(GL_CCW);
