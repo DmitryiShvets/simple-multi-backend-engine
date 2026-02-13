@@ -67,6 +67,7 @@ public:
   }
 
   RID getTextureRID(uint32_t index) const;
+  RID getDepthTextureRID(uint32_t index) const;
   VkImage getImage(uint32_t index) const;
   VkImageView getImageView(uint32_t index) const;
 
@@ -135,7 +136,8 @@ private:
   VkSwapchainKHR m_swap_chain;
   VkRenderPass m_render_pass;
   std::vector<VkImage> m_swap_chain_images;
-  std::vector<RID> m_swap_chain_texture_rids; // The single source of truth for swapchain textures
+  std::vector<RID> m_swap_chain_texture_rids;
+  std::vector<RID> m_swap_chain_depth_texture_rids;
   std::vector<VkFramebuffer> m_swap_chain_framebuffers;
 
   // --- Synchronization Objects ---

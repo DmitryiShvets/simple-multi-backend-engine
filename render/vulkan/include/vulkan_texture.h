@@ -11,6 +11,8 @@ public:
   VulkanTexture(VulkanDevice &device, const std::string &filepath);
   // Constructor for wrapping a swapchain image (does not own the image)
   VulkanTexture(VulkanDevice &device, VkImage image, VkFormat format);
+  // Constructor for creating depth image
+  VulkanTexture(VulkanDevice &device, VkExtent2D extent, VkFormat format);
   ~VulkanTexture();
 
   VulkanTexture(const VulkanTexture &) = delete;
@@ -33,8 +35,9 @@ private:
   bool m_is_owned;
 
   void createTextureSampler();
-  void createTextureImageView(VkFormat format);
+  void createTextureImageView(VkFormat format, VkImageAspectFlagBits flags);
   void createTextureImage(const std::string &filepath);
+  void createDepthTextureImage(VkExtent2D extent, VkFormat format);
 };
 
 } // namespace Render::Vulkan

@@ -6,6 +6,7 @@ set(UTILS_PUBLIC_HEADERS
     include/segment.h
     include/polyline.h
     include/image_loader.h
+    include/sphere.h
 )
 
 set(UTILS_SOURCES
@@ -14,6 +15,7 @@ set(UTILS_SOURCES
     src/curve_utils.cpp
     src/stb_image.h
     src/image_loader.cpp
+    src/sphere.cpp
 )
 
 add_library(utils_module STATIC ${UTILS_SOURCES} ${UTILS_PUBLIC_HEADERS})

@@ -12,6 +12,7 @@ namespace Render {
 enum class ImageLayout {
   UNDEFINED,
   COLOR_ATTACHMENT,
+  DEPTH_STENCIL_ATTACHMENT,
   PRESENT_SRC,
   TRANSFER_DST,
   SHADER_READ_ONLY,
@@ -184,10 +185,18 @@ struct ColorAttachmentInfo {
   ImageLayout final_layout = ImageLayout::PRESENT_SRC;
 };
 
-struct RenderingInfo {
 
+struct DepthAttachmentInfo {
+  RID texture;
+  LoadOp load_op = LoadOp::CLEAR;
+  StoreOp store_op = StoreOp::DONT_CARE;
+  float clear_value = 1.0f;
+};
+
+struct RenderingInfo {
   Rect render_area;
   std::vector<ColorAttachmentInfo> color_attachments;
+  DepthAttachmentInfo depth_attachment;
 };
 
 struct BufferCopy {

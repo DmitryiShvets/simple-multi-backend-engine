@@ -6,6 +6,7 @@
 #include "vulkan_pipeline_layout.h"
 #include <cassert>
 #include <stdexcept>
+#include <vulkan/vulkan_core.h>
 #include "render_device.h"
 #include "vulkan_resource_manager.h"
 

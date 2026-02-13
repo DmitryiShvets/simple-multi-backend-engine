@@ -42,6 +42,8 @@ void VulkanRenderer::renderFrame(const Core::SceneView &view) {
 
   RID backbuffer_texture_rid =
       m_swap_chain->getTextureRID(m_acquired_image_index);
+  RID backbuffer_depth_texture_rid =
+      m_swap_chain->getDepthTextureRID(m_acquired_image_index);
   auto extent = m_swap_chain->getSwapChainExtent();
   auto rect = Rect{
       .x = 0,
@@ -78,11 +80,11 @@ void VulkanRenderer::renderFrame(const Core::SceneView &view) {
       cmd.setGraphicsPipeline(renderable.material_id);
       cmd.setVertexBuffer(0, renderable.geometry_id, 0);
       // TODO: Get vertex count from geometry resource
-      cmd.draw(3, 1, 0, 0);
+      cmd.draw(1500, 1, 0, 0);
     }
   });
 
-  m_executor->execute(graph, backbuffer_texture_rid, *cmd, rect);
+  m_executor->execute(graph, backbuffer_texture_rid, backbuffer_depth_texture_rid, *cmd, rect);
 
   // Barrier 2: Color Attachment -> Present
   BarrierInfo to_present_barrier;

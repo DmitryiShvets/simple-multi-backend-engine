@@ -5,6 +5,7 @@
 #include "objects_utils.h"
 #include "runtime/runtime_init_system.h"
 #include "scene_view.h"
+#include "sphere.h"
 #include "vertex.h"
 
 #include "flecs_world.h"
@@ -29,19 +30,34 @@ Application::~Application() = default;
 
 void Application::init() {
 
-   m_gl_window->setPosition(100, 100);
-   m_vk_window->setPosition(950, 100);
+  m_gl_window->setPosition(100, 100);
+  m_vk_window->setPosition(950, 100);
 
   m_world = std::make_unique<Core::Ecs::World<Core::Ecs::FlecsWorldImpl>>();
 
   // Create test objects in the ECS
   // auto triangle = m_world->createEntity();
-  auto pos = std::vector<Vertex>{
-      {{-0.5f, 0.5f, 0.0f}, {0.0f, 0.0f, 1.0f}},
-      {{0.f, -0.5f, 0.0f}, {0.0f, 1.0f, 0.0f}},
-      {{0.5f, 0.5f, 0.0f}, {1.0f, 0.0f, 0.0f}}, // pos, color
+  auto sphere = getSphere3D(1, 16, 16);
+  std::vector<Vertex> pos1;
+  int j = 1;
+  for (auto i : sphere.indices) {
+
+    pos1.push_back({sphere.positions[i],
+                    {j % 3 == 1 * 1.0f, j % 3 == 2 * 1.0f, j % 3 == 0 * 1.0f}});
+    j++;
+  }
+  auto pos2 = std::vector<Vertex>{
+      {{-0.5f, -0.5f, 0.0f}, {0.0f, 1.0f, 0.0f}}, // Colors don't matter, the debug shader will override them
+      {{0.5f, -0.5f, 0.0f}, {0.0f, 1.0f, 0.0f}},
+      {{0.0f, 0.5f, 0.0f}, {0.0f, 1.0f, 0.0f}},
   };
-  auto triangle = createMesh(*m_world, pos, "default");
+  auto pos = std::vector<Vertex>{
+      {{-0.5f, 0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}},
+      {{0.f, -0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}},
+      {{0.5f, 0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}}, // pos, color
+  };
+  auto triangle = createMesh(*m_world, pos1, "default");
+  // auto triangle1 = createMesh(*m_world, pos2, "default");
 
   // --- Initialize runtime resources ---
   // This system queries for entities with Geometry and Material and creates the

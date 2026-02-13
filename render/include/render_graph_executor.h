@@ -18,7 +18,7 @@ public:
 
   // The main function: compiles the graph and records its commands into the
   // provided command list.
-  void execute(RenderGraph &graph, RID backbuffer, CommandList &cmd, const Rect& render_area);
+  void execute(RenderGraph &graph, RID back_buffer,RID depth_buffer, CommandList &cmd, const Rect& render_area);
 
 private:
   Device *m_rhi_device;

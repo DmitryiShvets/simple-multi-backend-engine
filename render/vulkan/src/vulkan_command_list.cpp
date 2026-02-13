@@ -188,10 +188,10 @@ void VulkanCommandList::pipelineBarrier(const BarrierInfo &barrier) {
 void VulkanCommandList::beginRendering(const RenderingInfo &info) {
   std::vector<VkRenderingAttachmentInfo> color_attachments;
   for (const auto &attachment_info : info.color_attachments) {
-    VkRenderingAttachmentInfo vk_attachment_info{};
-    vk_attachment_info.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
     auto back_buffer_texture =
         m_resource_manager.get_ptr<VulkanTexture>(attachment_info.texture);
+    VkRenderingAttachmentInfo vk_attachment_info{};
+    vk_attachment_info.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
     vk_attachment_info.imageView = back_buffer_texture->getImageView();
     vk_attachment_info.imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
     vk_attachment_info.loadOp =
@@ -203,6 +203,14 @@ void VulkanCommandList::beginRendering(const RenderingInfo &info) {
     color_attachments.push_back(vk_attachment_info);
   }
 
+  auto back_depth_buffer_texture =
+      m_resource_manager.get_ptr<VulkanTexture>(info.depth_attachment.texture);
+  VkRenderingAttachmentInfo depth_attachment{};
+  depth_attachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
+  depth_attachment.imageView = back_depth_buffer_texture->getImageView();
+  depth_attachment.imageLayout = VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL;
+  depth_attachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+  depth_attachment.clearValue = {1.0f, 0};
   // TODO: Get render area from somewhere
   VkRect2D render_area = {
       {.x = info.render_area.x, .y = info.render_area.y},
@@ -215,6 +223,7 @@ void VulkanCommandList::beginRendering(const RenderingInfo &info) {
   vk_rendering_info.colorAttachmentCount =
       static_cast<uint32_t>(color_attachments.size());
   vk_rendering_info.pColorAttachments = color_attachments.data();
+  vk_rendering_info.pDepthAttachment = &depth_attachment;
 
   m_device.pfn_vkCmdBeginRenderingKHR(m_command_buffer, &vk_rendering_info);
 }

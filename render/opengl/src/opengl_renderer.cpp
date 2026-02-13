@@ -18,6 +18,10 @@ OpenGLRenderer::OpenGLRenderer() {
   // m_executor = std::make_unique<RenderGraphExecutor>(m_rhi_device.get());
   m_resource_manager.initialize();
   glClearColor(175.0f / 255.0f, 218.0f / 255.0f, 252.0f / 255.0f, 1.0f);
+
+  glEnable(GL_DEPTH_TEST);
+  glEnable(GL_CULL_FACE);
+  glFrontFace(GL_CCW);
 }
 
 // Explicit destructor in .cpp file allows unique_ptr to see full type

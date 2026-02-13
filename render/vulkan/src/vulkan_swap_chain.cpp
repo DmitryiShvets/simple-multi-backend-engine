@@ -35,7 +35,8 @@ VulkanSwapChain::VulkanSwapChain(VulkanDevice &deviceRef,
 VulkanSwapChain::~VulkanSwapChain() {
   // Destroy all created objects in reverse order of creation.
 
-  // 1. Swapchain object itself. Image views are now owned by VulkanTexture objects.
+  // 1. Swapchain object itself. Image views are now owned by VulkanTexture
+  // objects.
   if (m_swap_chain != nullptr) {
     vkDestroySwapchainKHR(m_device.getDeviceHandle(), m_swap_chain, nullptr);
     m_swap_chain = nullptr;
@@ -50,7 +51,7 @@ VulkanSwapChain::~VulkanSwapChain() {
   vkDestroyRenderPass(m_device.getDeviceHandle(), m_render_pass, nullptr);
 
   // 4. Synchronization objects
- auto FRAMES_IN_FLIGHT = getImageCount();
+  auto FRAMES_IN_FLIGHT = getImageCount();
   for (size_t i = 0; i < FRAMES_IN_FLIGHT; i++) {
     vkDestroySemaphore(m_device.getDeviceHandle(),
                        m_render_finished_semaphores[i], nullptr);
@@ -197,7 +198,8 @@ void VulkanSwapChain::createSwapChain() {
   create_info.imageExtent = extent;
   create_info.imageArrayLayers = 1;
   create_info.imageUsage =
-      VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT; // We'll be drawing to these images.
+      VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT |
+      VK_IMAGE_USAGE_TRANSFER_DST_BIT; // We'll be drawing to these images.
 
   // 5. Handle how images are used across different queue families.
   QueueFamilyIndices indices = m_device.findPhysicalQueueFamilies();
@@ -257,10 +259,15 @@ void VulkanSwapChain::createTextureWrappers() {
   // data (e.g., as a 2D color texture).
   auto FRAMES_IN_FLIGHT = getImageCount();
   m_swap_chain_texture_rids.resize(FRAMES_IN_FLIGHT); // Resize rids vector too
+  m_swap_chain_depth_texture_rids.resize(FRAMES_IN_FLIGHT);
   for (uint32_t i = 0; i < FRAMES_IN_FLIGHT; i++) {
     auto texture = std::make_unique<VulkanTexture>(
         m_device, m_swap_chain_images[i], m_swap_chain_image_format);
+    auto depth_texture = std::make_unique<VulkanTexture>(
+        m_device, m_swap_chain_extent, findDepthFormat());
     m_swap_chain_texture_rids[i] = m_resource_manager.add(std::move(texture));
+    m_swap_chain_depth_texture_rids[i] =
+        m_resource_manager.add(std::move(depth_texture));
   }
 }
 
@@ -268,18 +275,9 @@ RID VulkanSwapChain::getTextureRID(uint32_t index) const {
   return m_swap_chain_texture_rids[index];
 }
 
-VkImage VulkanSwapChain::getImage(uint32_t index) const {
-  auto texture =
-      m_resource_manager.get_ptr<VulkanTexture>(m_swap_chain_texture_rids[index]);
-  return texture ? texture->getImage() : VK_NULL_HANDLE;
+RID VulkanSwapChain::getDepthTextureRID(uint32_t index) const {
+  return m_swap_chain_depth_texture_rids[index];
 }
-
-VkImageView VulkanSwapChain::getImageView(uint32_t index) const {
-  auto texture =
-      m_resource_manager.get_ptr<VulkanTexture>(m_swap_chain_texture_rids[index]);
-  return texture ? texture->getImageView() : VK_NULL_HANDLE;
-}
-
 
 void VulkanSwapChain::createRenderPass() {
   // A Render Pass tells Vulkan about the framebuffer attachments that will be
@@ -349,7 +347,8 @@ void VulkanSwapChain::createFramebuffers() {
   auto FRAMES_IN_FLIGHT = getImageCount();
   m_swap_chain_framebuffers.resize(FRAMES_IN_FLIGHT);
   for (size_t i = 0; i < FRAMES_IN_FLIGHT; i++) {
-      auto texture = m_resource_manager.get_ptr<VulkanTexture>(m_swap_chain_texture_rids[i]);
+    auto texture =
+        m_resource_manager.get_ptr<VulkanTexture>(m_swap_chain_texture_rids[i]);
     std::array<VkImageView, 1> attachments = {texture->getImageView()};
 
     VkFramebufferCreateInfo framebuffer_info = {};
@@ -386,7 +385,7 @@ void VulkanSwapChain::createSyncObjects() {
   fence_info.flags =
       VK_FENCE_CREATE_SIGNALED_BIT; // Create fences in a signaled state.
 
-    for (size_t i = 0; i < FRAMES_IN_FLIGHT; i++) {
+  for (size_t i = 0; i < FRAMES_IN_FLIGHT; i++) {
     if (vkCreateSemaphore(m_device.getDeviceHandle(), &semaphore_info, nullptr,
                           &m_image_available_semaphores[i]) != VK_SUCCESS ||
         vkCreateSemaphore(m_device.getDeviceHandle(), &semaphore_info, nullptr,

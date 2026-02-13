@@ -124,7 +124,7 @@ public:
    * An image view describes how to access an image and which part of the image
    * to access.
    */
-  VkImageView createImageView(VkImage image, VkFormat format);
+  VkImageView createImageView(VkImage image, VkFormat format,  VkImageAspectFlagBits flags);
   /**
    * @brief A helper function to create a VkDeviceMemory.
    */
