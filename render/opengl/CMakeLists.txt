@@ -26,8 +26,7 @@ target_include_directories(opengl_renderer
 # DEPENDENCIES
 find_package(OpenGL REQUIRED)
 target_link_libraries(opengl_renderer
-    PRIVATE ${OPENGL_LIBRARIES} glm utils_module core_module render_module
-    PUBLIC glad
+    PRIVATE ${OPENGL_LIBRARIES} glad glm utils_module core_module render_module imgui
 )
 
 # POST BUILD

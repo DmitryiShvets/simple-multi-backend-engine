@@ -13,11 +13,11 @@ public:
   explicit GLFWMainWindow(const WindowConfig &cfg)
       : config(cfg), m_window(nullptr) {}
 
-  void initialize(const IGpuContextStrategy &contextStrategy) override;
+  void init(const IGpuContextStrategy &contextStrategy) override;
   void destroy() override;
   bool shouldClose() const override;
   void swapBuffers() override;
-  void pollEvents() override;
+  void update() override;
   void setPosition(int x, int y) override;
 
   void setMouseCallback(MouseCallback callback) override;

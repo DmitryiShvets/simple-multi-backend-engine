@@ -1,8 +1,9 @@
 #pragma once
+
+#include "i_gpu_context_strategy.h"
+
 #include <functional>
 #include <string>
-#include <type_traits>
-#include "i_gpu_context_strategy.h"
 
 namespace Window {
 
@@ -36,11 +37,11 @@ public:
   using ResizeCallback = std::function<void(int, int)>;
 
   virtual ~IMainWindow() = default;
-  virtual void initialize(const IGpuContextStrategy& contextStrategy) = 0;
+  virtual void init(const IGpuContextStrategy& contextStrategy) = 0;
   virtual void destroy() = 0;
   virtual bool shouldClose() const = 0;
   virtual void swapBuffers() = 0;
-  virtual void pollEvents() = 0;
+  virtual void update() = 0;
   virtual void setPosition(int x, int y) = 0;
   virtual void setMouseCallback(MouseCallback callback) = 0;
   virtual void setKeyCallback(KeyCallback callback) = 0;

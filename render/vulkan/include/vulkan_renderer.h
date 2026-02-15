@@ -33,8 +33,13 @@ public:
   VulkanRenderer(std::unique_ptr<VulkanDevice> device);
   virtual ~VulkanRenderer();
 
-  // The implementation of the main interface method
-  void renderFrame(const Core::SceneView &view) override;
+  void init(ImGuiContext *ctx) override;
+
+  void renderFrame(const Core::SceneView &view,
+                   ImDrawData *ui_draw_data) override;
+
+  void destroy() override;
+
   Device &getRenderDeivce() override { return *m_rhi_device; };
 
 private:
@@ -42,6 +47,7 @@ private:
   std::unique_ptr<VulkanDevice> m_device;
   std::unique_ptr<VulkanRHIDevice> m_rhi_device;
   VulkanResourceManager m_resource_manager;
+  std::unique_ptr<DescriptorPool> m_imgui_descriptor_pool{};
 
   // --- Frame and Swapchain Management ---
   std::unique_ptr<VulkanSwapChain> m_swap_chain;
@@ -50,7 +56,7 @@ private:
 
   // --- Rendering Logic (Orchestration) ---
   std::unique_ptr<RenderGraphExecutor> m_executor;
-
+  ImGuiContext *m_imgui_context = nullptr;
   // Private, API-dependent methods for frame lifecycle management
   void createSwapChain(); // Will be called during initialization
   void acquireNextImage();

@@ -1,9 +1,9 @@
 #pragma once
 
-#include "opengl_resource_manager.h"
 #include "i_renderer.h"
-#include <memory>
+#include "opengl_resource_manager.h"
 #include "render_graph_executor.h"
+#include <memory>
 // Forward-declarations
 namespace Render {
 class Device;
@@ -21,7 +21,12 @@ public:
   OpenGLRenderer();
   ~OpenGLRenderer();
 
-  void renderFrame(const Core::SceneView &view) override;
+  void init(ImGuiContext *ctx) override;
+
+  void renderFrame(const Core::SceneView &view, ImDrawData* ui_draw_data) override;
+
+  void destroy() override;
+
   Device &getRenderDeivce() override { return *m_rhi_device; };
 
 private:
@@ -29,6 +34,7 @@ private:
 
   // Shared, API-agnostic systems
   std::unique_ptr<RenderGraphExecutor> m_executor;
+  ImGuiContext *m_imgui_context = nullptr;
   OpenglResourceManager m_resource_manager;
 };
 

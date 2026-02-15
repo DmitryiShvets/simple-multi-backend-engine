@@ -40,8 +40,7 @@ target_include_directories(vulkan_renderer
 # DEPENDENCIES
 find_package(Vulkan REQUIRED)
 target_link_libraries(vulkan_renderer
-    PUBLIC Vulkan::Vulkan
-    PRIVATE glm utils_module core_module render_module
+    PRIVATE Vulkan::Vulkan glm utils_module core_module render_module imgui
 )
 
 # ======================================================================================

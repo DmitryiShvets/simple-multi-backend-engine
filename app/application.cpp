@@ -1,4 +1,5 @@
 #include "application.h"
+#include "hello_widget.h"
 #include "i_main_window.h"
 #include "i_renderer.h"
 
@@ -13,18 +14,23 @@
 
 #include "ecs/systems/scene_view_system.h"
 
+#include "ui_manager.h"
+
 #include <chrono>
 #include <memory>
+#include <utility>
 #include <vector>
 
 // The constructor now matches the new header, accepting two abstract renderers
 Application::Application(std::unique_ptr<Window::IMainWindow> gl_window,
                          std::unique_ptr<Window::IMainWindow> vk_window,
                          std::unique_ptr<Render::IRenderer> gl_renderer,
-                         std::unique_ptr<Render::IRenderer> vk_renderer)
+                         std::unique_ptr<Render::IRenderer> vk_renderer,
+                         std::unique_ptr<UI::UIManager> ui_manager)
     : m_gl_window(std::move(gl_window)), m_vk_window(std::move(vk_window)),
       m_gl_renderer(std::move(gl_renderer)),
-      m_vk_renderer(std::move(vk_renderer)) {}
+      m_vk_renderer(std::move(vk_renderer)),
+      m_ui_manager(std::move(ui_manager)) {}
 
 Application::~Application() = default;
 
@@ -47,7 +53,9 @@ void Application::init() {
     j++;
   }
   auto pos2 = std::vector<Vertex>{
-      {{-0.5f, -0.5f, 0.0f}, {0.0f, 1.0f, 0.0f}}, // Colors don't matter, the debug shader will override them
+      {{-0.5f, -0.5f, 0.0f},
+       {0.0f, 1.0f,
+        0.0f}}, // Colors don't matter, the debug shader will override them
       {{0.5f, -0.5f, 0.0f}, {0.0f, 1.0f, 0.0f}},
       {{0.0f, 0.5f, 0.0f}, {0.0f, 1.0f, 0.0f}},
   };
@@ -84,6 +92,7 @@ void Application::run() {
 
   auto lastTime = std::chrono::high_resolution_clock::now();
 
+  UI::HelloWidget widget;
   // The main loop is now extremely simple and clean.
   while (!m_gl_window->shouldClose() &&
          !m_vk_window->shouldClose()) { // Assuming one window controls the
@@ -93,28 +102,28 @@ void Application::run() {
         std::chrono::duration<float>(currentTime - lastTime).count();
     lastTime = currentTime;
 
-    m_gl_window->pollEvents();
-    m_vk_window->pollEvents();
+    m_gl_window->update();
+    m_vk_window->update();
 
-    // A single, abstract call to each renderer, passing a view with the
-    // correct RIDs for that renderer.
-    if (m_gl_renderer) {
-      Core::SceneView gl_scene_view = gl_scene_view_system->run();
-      m_gl_renderer->renderFrame(gl_scene_view);
-    }
-    if (m_vk_renderer) {
-      Core::SceneView vk_scene_view = vk_scene_view_system->run();
-      m_vk_renderer->renderFrame(vk_scene_view);
-    }
+    m_ui_manager->render([&widget]() { widget.render(); },
+                         [&widget]() { widget.render(); });
+
+    Core::SceneView gl_scene_view = gl_scene_view_system->run();
+    m_gl_renderer->renderFrame(gl_scene_view,
+                               m_ui_manager->getOpenGLDrawData());
+
+    Core::SceneView vk_scene_view = vk_scene_view_system->run();
+    m_vk_renderer->renderFrame(vk_scene_view,
+                               m_ui_manager->getVulkanDrawData());
+
     m_gl_window->swapBuffers();
   }
 }
 
 void Application::close() {
-  if (m_gl_window) {
-    m_gl_window->destroy();
-  }
-  if (m_vk_window) {
-    m_vk_window->destroy();
-  }
+  m_gl_renderer->destroy();
+  m_vk_renderer->destroy();
+  m_ui_manager->destroy();
+  m_gl_window->destroy();
+  m_vk_window->destroy();
 }

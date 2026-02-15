@@ -1,11 +1,13 @@
 set(HELPER_PUBLIC_HEADERS
   include/glfw_vulkan_surface_creator.h
   include/gpu_context_creator.h
+  include/ui_manager.h
 )
 
 set(HELPER_SOURCES
     src/glfw_vulkan_surface_creator.cpp
     src/gpu_context_creator.cpp
+    src/ui_manager.cpp
 )
 
 add_library(adapters_module STATIC ${HELPER_SOURCES} ${HELPER_PUBLIC_HEADERS})
@@ -16,4 +18,4 @@ target_include_directories(adapters_module
 )
 
 # DEPENDENCIES
-target_link_libraries(adapters_module PUBLIC glfw PRIVATE glad window_module utils_module render_module)
+target_link_libraries(adapters_module PRIVATE imgui glad platform_module utils_module render_module ui_module)

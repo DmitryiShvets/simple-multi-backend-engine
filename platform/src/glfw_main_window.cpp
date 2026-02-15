@@ -7,7 +7,7 @@ namespace Window {
 // Initialize the static counter
 int GLFWMainWindow::s_active_windows = 0;
 
-void GLFWMainWindow::initialize(const IGpuContextStrategy& contextStrategy) {
+void GLFWMainWindow::init(const IGpuContextStrategy &contextStrategy) {
   // Only initialize GLFW if it's the first window
   if (s_active_windows == 0) {
     if (!glfwInit()) {
@@ -24,7 +24,7 @@ void GLFWMainWindow::initialize(const IGpuContextStrategy& contextStrategy) {
   if (!m_window) {
     Logger::error_log("Не удалось создать окно!");
     if (s_active_windows == 0) {
-        glfwTerminate();
+      glfwTerminate();
     }
     exit(EXIT_FAILURE);
   }
@@ -59,18 +59,20 @@ void GLFWMainWindow::destroy() {
   }
 }
 void GLFWMainWindow::swapBuffers() {
-    if (m_window) glfwSwapBuffers(m_window);
+  if (m_window)
+    glfwSwapBuffers(m_window);
 }
-void GLFWMainWindow::pollEvents() { glfwPollEvents(); }
+void GLFWMainWindow::update() {
+  glfwPollEvents();
+}
 
 bool GLFWMainWindow::shouldClose() const {
   return glfwWindowShouldClose(m_window);
 }
 
 void GLFWMainWindow::setPosition(int x, int y) {
-     glfwSetWindowPos(m_window, x, y);
+  glfwSetWindowPos(m_window, x, y);
 }
-
 
 void GLFWMainWindow::setCursorCallback(CursorCallback cb) {
   m_cursorCallback = cb;
@@ -134,7 +136,7 @@ void GLFWMainWindow::resizeCallback(GLFWwindow *window, int width, int height) {
   self->config.width = width;
   self->config.height = height;
 
-  if(self->m_resizeCallback) {
+  if (self->m_resizeCallback) {
     self->m_resizeCallback(width, height);
   }
 }

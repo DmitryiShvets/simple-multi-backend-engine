@@ -8,6 +8,9 @@ class IMainWindow;
 namespace Render {
 class IRenderer;
 }
+namespace UI {
+class UIManager;
+}
 // namespace Core::Ecs {
 // template <typename T> class World;
 // class FlecsWorldImpl;
@@ -30,7 +33,8 @@ public:
   Application(std::unique_ptr<Window::IMainWindow> gl_window,
               std::unique_ptr<Window::IMainWindow> vk_window,
               std::unique_ptr<Render::IRenderer> gl_renderer,
-              std::unique_ptr<Render::IRenderer> vk_renderer);
+              std::unique_ptr<Render::IRenderer> vk_renderer,
+              std::unique_ptr<UI::UIManager> ui_manager);
 
 private:
   std::unique_ptr<Window::IMainWindow> m_gl_window;
@@ -40,6 +44,7 @@ private:
   std::unique_ptr<Render::IRenderer> m_gl_renderer;
   std::unique_ptr<Render::IRenderer> m_vk_renderer;
 
+  std::unique_ptr<UI::UIManager> m_ui_manager;
   // ECS World and Systems
   std::unique_ptr<Core::Ecs::World<Core::Ecs::FlecsWorldImpl>> m_world;
 };
