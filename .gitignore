@@ -6,7 +6,6 @@ build/
 # IDE settings
 
 # External dependensies
-external
 
 # AI Assistant specific folders
 .gemini/

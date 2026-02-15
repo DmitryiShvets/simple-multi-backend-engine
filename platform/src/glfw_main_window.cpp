@@ -8,6 +8,10 @@ namespace Window {
 int GLFWMainWindow::s_active_windows = 0;
 
 void GLFWMainWindow::init(const IGpuContextStrategy &contextStrategy) {
+// Force GLFW to use X11 backend (XWayland) to allow window positioning on linux.
+#if defined(__linux__)
+  glfwInitHint(GLFW_PLATFORM, GLFW_PLATFORM_X11);
+#endif
   // Only initialize GLFW if it's the first window
   if (s_active_windows == 0) {
     if (!glfwInit()) {
@@ -62,9 +66,7 @@ void GLFWMainWindow::swapBuffers() {
   if (m_window)
     glfwSwapBuffers(m_window);
 }
-void GLFWMainWindow::update() {
-  glfwPollEvents();
-}
+void GLFWMainWindow::update() { glfwPollEvents(); }
 
 bool GLFWMainWindow::shouldClose() const {
   return glfwWindowShouldClose(m_window);

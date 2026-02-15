@@ -2,13 +2,11 @@ set(WINDOW_PUBLIC_HEADERS
   include/glfw_main_window.h
   include/i_main_window.h
   include/window_factory.h
-  include/imgui_impl_glfw.h
 )
 
 set(WINDOW_SOURCES
   src/glfw_main_window.cpp
   src/window_factory.cpp
-  src/imgui_impl_glfw.cpp
 )
 
 add_library(platform_module STATIC ${WINDOW_SOURCES} ${WINDOW_PUBLIC_HEADERS})

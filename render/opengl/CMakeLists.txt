@@ -14,6 +14,8 @@ set(OPENGL_RENDER_SOURCES
     src/opengl_buffer_objects.cpp
 )
 
+add_subdirectory(glad)
+
 add_library(opengl_renderer STATIC ${OPENGL_RENDER_SOURCES} ${OPENGL_RENDER_PUBLIC_HEADERS})
 
 target_include_directories(opengl_renderer
