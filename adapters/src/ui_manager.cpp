@@ -32,12 +32,14 @@ void UIManager::init(Window::IMainWindow &wnd_vulkan,
   m_ctx_vulkan = ImGui::CreateContext();
   ImGui::SetCurrentContext(m_ctx_vulkan); // Устанавливаем текущий контекст
   configureNewContext();                  // Применяем общие настройки
-  ImGui_ImplGlfw_InitForVulkan(glfw_window_vk, true);
+  ImGui_ImplGlfw_InitForVulkan(glfw_window_vk, false);
+  wnd_vulkan.setUiContext(m_ctx_vulkan);
   // --- Настройка контекста для OPENGL ---
   m_ctx_opengl = ImGui::CreateContext();
   ImGui::SetCurrentContext(m_ctx_opengl); // Устанавливаем текущий контекст
   configureNewContext();                  // Применяем те же настройки
   ImGui_ImplGlfw_InitForOpenGL(glfw_window_gl, false);
+  wnd_opengl.setUiContext(m_ctx_opengl);
 }
 
 void UIManager::render(const std::function<void()> &draw_vulkan_ui,

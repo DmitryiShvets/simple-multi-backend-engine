@@ -1,6 +1,13 @@
 #include "glfw_main_window.h"
 #include "i_main_window.h"
+#include "imgui.h"
+#include "imgui_impl_glfw.h"
+#include "imgui_internal.h"
 #include "logger.h"
+
+#include <imgui_internal.h>
+#define GLFW_INCLUDE_NONE
+#include <GLFW/glfw3.h>
 
 namespace Window {
 
@@ -8,7 +15,8 @@ namespace Window {
 int GLFWMainWindow::s_active_windows = 0;
 
 void GLFWMainWindow::init(const IGpuContextStrategy &contextStrategy) {
-// Force GLFW to use X11 backend (XWayland) to allow window positioning on linux.
+// Force GLFW to use X11 backend (XWayland) to allow window positioning on
+// linux.
 #if defined(__linux__)
   glfwInitHint(GLFW_PLATFORM, GLFW_PLATFORM_X11);
 #endif
@@ -49,6 +57,11 @@ void GLFWMainWindow::init(const IGpuContextStrategy &contextStrategy) {
   glfwSetKeyCallback(m_window, keyCallback);
   glfwSetMouseButtonCallback(m_window, mouseButtonClickCallback);
   glfwSetCursorPosCallback(m_window, cursorPosCallback);
+  glfwSetScrollCallback(m_window, scrollCallback);
+  glfwSetCharCallback(m_window, charCallback);
+  glfwSetWindowFocusCallback(m_window, windowFocusCallback);
+  glfwSetCursorEnterCallback(m_window, cursorEnterCallback);
+  glfwSetMonitorCallback(monitorCallback);
 }
 
 void GLFWMainWindow::destroy() {
@@ -90,10 +103,31 @@ void GLFWMainWindow::setMouseCallback(MouseCallback cb) {
   m_mouseCallback = cb;
 }
 
+void GLFWMainWindow::setScrollCallback(ScrollCallback cb) {
+  m_scrollCallback = cb;
+}
+
+void GLFWMainWindow::setCharCallback(CharCallback cb) { m_charCallback = cb; }
+
+void GLFWMainWindow::setWindowFocusCallback(WindowFocusCallback cb) {
+  m_windowFocusCallback = cb;
+}
+
+void GLFWMainWindow::setCursorEnterCallback(CursorEnterCallback cb) {
+  m_cursorEnterCallback = cb;
+}
+
 void GLFWMainWindow::keyCallback(GLFWwindow *window, int key, int scancode,
                                  int action, int mods) {
   auto *self = static_cast<GLFWMainWindow *>(glfwGetWindowUserPointer(window));
-  if (self && self->m_keyCallback) {
+  bool event_was_captured = false;
+  // handlde imgui callbacks
+  if (self && self->m_ui_context) {
+    ImGui::SetCurrentContext(self->m_ui_context);
+    ImGui_ImplGlfw_KeyCallback(window, key, scancode, action, mods);
+    event_was_captured = ImGui::GetIO().WantCaptureKeyboard;
+  }
+  if (self && self->m_keyCallback && !event_was_captured) {
     Action act = (action == GLFW_PRESS)     ? Action::Press
                  : (action == GLFW_RELEASE) ? Action::Release
                                             : Action::Repeat;
@@ -105,7 +139,15 @@ void GLFWMainWindow::keyCallback(GLFWwindow *window, int key, int scancode,
 void GLFWMainWindow::mouseButtonClickCallback(GLFWwindow *window, int button,
                                               int action, int mods) {
   auto *self = static_cast<GLFWMainWindow *>(glfwGetWindowUserPointer(window));
-  if (self && self->m_mouseCallback) {
+  bool event_was_captured = false;
+  // handlde imgui callbacks
+  if (self && self->m_ui_context) {
+    ImGui::SetCurrentContext(self->m_ui_context);
+    ImGui_ImplGlfw_MouseButtonCallback(window, button, action, mods);
+    event_was_captured = ImGui::GetIO().WantCaptureMouse;
+  }
+  // handlde user callbacks
+  if (self && self->m_mouseCallback && !event_was_captured) {
     double xpos, ypos, y;
     // getting cursor position
     glfwGetCursorPos(window, &xpos, &y);
@@ -122,12 +164,75 @@ void GLFWMainWindow::cursorPosCallback(GLFWwindow *window, double xpos,
                                        double ypos) {
   int width, nowHeight;
   auto *self = static_cast<GLFWMainWindow *>(glfwGetWindowUserPointer(window));
-  if (self && self->m_cursorCallback) {
+  bool event_was_captured = false;
+  // handlde imgui callbacks
+  if (self && self->m_ui_context) {
+    ImGui::SetCurrentContext(self->m_ui_context);
+    ImGui_ImplGlfw_CursorPosCallback(window, xpos, ypos);
+    event_was_captured = ImGui::GetIO().WantCaptureMouse;
+  }
+  if (self && self->m_cursorCallback && !event_was_captured) {
     double xpos, ypos;
     // getting cursor position
     glfwGetCursorPos(window, &xpos, &ypos);
     self->m_cursorCallback(xpos, ypos);
   }
+}
+
+void GLFWMainWindow::scrollCallback(GLFWwindow *window, double xoffset,
+                                    double yoffset) {
+  auto *self = static_cast<GLFWMainWindow *>(glfwGetWindowUserPointer(window));
+  bool event_was_captured = false;
+  if (self && self->m_ui_context) {
+    ImGui::SetCurrentContext(self->m_ui_context);
+    ImGui_ImplGlfw_ScrollCallback(window, xoffset, yoffset);
+    event_was_captured = ImGui::GetIO().WantCaptureMouse;
+  }
+  if (self && self->m_scrollCallback && !event_was_captured) {
+    self->m_scrollCallback(xoffset, yoffset);
+  }
+}
+
+void GLFWMainWindow::charCallback(GLFWwindow *window, unsigned int c) {
+  auto *self = static_cast<GLFWMainWindow *>(glfwGetWindowUserPointer(window));
+  bool event_was_captured = false;
+  if (self && self->m_ui_context) {
+    ImGui::SetCurrentContext(self->m_ui_context);
+    ImGui_ImplGlfw_CharCallback(window, c);
+    event_was_captured = ImGui::GetIO().WantCaptureKeyboard;
+  }
+  if (self && self->m_charCallback && !event_was_captured) {
+    self->m_charCallback(c);
+  }
+}
+
+void GLFWMainWindow::windowFocusCallback(GLFWwindow *window, int focused) {
+  auto *self = static_cast<GLFWMainWindow *>(glfwGetWindowUserPointer(window));
+  if (self && self->m_ui_context) {
+    ImGui::SetCurrentContext(self->m_ui_context);
+    ImGui_ImplGlfw_WindowFocusCallback(window, focused);
+  }
+  if (self && self->m_windowFocusCallback) {
+    self->m_windowFocusCallback(focused);
+  }
+}
+
+void GLFWMainWindow::cursorEnterCallback(GLFWwindow *window, int entered) {
+  auto *self = static_cast<GLFWMainWindow *>(glfwGetWindowUserPointer(window));
+  if (self && self->m_ui_context) {
+    ImGui::SetCurrentContext(self->m_ui_context);
+    ImGui_ImplGlfw_CursorEnterCallback(window, entered);
+  }
+  if (self && self->m_cursorEnterCallback) {
+    self->m_cursorEnterCallback(entered);
+  }
+}
+
+void GLFWMainWindow::monitorCallback(GLFWmonitor *monitor, int event) {
+  // This is a global callback. We can't get a window-specific context.
+  // We call the ImGui implementation directly, which should handle updating its
+  // monitor list.
+  ImGui_ImplGlfw_MonitorCallback(monitor, event);
 }
 void GLFWMainWindow::errorHandlerCallback(int error, const char *description) {
   Logger::error_log(description);
@@ -144,6 +249,10 @@ void GLFWMainWindow::resizeCallback(GLFWwindow *window, int width, int height) {
 }
 
 void *GLFWMainWindow::getNativeWindow() const { return m_window; }
+
+void GLFWMainWindow::setUiContext(void *ctx) {
+  m_ui_context = static_cast<ImGuiContext *>(ctx);
+};
 
 WindowConfig GLFWMainWindow::getConfig() { return config; }
 

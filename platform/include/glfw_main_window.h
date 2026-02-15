@@ -2,8 +2,9 @@
 #include "i_gpu_context_strategy.h"
 #include "i_main_window.h"
 
-#define GLFW_INCLUDE_NONE
-#include <GLFW/glfw3.h>
+class ImGuiContext;
+class GLFWwindow;
+class GLFWmonitor;
 
 namespace Window {
 
@@ -24,17 +25,27 @@ public:
   void setKeyCallback(KeyCallback callback) override;
   void setCursorCallback(CursorCallback callback) override;
   void setResizeCallback(ResizeCallback callback) override;
+  void setScrollCallback(ScrollCallback callback) override;
+  void setCharCallback(CharCallback callback) override;
+  void setWindowFocusCallback(WindowFocusCallback callback) override;
+  void setCursorEnterCallback(CursorEnterCallback callback) override;
 
   void *getNativeWindow() const override;
+  void setUiContext(void *ctx) override;
 
 private:
   GLFWwindow *m_window = nullptr;
+  ImGuiContext *m_ui_context = nullptr;
   WindowConfig config;
 
   MouseCallback m_mouseCallback = nullptr;
   KeyCallback m_keyCallback = nullptr;
   CursorCallback m_cursorCallback = nullptr;
   ResizeCallback m_resizeCallback = nullptr;
+  ScrollCallback m_scrollCallback = nullptr;
+  CharCallback m_charCallback = nullptr;
+  WindowFocusCallback m_windowFocusCallback = nullptr;
+  CursorEnterCallback m_cursorEnterCallback = nullptr;
 
   static int s_active_windows; // Counter for active windows
 
@@ -46,6 +57,11 @@ private:
   static void keyCallback(GLFWwindow *window, int key, int scancode, int action,
                           int mods);
   static void cursorPosCallback(GLFWwindow *window, double xpos, double ypos);
+  static void scrollCallback(GLFWwindow *window, double xoffset, double yoffset);
+  static void charCallback(GLFWwindow *window, unsigned int c);
+  static void windowFocusCallback(GLFWwindow *window, int focused);
+  static void cursorEnterCallback(GLFWwindow *window, int entered);
+  static void monitorCallback(GLFWmonitor *monitor, int event);
 
   static void errorHandlerCallback(int error, const char *description);
 
