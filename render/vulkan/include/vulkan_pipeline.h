@@ -1,5 +1,6 @@
 #pragma once
 #include "vulkan_device.h"
+
 #include <memory>
 #include <string>
 #include <vector>
@@ -65,6 +66,7 @@ public:
 
   void bind_buffer(VkCommandBuffer buffer);
   VkPipeline getHandle() const { return m_graphics_pipeline; }
+  VkPipelineLayout getLayoutHandle() const { return m_pipeline_layout; }
   VulkanPipeLine(const VulkanPipeLine &) = delete;
   VulkanPipeLine &operator=(const VulkanPipeLine &) = delete;
 
@@ -77,6 +79,7 @@ private:
                             VkShaderModule *shader_module);
   VulkanDevice &m_device;
   VkPipeline m_graphics_pipeline;
+  VkPipelineLayout m_pipeline_layout;
   VkShaderModule m_vert_shader_module;
   VkShaderModule m_frag_shader_module;
 };

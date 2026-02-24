@@ -7,7 +7,7 @@
 #include <vector>
 
 namespace Render {
-
+enum class BackendType { Vulkan, OpenGL };
 // --- Core Enums ---
 enum class ImageLayout {
   UNDEFINED,
@@ -28,14 +28,13 @@ enum class Format {
 };
 
 enum class DescriptorType {
-    SAMPLER,
-    COMBINED_IMAGE_SAMPLER,
-    SAMPLED_IMAGE,
-    STORAGE_IMAGE,
-    UNIFORM_BUFFER,
-    STORAGE_BUFFER,
+  SAMPLER,
+  COMBINED_IMAGE_SAMPLER,
+  SAMPLED_IMAGE,
+  STORAGE_IMAGE,
+  UNIFORM_BUFFER,
+  STORAGE_BUFFER,
 };
-
 
 enum class IndexType { UINT16, UINT32 };
 
@@ -97,27 +96,26 @@ struct SamplerDesc {};
 // --- Layout Descriptors ---
 
 struct DescriptorBindingDesc {
-    uint32_t binding;
-    DescriptorType type;
-    ShaderStageFlags stages;
-    uint32_t count = 1;
+  uint32_t binding;
+  DescriptorType type;
+  ShaderStageFlags stages;
+  uint32_t count = 1;
 };
 
 struct DescriptorSetLayoutDesc {
-    std::vector<DescriptorBindingDesc> bindings;
+  std::vector<DescriptorBindingDesc> bindings;
 };
 
 struct PushConstantRange {
-    ShaderStageFlags stages;
-    uint32_t offset;
-    uint32_t size;
+  ShaderStageFlags stages;
+  uint32_t offset;
+  uint32_t size;
 };
 
 struct PipelineLayoutDesc {
-    std::vector<RID> descriptor_set_layouts;
-    std::vector<PushConstantRange> push_constant_ranges;
+  std::vector<RID> descriptor_set_layouts;
+  std::vector<PushConstantRange> push_constant_ranges;
 };
-
 
 // --- Graphics Pipeline Descriptors ---
 
@@ -185,7 +183,6 @@ struct ColorAttachmentInfo {
   ImageLayout final_layout = ImageLayout::PRESENT_SRC;
 };
 
-
 struct DepthAttachmentInfo {
   RID texture;
   LoadOp load_op = LoadOp::CLEAR;
@@ -210,13 +207,32 @@ struct BufferImageCopy {
 };
 
 struct ImageBarrierDesc {
-    RID image;
-    ImageLayout old_layout;
-    ImageLayout new_layout;
+  RID image;
+  ImageLayout old_layout;
+  ImageLayout new_layout;
 };
 
 struct BarrierInfo {
-    std::vector<ImageBarrierDesc> image_barriers;
+  std::vector<ImageBarrierDesc> image_barriers;
+};
+
+
+// Описание материала для конкретного бэкенда
+struct PipelineDesc {
+  std::vector<DescriptorSetLayoutDesc> ds_layouts_desc;  // Array of descriptor set layouts (Set 0, Set 1, etc.)
+  PipelineLayoutDesc pl_layout_desc;
+  GraphicsPipelineDesc pl_desc;
+};
+
+// Полный материал с настройками для обоих бэкендов
+struct PipelineConfig {
+  std::string name;
+  PipelineDesc desc;
+  UniformLayout uniform_layout;  // Layout для material uniforms (Set 1)
+
+  static PipelineConfig create(
+      const std::string &name,
+      const std::function<void(PipelineDesc &)> &configure_vk = nullptr);
 };
 
 } // namespace Render

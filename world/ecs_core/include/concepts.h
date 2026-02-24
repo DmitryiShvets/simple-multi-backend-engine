@@ -1,5 +1,6 @@
 #pragma once
 #include <concepts>
+#include <string>
 #include "ecs_types.h"
 
 namespace Core::Ecs
@@ -18,7 +19,9 @@ namespace Core::Ecs
     // Concept for World objects
     template <typename WorldType>
     concept EcsWorld = requires(WorldType world) {
+        // Requires createEntity with optional name parameter
         { world.createEntity() } -> std::same_as<EntityHandle>;
+        { world.createEntity(std::string{}) } -> std::same_as<EntityHandle>;
 
         // Checks for the presence of a factory method to create queries
         // Note: We can't check the templated createQuery<...> here,

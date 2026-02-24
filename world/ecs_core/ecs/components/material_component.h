@@ -1,9 +1,12 @@
 #pragma once
 
-#include <string>
+#include "material_params.h"
+
 namespace Core::Ecs::Component {
 
-    struct Material {
-        std::string mat_name;
-    };
-}
+// Default material component
+// Instance-level parameters stored per object
+using DefaultMaterial = Core::MaterialParams::DefaultMaterial;
+using PbrMaterial = Core::MaterialParams::PbrMaterialParams;
+
+} // namespace Core::Ecs::Component

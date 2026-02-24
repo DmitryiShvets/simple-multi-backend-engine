@@ -29,7 +29,6 @@ public:
   Application(const Application &) = delete;
   Application &operator=(const Application &) = delete;
 
-  // The constructor now accepts two abstract IRenderer pointers
   Application(std::unique_ptr<Window::IMainWindow> gl_window,
               std::unique_ptr<Window::IMainWindow> vk_window,
               std::unique_ptr<Render::IRenderer> gl_renderer,
@@ -37,14 +36,14 @@ public:
               std::unique_ptr<UI::UIManager> ui_manager);
 
 private:
+  // Windows
   std::unique_ptr<Window::IMainWindow> m_gl_window;
   std::unique_ptr<Window::IMainWindow> m_vk_window;
-
-  // Both renderers
+  // Renderers
   std::unique_ptr<Render::IRenderer> m_gl_renderer;
   std::unique_ptr<Render::IRenderer> m_vk_renderer;
-
+  // UI
   std::unique_ptr<UI::UIManager> m_ui_manager;
-  // ECS World and Systems
+  // ECS
   std::unique_ptr<Core::Ecs::World<Core::Ecs::FlecsWorldImpl>> m_world;
 };

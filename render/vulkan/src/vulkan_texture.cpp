@@ -142,6 +142,11 @@ void VulkanTexture::createDepthTextureImage(VkExtent2D extent,
   imageInfo.flags = 0;
   m_device.createImage(imageInfo, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
                        textureImage, textureImageMemory);
+  
+  // Transition depth image from UNDEFINED to DEPTH_ATTACHMENT_OPTIMAL
+  m_device.transitionImageLayout(textureImage, format,
+                                 VK_IMAGE_LAYOUT_UNDEFINED,
+                                 VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL);
 }
 
 } // namespace Render::Vulkan

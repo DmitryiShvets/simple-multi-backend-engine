@@ -18,7 +18,11 @@ namespace Render::Vulkan {
 class VulkanSwapChain;
 class VulkanDataBuffer;
 class VulkanTexture;
-// Other classes are now included directly
+class VulkanPipeLine;
+class DescriptorSetLayout;
+class DescriptorPool;
+class VulkanPipelineLayout;
+// Add other resource types here as they are created
 } // namespace Render::Vulkan
 
 namespace Render::Vulkan {
@@ -30,7 +34,8 @@ public:
 
   // Overload 1: Takes ownership of a heap-allocated C++ object.
   template <typename T> RID add(std::unique_ptr<T> resource) {
-    uint64_t id = m_next_rid.fetch_add(1);
+    // Start RID from 1, because RID::id=0 represents invalid/null resource
+    uint64_t id = m_next_rid.fetch_add(1) + 1;
     RID rid{id};
 
     ResourceType type = ResourceType::UNDEFINED;
@@ -53,6 +58,12 @@ public:
     } else if constexpr (std::is_same_v<T, VulkanPipelineLayout>) {
       type = ResourceType::PIPELINE_LAYOUT;
       m_pl_layout_owner.insert(rid, std::move(resource));
+    } else if constexpr (std::is_same_v<T, DescriptorPool>) {
+      type = ResourceType::DESCRIPTOR_POOL;
+      m_descriptor_pool_owner.insert(rid, std::move(resource));
+    } else if constexpr (std::is_same_v<T, Material>) {
+      type = ResourceType::MATERIAL_TEMPLATE;
+      m_materials_owner.insert(rid, std::move(resource));
     } else {
       static_assert(sizeof(T) < 0,
                     "Unsupported resource type in VulkanResourceManager");
@@ -64,7 +75,8 @@ public:
 
   // Overload 2: Registers an unowned, native handle.
   template <typename T> RID add(T handle) {
-    uint64_t id = m_next_rid.fetch_add(1);
+    // Start RID from 1, because RID::id=0 represents invalid/null resource
+    uint64_t id = m_next_rid.fetch_add(1) + 1;
     RID rid{id};
 
     ResourceType type = ResourceType::UNDEFINED;
@@ -73,8 +85,11 @@ public:
       type = ResourceType::IMAGE;
       m_image_registry.insert(rid, handle);
     } else if constexpr (std::is_same_v<T, VkImageView>) {
-      type = ResourceType::IMAGE_VIEW; // Re-use texture type for views
+      type = ResourceType::IMAGE_VIEW;
       m_image_view_registry.insert(rid, handle);
+    } else if constexpr (std::is_same_v<T, VkDescriptorSet>) {
+      type = ResourceType::DESCRIPTOR_SET;
+      m_descriptor_set_registry.insert(rid, handle);
     } else {
       static_assert(sizeof(T) < 0, "Unsupported handle type for unowned "
                                    "resources in VulkanResourceManager");
@@ -98,14 +113,19 @@ public:
       return m_ds_layout_owner.get(rid);
     } else if constexpr (std::is_same_v<T, VulkanPipelineLayout>) {
       return m_pl_layout_owner.get(rid);
+    } else if constexpr (std::is_same_v<T, Material>) {
+      return m_materials_owner.get(rid);
     }
     return nullptr;
   }
+
   template <typename T> T get_val(RID rid) {
     if constexpr (std::is_same_v<T, VkImage>) {
       return m_image_registry.get(rid);
     } else if constexpr (std::is_same_v<T, VkImageView>) {
         return m_image_view_registry.get(rid);
+    } else if constexpr (std::is_same_v<T, VkDescriptorSet>) {
+        return m_descriptor_set_registry.get(rid);
     }
     return nullptr;
   }
@@ -124,10 +144,22 @@ public:
 
   void registerPSO(const std::string &name, RID rid) { m_pso_map[name] = rid; }
 
+  // --- Material Management ---
+  RID findMaterial(const std::string &name) {
+    auto it = m_mat_map.find(name);
+    if (it != m_mat_map.end()) {
+      return it->second;
+    }
+    return RID{}; // Return invalid RID if not found
+  }
+
+  void registerMaterial(const std::string &name, RID rid) { m_mat_map[name] = rid; }
+
 private:
   std::atomic<uint64_t> m_next_rid;
   std::unordered_map<RID, ResourceType> m_rid_type_map;
   std::unordered_map<std::string, RID> m_pso_map;
+  std::unordered_map<std::string, RID> m_mat_map;
 
   // --- Owned Resources ---
   Core::ResourceOwner<VulkanSwapChain> m_swap_chain_owner;
@@ -135,11 +167,14 @@ private:
   Core::ResourceOwner<VulkanTexture> m_textures_owner;
   Core::ResourceOwner<VulkanPipeLine> m_pipelines_owner;
   Core::ResourceOwner<DescriptorSetLayout> m_ds_layout_owner;
+  Core::ResourceOwner<DescriptorPool> m_descriptor_pool_owner;
   Core::ResourceOwner<VulkanPipelineLayout> m_pl_layout_owner;
+  Core::ResourceOwner<Material> m_materials_owner;
 
   // --- Unowned (Registered) Resources ---
   Core::ResourceRegistry<VkImage> m_image_registry;
   Core::ResourceRegistry<VkImageView> m_image_view_registry;
+  Core::ResourceRegistry<VkDescriptorSet> m_descriptor_set_registry;
 };
 
 } // namespace Render::Vulkan

@@ -7,6 +7,15 @@
 
 namespace Render::Vulkan {
 
+// Helper function to check if a format is a depth format
+static bool hasDepthFormat(VkFormat format) {
+  return format == VK_FORMAT_D32_SFLOAT ||
+         format == VK_FORMAT_D32_SFLOAT_S8_UINT ||
+         format == VK_FORMAT_D24_UNORM_S8_UINT ||
+         format == VK_FORMAT_D16_UNORM ||
+         format == VK_FORMAT_D16_UNORM_S8_UINT;
+}
+
 // These are local helper functions and are not part of the VulkanDevice class.
 // They are defined as static to limit their scope to this translation unit
 // (.cpp file).
@@ -501,7 +510,9 @@ void VulkanDevice::transitionImageLayout(VkImage image, VkFormat format,
   barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
   barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
   barrier.image = image;
-  barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+  barrier.subresourceRange.aspectMask = hasDepthFormat(format) ? 
+                                         VK_IMAGE_ASPECT_DEPTH_BIT : 
+                                         VK_IMAGE_ASPECT_COLOR_BIT;
   barrier.subresourceRange.baseMipLevel = 0;
   barrier.subresourceRange.levelCount = 1;
   barrier.subresourceRange.baseArrayLayer = 0;
@@ -524,6 +535,13 @@ void VulkanDevice::transitionImageLayout(VkImage image, VkFormat format,
 
     sourceStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
     destinationStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+  } else if (oldLayout == VK_IMAGE_LAYOUT_UNDEFINED &&
+             newLayout == VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL) {
+    barrier.srcAccessMask = 0;
+    barrier.dstAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+
+    sourceStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+    destinationStage = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
   } else {
     throw std::invalid_argument("unsupported layout transition!");
   }

@@ -1,6 +1,47 @@
 #include "opengl_buffer_objects.h"
 
 namespace Render::OpenGL {
+
+// *************** UniformBuffer *********************
+
+UniformBuffer::UniformBuffer(size_t size, const void* data) 
+    : m_ubo(0), m_size(size) {
+    glCreateBuffers(1, &m_ubo);
+    glNamedBufferData(m_ubo, static_cast<GLsizeiptr>(size), data, GL_DYNAMIC_DRAW);
+}
+
+UniformBuffer::~UniformBuffer() {
+    if (m_ubo != 0) {
+        glDeleteBuffers(1, &m_ubo);
+    }
+}
+
+void UniformBuffer::update(size_t offset, size_t size, const void* data) {
+    glNamedBufferSubData(m_ubo, static_cast<GLintptr>(offset), 
+                         static_cast<GLsizeiptr>(size), data);
+}
+
+UniformBuffer::UniformBuffer(UniformBuffer&& other) noexcept 
+    : m_ubo(other.m_ubo), m_size(other.m_size) {
+    other.m_ubo = 0;
+    other.m_size = 0;
+}
+
+UniformBuffer& UniformBuffer::operator=(UniformBuffer&& other) noexcept {
+    if (this != &other) {
+        if (m_ubo != 0) {
+            glDeleteBuffers(1, &m_ubo);
+        }
+        m_ubo = other.m_ubo;
+        m_size = other.m_size;
+        other.m_ubo = 0;
+        other.m_size = 0;
+    }
+    return *this;
+}
+
+// *************** VBO *********************
+
 VBO::VBO() : mVBO(0) {}
 
 VBO::~VBO() { glDeleteBuffers(1, &mVBO); }

@@ -182,7 +182,7 @@ VulkanPipeLine::VulkanPipeLine(VulkanDevice &device,
                                const PipelineConfigInfo &config,
                                const std::string &vert_shader_filepath,
                                const std::string &frag_shader_filepath)
-    : m_device(device) {
+    : m_device(device), m_pipeline_layout(config.pipelineLayout) {
   create_graphics_pipeline(vert_shader_filepath, frag_shader_filepath, config);
 }
 

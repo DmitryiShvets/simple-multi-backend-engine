@@ -19,13 +19,13 @@ public:
   SceneView run() {
     SceneView sceneView;
     m_query.each([&sceneView](EntityHandle /*entity*/,
-                              const Component::Transform & /*transform*/,
+                              const Component::Transform & transform,
                               const RuntimeComponent &e) {
       if (e.visible) {
-
         sceneView.opaque_objects.push_back(SceneView::MeshRenderable{
             .geometry_id = e.geometry_id,
             .material_id = e.material_id,
+            .data_id = e.data_id
         });
       }
     });

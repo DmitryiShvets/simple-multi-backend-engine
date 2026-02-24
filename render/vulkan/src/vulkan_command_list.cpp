@@ -88,11 +88,27 @@ void VulkanCommandList::setVertexBuffer(uint32_t first_binding, RID buffer_rid,
 }
 void VulkanCommandList::setIndexBuffer(RID buffer_rid, uint64_t offset,
                                        IndexType type) {}
-void VulkanCommandList::setDescriptorSet(uint32_t set_index, RID set_rid) {}
-void VulkanCommandList::setPushConstant(RID pipeline_layout_rid,
+void VulkanCommandList::setDescriptorSet(uint32_t set_index, RID set_rid,
+                                         RID pipeline_rid) {
+  auto descriptor_set = m_resource_manager.get_val<VkDescriptorSet>(set_rid);
+  auto pipeline = m_resource_manager.get_ptr<VulkanPipeLine>(pipeline_rid);
+  if (descriptor_set != VK_NULL_HANDLE && pipeline) {
+    vkCmdBindDescriptorSets(m_command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
+                            pipeline->getLayoutHandle(), set_index, 1,
+                            &descriptor_set, 0, nullptr);
+  }
+}
+void VulkanCommandList::setPushConstant(RID pipeline_rid,
+                                        const UniformValue &value,
                                         ShaderStageFlags stages,
-                                        const void *data, uint32_t size,
-                                        uint32_t offset) {}
+                                        uint32_t offset) {
+  auto pipeline = m_resource_manager.get_ptr<VulkanPipeLine>(pipeline_rid);
+  if (pipeline) {
+    vkCmdPushConstants(m_command_buffer, pipeline->getLayoutHandle(),
+                       static_cast<VkShaderStageFlags>(stages), offset,
+                       value.size(), value.data());
+  }
+}
 void VulkanCommandList::draw(uint32_t vertex_count, uint32_t instance_count,
                              uint32_t first_vertex, uint32_t first_instance) {
   vkCmdDraw(m_command_buffer, vertex_count, instance_count, first_vertex,

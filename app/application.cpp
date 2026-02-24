@@ -1,4 +1,5 @@
 #include "application.h"
+#include "ecs/components/transform_component.h"
 #include "hello_widget.h"
 #include "i_main_window.h"
 #include "i_renderer.h"
@@ -13,12 +14,13 @@
 #include "world.h"
 
 #include "ecs/systems/scene_view_system.h"
+#include "runtime/runtime_update_system.h"
 
 #include "ui_manager.h"
 
 #include <chrono>
 #include <memory>
-#include <utility>
+#include <string>
 #include <vector>
 
 // The constructor now matches the new header, accepting two abstract renderers
@@ -45,41 +47,44 @@ void Application::init() {
   // auto triangle = m_world->createEntity();
   auto sphere = getSphere3D(1, 16, 16);
   std::vector<Vertex> pos1;
-  int j = 1;
-  for (auto i : sphere.indices) {
+  // int j = 1;
+  // for (auto i : sphere.indices) {
 
-    pos1.push_back({sphere.positions[i],
-                    {j % 3 == 1 * 1.0f, j % 3 == 2 * 1.0f, j % 3 == 0 * 1.0f}});
-    j++;
-  }
+  //   pos1.push_back({sphere.positions[i],
+  //                   {j % 3 == 1 * 1.0f, j % 3 == 2 * 1.0f, j % 3 == 0 * 1.0f}});
+  //   j++;
+  // }
   auto pos2 = std::vector<Vertex>{
-      {{-0.5f, -0.5f, 0.0f},
-       {0.0f, 1.0f,
-        0.0f}}, // Colors don't matter, the debug shader will override them
-      {{0.5f, -0.5f, 0.0f}, {0.0f, 1.0f, 0.0f}},
-      {{0.0f, 0.5f, 0.0f}, {0.0f, 1.0f, 0.0f}},
+      {{-0.5f, -0.5f, 0.0f}},
+      {{0.5f, -0.5f, 0.0f}},
+      {{0.0f, 0.5f, 0.0f}},
   };
   auto pos = std::vector<Vertex>{
-      {{-0.5f, 0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}},
-      {{0.f, -0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}},
-      {{0.5f, 0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}}, // pos, color
+      {{-0.5f, 0.5f, -0.5f}},
+      {{0.f, -0.5f, -0.5f}},
+      {{0.5f, 0.5f, -0.5f}}, // pos, color
   };
-  auto triangle = createMesh(*m_world, pos1, "default");
-  // auto triangle1 = createMesh(*m_world, pos2, "default");
+  auto triangle = createMesh(*m_world, "triangle", pos, "default");
+  m_world->addComponent<Core::Ecs::Component::DefaultMaterial>(
+      triangle, Core::Ecs::Component::DefaultMaterial{
+                    .color = glm::vec3(1.0f, 0.0f, 0.0f)});
+
+  auto triangle1 = createMesh(*m_world, "triangle1", pos2, "default");
+  m_world->addComponent<Core::Ecs::Component::DefaultMaterial>(
+      triangle1, Core::Ecs::Component::DefaultMaterial{
+                     .color = glm::vec3(0.0f, 1.0f, 0.0f)});
 
   // --- Initialize runtime resources ---
-  // This system queries for entities with Geometry and Material and creates the
-  // corresponding GPU resources for each backend.
   auto runtime_init_system =
       std::make_unique<Core::Ecs::System::RuntimeInitSystem<
           Core::Ecs::World<Core::Ecs::FlecsWorldImpl>>>(
-          *m_world, m_vk_renderer->getRenderDeivce(),
-          m_gl_renderer->getRenderDeivce());
+          *m_world, m_gl_renderer->getRenderDeivce(),
+          m_vk_renderer->getRenderDeivce());
   runtime_init_system->initialize();
 }
 
 void Application::run() {
-  // Create a specific scene view system for each renderer
+  // Create scene view systems for each renderer
   auto vk_scene_view_system =
       std::make_unique<Core::Ecs::System::SceneViewSystem<
           Core::Ecs::World<Core::Ecs::FlecsWorldImpl>,
@@ -89,6 +94,13 @@ void Application::run() {
       std::make_unique<Core::Ecs::System::SceneViewSystem<
           Core::Ecs::World<Core::Ecs::FlecsWorldImpl>,
           Core::Ecs::Component::GlRuntime>>(*m_world);
+
+  // Create single runtime update system for both backends
+  auto runtime_update_system =
+      std::make_unique<Core::Ecs::System::RuntimeUpdateSystem<
+          Core::Ecs::World<Core::Ecs::FlecsWorldImpl>>>(
+          *m_world, m_vk_renderer->getRenderDeivce(),
+          m_gl_renderer->getRenderDeivce());
 
   auto lastTime = std::chrono::high_resolution_clock::now();
 
@@ -107,6 +119,14 @@ void Application::run() {
 
     m_ui_manager->render([&widget]() { widget.render(); },
                          [&widget]() { widget.render(); });
+    // test only
+    auto triangle = m_world->getEntity("triangle");
+    auto &transform =
+        m_world->getComponent<Core::Ecs::Component::Transform>(triangle);
+    transform.position.z = widget.m_slider_value;
+
+    // Update per-object uniform buffers before rendering
+    runtime_update_system->update();
 
     Core::SceneView gl_scene_view = gl_scene_view_system->run();
     m_gl_renderer->renderFrame(gl_scene_view,

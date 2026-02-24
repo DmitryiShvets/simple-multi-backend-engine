@@ -4,6 +4,8 @@ set(OPENGL_RENDER_PUBLIC_HEADERS
     include/opengl_shader_program.h
     include/opengl_resource_manager.h
     include/opengl_buffer_objects.h
+    include/opengl_command_list.h
+    include/opengl_descriptor_set.h
 )
 
 set(OPENGL_RENDER_SOURCES
@@ -12,6 +14,8 @@ set(OPENGL_RENDER_SOURCES
     src/opengl_shader_program.cpp
     src/opengl_resource_manager.cpp
     src/opengl_buffer_objects.cpp
+    src/opengl_command_list.cpp
+    src/opengl_descriptor_set.cpp
 )
 
 add_subdirectory(glad)

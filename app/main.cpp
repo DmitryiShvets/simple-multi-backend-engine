@@ -22,7 +22,6 @@ int main() {
 
   auto ui = std::make_unique<UI::UIManager>();
   ui->init(*window_vulkan, *window_opengl);
-  // --- Renderer Creation using the unified factory ---
 
   // 1. Create the OpenGL Renderer using the simple overload
   auto gl_renderer = Render::RenderFactory::create(Render::API::OpenGL);

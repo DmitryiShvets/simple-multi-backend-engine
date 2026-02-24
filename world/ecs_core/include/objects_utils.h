@@ -10,5 +10,5 @@
 
 
 Core::Ecs::EntityHandle createMesh(
-    Core::Ecs::World<Core::Ecs::FlecsWorldImpl> &world,
+    Core::Ecs::World<Core::Ecs::FlecsWorldImpl> &world, const std::string& name,
     std::vector<Vertex> vertices, const std::string& mat_name);

@@ -13,9 +13,9 @@ namespace Core::Ecs
     public:
         FlecsWorldImpl() = default;
 
-        EntityHandle createEntity()
+        EntityHandle createEntity(const std::string& name = {})
         {
-            return m_world.entity().id();
+            return static_cast<EntityHandle>(m_world.entity().id());
         }
 
         template <typename Component, typename... Args>
@@ -27,7 +27,7 @@ namespace Core::Ecs
         template <typename Component>
         Component& getComponent(EntityHandle entity)
         {
-            return *m_world.entity(entity).get_mut<Component>();
+            return m_world.entity(entity).get_mut<Component>();
         }
 
         template <typename Component>

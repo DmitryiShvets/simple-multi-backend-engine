@@ -26,8 +26,8 @@ public:
 
   void setVertexBuffer(uint32_t first_binding, RID buffer_rid, uint64_t offset) override;
   void setIndexBuffer(RID buffer_rid, uint64_t offset, IndexType type) override;
-  void setDescriptorSet(uint32_t set_index, RID set_rid) override;
-  void setPushConstant(RID pipeline_layout_rid, ShaderStageFlags stages, const void* data, uint32_t size, uint32_t offset = 0) override;
+  void setDescriptorSet(uint32_t set_index, RID set_rid, RID pipeline_rid) override;
+  void setPushConstant(RID pipeline_rid, const UniformValue &value, ShaderStageFlags stages, uint32_t offset = 0) override;
 
   void draw(uint32_t vertex_count, uint32_t instance_count, uint32_t first_vertex, uint32_t first_instance) override;
   void drawIndexed(uint32_t index_count, uint32_t instance_count, uint32_t first_index, int32_t vertex_offset, uint32_t first_instance) override;

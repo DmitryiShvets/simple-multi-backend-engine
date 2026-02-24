@@ -1,8 +1,34 @@
 #pragma once
 #include <glad/gl.h>
 #include <vector>
+#include <cstddef>
 
 namespace Render::OpenGL {
+
+// Uniform Buffer Object - для хранения uniform данных в GPU памяти
+class UniformBuffer {
+public:
+    UniformBuffer(size_t size, const void* data);
+    ~UniformBuffer();
+
+    // Обновление данных в буфере
+    void update(size_t offset, size_t size, const void* data);
+
+    GLuint getHandle() const { return m_ubo; }
+    size_t getSize() const { return m_size; }
+
+    // Delete copy
+    UniformBuffer(const UniformBuffer&) = delete;
+    UniformBuffer& operator=(const UniformBuffer&) = delete;
+
+    // Move
+    UniformBuffer(UniformBuffer&& other) noexcept;
+    UniformBuffer& operator=(UniformBuffer&& other) noexcept;
+
+private:
+    GLuint m_ubo;
+    size_t m_size;
+};
 
 class VBO {
 public:

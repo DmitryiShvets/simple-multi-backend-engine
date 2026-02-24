@@ -34,6 +34,7 @@ namespace Render::Vulkan {
 		DescriptorSetLayout& operator=(const DescriptorSetLayout&) = delete;
 
 		VkDescriptorSetLayout getDescriptorSetLayout() const { return descriptorSetLayout; }
+		const std::unordered_map<uint32_t, VkDescriptorSetLayoutBinding>& getBindings() const { return bindings; }
 
 	private:
 		VulkanDevice& lveDevice;
@@ -101,3 +102,16 @@ namespace Render::Vulkan {
 		std::vector<VkWriteDescriptorSet> writes;
 	};
 }
+
+// Справочник
+// |-----|---------|-------|
+// | `VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER` | Uniform Buffer (UBO) | Константы для шейдера (матрицы, параметры) |
+// | `VK_DESCRIPTOR_TYPE_STORAGE_BUFFER` | Storage Buffer (SSBO) | Чтение/запись больших данных |
+// | `VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER` | Текстура + сэмплер | Изображения для шейдера |
+// | `VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE` | Только текстура | Без сэмплера |
+// | `VK_DESCRIPTOR_TYPE_SAMPLER` | Только сэмплер | Параметры фильтрации |
+// | `VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT` | Subpass input | Для render pass |
+// | `VK_DESCRIPTOR_TYPE_STORAGE_IMAGE` | Read/write image | Для compute шейдеров |
+// | `VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER` | Uniform texel buffer | Структурированные данные |
+// | `VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER` | Storage texel buffer | Read/write структурированные данные |
+// ---

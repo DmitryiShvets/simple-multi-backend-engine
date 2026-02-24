@@ -1,6 +1,7 @@
 #include "opengl_resource_manager.h"
 #include "opengl_buffer_objects.h"
 #include "opengl_shader_program.h"
+#include "opengl_descriptor_set.h"
 
 #include "common_utils.h"
 

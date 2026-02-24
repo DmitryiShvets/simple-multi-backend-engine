@@ -12,7 +12,7 @@ public:
     VulkanPipelineLayout(const VulkanPipelineLayout&) = delete;
     VulkanPipelineLayout& operator=(const VulkanPipelineLayout&) = delete;
 
-    VkPipelineLayout get() const { return m_layout; }
+    VkPipelineLayout getHandle() const { return m_layout; }
 private:
     VulkanDevice& m_device;
     VkPipelineLayout m_layout;

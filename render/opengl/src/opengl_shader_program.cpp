@@ -1,7 +1,10 @@
 #include "opengl_shader_program.h"
+#include "resource_types.h"
 
 #include <glm/gtc/type_ptr.hpp>
 #include <iostream>
+#include <stdexcept>
+#include <type_traits>
 
 namespace Render::OpenGL {
 
@@ -98,6 +101,27 @@ ShaderProgram::ShaderProgram(ShaderProgram &&program) noexcept {
 }
 
 GLuint &ShaderProgram::getUintProgram() { return hProgram; }
+
+void ShaderProgram::setUniform(const UniformValue &value) {
+  if (!value.hasLabel()) {
+    throw std::runtime_error("Opengl UNIFORM must have label!");
+  }
+  value.visit([this, &value](const auto &data) {
+    using T = std::decay_t<decltype(data)>;
+
+    if constexpr (std::is_same_v<T, glm::mat4>) {
+      setUniform(value.getLabel(), data);
+    } else if constexpr (std::is_same_v<T, glm::vec4>) {
+      setUniform(value.getLabel(), data);
+    } else if constexpr (std::is_same_v<T, glm::vec3>) {
+      setUniform(value.getLabel(), data);
+    } else if constexpr (std::is_same_v<T, int>) {
+      setUniform(value.getLabel(), data);
+    } else if constexpr (std::is_same_v<T, float>) {
+      setUniform(value.getLabel(), data);
+    }
+  });
+}
 
 void ShaderProgram::setUniform(const std::string &uniformName,
                                const glm::mat4 &matrixValue) {
