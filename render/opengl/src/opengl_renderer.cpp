@@ -18,6 +18,7 @@
 #include "uniforms.h"
 #include <curve_utils.h>
 #include <glm/gtc/matrix_transform.hpp>
+
 namespace Render::OpenGL {
 
 OpenGLRenderer::OpenGLRenderer()
@@ -99,9 +100,6 @@ void OpenGLRenderer::renderFrame(const Core::SceneView &view,
       Logger::error_log("Opengl Render: not found drawing policy");
       continue;
     }
-    // Get per-object uniform data (model matrix)
-    auto& per_object_data = obj.data_id;
-
     // Get VAO vertex count
     auto vao = m_resource_manager.get_ptr<VAO>(obj.geometry_id);
     uint32_t vertex_count = vao ? vao->count() : 0;
@@ -116,11 +114,14 @@ void OpenGLRenderer::renderFrame(const Core::SceneView &view,
     draw_data.descriptor_sets[0] = per_frame_ds_rid;
     // Descriptor Set 1: Per-Material (color)
     draw_data.descriptor_sets[1] = material_tpl->render_data.uniforms_ds;
+    // Descriptor Set 2: Per-Object (normal matrix) - use object's own
+    // descriptor set
+    draw_data.descriptor_sets[2] = obj.obj_uniform_ds;
 
     // Push Constants: model matrix (OpenGL emulates via uniform)
-    UniformValue model_matrix_val(per_object_data.model_matrix);
-    model_matrix_val.setLabel("modelMatrix");
-    draw_data.push_constants.emplace("modelMatrix", model_matrix_val);
+    UniformValue model_matrix_val(obj.model_matrix);
+    model_matrix_val.setLabel("model_mat");
+    draw_data.push_constants.emplace("model_mat", model_matrix_val);
 
     // Render using DrawingPolicy
     policy->render(*m_command_list, draw_data);
@@ -137,62 +138,67 @@ void OpenGLRenderer::destroy() {
 }
 
 void OpenGLRenderer::createPerFrameResources() {
+  // Skip if already created
+  if (m_per_frame_ds_layout) {
+    return;
+  }
   // Create descriptor set layout for per-frame uniforms (Set 0)
   // Binding 0: GlobalUBO (projectionViewMatrix)
   DescriptorSetLayoutDesc ds_layout_desc;
-  ds_layout_desc.bindings.push_back({
-      .binding = 0,
-      .type = DescriptorType::UNIFORM_BUFFER,
-      .stages = static_cast<uint32_t>(ShaderStage::VERTEX),
-      .count = 1
-  });
-  m_per_frame_ds_layout = m_rhi_device->createDescriptorSetLayout(ds_layout_desc);
+  ds_layout_desc.bindings.push_back(
+      {.binding = 0,
+       .type = DescriptorType::UNIFORM_BUFFER,
+       .stages = static_cast<uint32_t>(ShaderStage::VERTEX),
+       .count = 1});
+  m_per_frame_ds_layout =
+      m_rhi_device->createDescriptorSetLayout(ds_layout_desc);
 
   // Create per-frame uniform buffer
-  RID frame_uniform_buffer = m_rhi_device->createBuffer(BufferDesc{
-      .size = sizeof(Core::Uniforms::FrameUniforms),
-      .usage = static_cast<uint32_t>(BufferUsage::UNIFORM_BUFFER),
-      .is_host_visible = true,
-      .initial_data = nullptr
-  });
+  RID frame_uniform_buffer = m_rhi_device->createBuffer(
+      BufferDesc{.size = sizeof(Core::Uniforms::FrameUniformsStd140),
+                 .usage = static_cast<uint32_t>(BufferUsage::UNIFORM_BUFFER),
+                 .is_host_visible = true,
+                 .initial_data = nullptr});
 
   // Create descriptor set
-  RID per_frame_ds = m_rhi_device->createDescriptorSet(m_per_frame_ds_layout, {frame_uniform_buffer});
+  RID per_frame_ds = m_rhi_device->createDescriptorSet(m_per_frame_ds_layout,
+                                                       {frame_uniform_buffer});
 
-  // Store in per-frame resources (OpenGL doesn't have multiple frames in flight like Vulkan)
+  // Store in per-frame resources (OpenGL doesn't have multiple frames in flight
+  // like Vulkan)
   m_per_frame_resources.resize(1);
   m_per_frame_resources[0].uniform_buffer = frame_uniform_buffer;
   m_per_frame_resources[0].descriptor_set_rid = per_frame_ds;
 }
 
 void OpenGLRenderer::updatePerFrameResources(const Core::SceneView &view) {
-  (void)view; // TODO: Use actual camera data from SceneView
-
   // Get uniform buffer
-  auto& frame = m_per_frame_resources[0];
-  auto* device = static_cast<OpenGLDevice*>(m_rhi_device.get());
-
+  auto &frame = m_per_frame_resources[0];
   // Get viewport dimensions for aspect ratio
   GLint viewport_dims[4];
   glGetIntegerv(GL_VIEWPORT, viewport_dims);
   float aspect_ratio = viewport_dims[2] / static_cast<float>(viewport_dims[3]);
-
   // Calculate view-projection matrix
   // Camera at (0, 0, 5) looking at (0, 0, 0), up is +Y
-  glm::mat4 view_mat = glm::lookAt(
-      glm::vec3(0.0f, 0.0f, 5.0f),  // Camera position
-      glm::vec3(0.0f, 0.0f, 0.0f),  // Look at target
-      glm::vec3(0.0f, 1.0f, 0.0f)   // Up direction
-  );
-  glm::mat4 proj_mat = glm::perspective(
-      glm::radians(45.0f), aspect_ratio, 0.1f, 100.0f);
+  glm::mat4 view_mat =
+      glm::lookAt(glm::vec3(0.0f, 0.0f, 5.0f + view.z), // Camera position
+                  glm::vec3(0.0f, 0.0f, 0.0f),          // Look at target
+                  glm::vec3(0.0f, 1.0f, 0.0f)           // Up direction
+      );
+  glm::mat4 proj_mat =
+      glm::perspective(glm::radians(45.0f), aspect_ratio, 0.1f, 100.0f);
 
   Core::Uniforms::FrameUniforms uniforms{};
   uniforms.view_projection = proj_mat * view_mat;
+  uniforms.light_position = glm::vec3(0.0f, 0.0f, 5.0f);
+  uniforms.Kd =
+      glm::vec3(1.0f, 1.0f, 1.0f); // Diffuse coefficient (white surface)
+  uniforms.Ld = glm::vec3(1.0f, 1.0f, 1.0f); // Light intensity (white light)
   uniforms.camera_position = glm::vec3(0.0f, 0.0f, 5.0f);
-
-  // Update buffer directly (OpenGL allows direct updates)
-  device->updateBufferRaw(frame.uniform_buffer, 0, sizeof(uniforms), &uniforms);
+  auto packed = Core::Uniforms::FrameUniformsStd140::from(uniforms);
+  // Update buffer
+  m_rhi_device->updateBufferRaw(frame.uniform_buffer, 0, sizeof(packed),
+                                &packed);
 }
 
 } // namespace Render::OpenGL

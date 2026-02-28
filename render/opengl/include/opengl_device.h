@@ -27,6 +27,9 @@ public:
     RID createGraphicsPipeline(const GraphicsPipelineDesc& desc) override;
     RID createPipeline(const PipelineDesc &desc) override;
     RID createMaterial(const std::string &mat_name, const UniformSet& material_uniforms) override;
+    Material* getMaterial(RID material_rid) override;
+
+    const PipelineConfig* getPipelineConfig(const std::string& material_name) const override;
 
     void updateBufferRaw(RID rid, size_t offset, size_t size, const void *data) override;
 

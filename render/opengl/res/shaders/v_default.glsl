@@ -14,9 +14,9 @@ layout(std140, binding = 1) uniform MaterialUBO {
 } material;
 
 // Push constants эмулируются через uniform (OpenGL не имеет push constants)
-uniform mat4 modelMatrix;
+uniform mat4 model_mat;
 
 void main() {
-  gl_Position = ubo.projectionViewMatrix * modelMatrix * vec4(position, 1.0);
+  gl_Position = ubo.projectionViewMatrix * model_mat * vec4(position, 1.0);
   fragColor = material.color;
 }

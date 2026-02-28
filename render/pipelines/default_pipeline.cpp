@@ -1,6 +1,7 @@
 #include "default_pipeline.h"
 #include "pipeline_config_registry.h"
 #include "vertex.h"
+#include "vertex_layout.h"
 #include <string>
 #include <glm/gtc/matrix_transform.hpp>
 
@@ -8,7 +9,7 @@ namespace Render {
 
 constexpr std::string mat_name = "default";
 
-// Vulkan uses 3-level descriptor set architecture:
+// Vulkan uses 2-level descriptor set architecture:
 // - Set 0: Per-frame uniforms (projectionViewMatrix) - created at runtime in VulkanRenderer
 // - Set 1: Per-material uniforms (color) - created here
 // - Push constants: Model matrix - set per-object
@@ -36,13 +37,13 @@ void initVulkanMaterial(PipelineConfigRegistry &registry) {
         });
         desc.pl_desc.name = "default";
         desc.pl_desc.shader_modules = {
-            {"res/shaders/v_default.vert.spv", ShaderStage::VERTEX},
-            {"res/shaders/f_default.frag.spv", ShaderStage::FRAGMENT}};
+            {"res/shaders/v_default.glsl.spv", ShaderStage::VERTEX},
+            {"res/shaders/f_default.glsl.spv", ShaderStage::FRAGMENT}};
         desc.pl_desc.vertex_input_state = {
             .bindings = {{.binding = 0, .stride = sizeof(Vertex)}},
             .attributes = {{.location = 0,
                             .binding = 0,
-                            .format = Format::R32G32B32_SFLOAT,
+                            .format = Core::Format::R32G32B32_SFLOAT,
                             .offset = offsetof(Vertex, position)}}};
         desc.pl_desc.primitive_topology = PrimitiveTopology::TRIANGLE_LIST;
       });
@@ -59,6 +60,9 @@ void initVulkanMaterial(PipelineConfigRegistry &registry) {
       // std140 automatically adds 4 bytes padding to 16 bytes
   });
   vk_default_mat.uniform_layout.computeLayout();
+
+  // Vertex layout for this material
+  vk_default_mat.vertex_layout = Vertex::getLayout();
 
   registry.add(std::move(vk_default_mat));
 }
@@ -88,7 +92,7 @@ void initOpenglMaterial(PipelineConfigRegistry &registry) {
             .bindings = {{.binding = 0, .stride = sizeof(Vertex)}},
             .attributes = {{.location = 0,
                             .binding = 0,
-                            .format = Format::R32G32B32_SFLOAT,
+                            .format = Core::Format::R32G32B32_SFLOAT,
                             .offset = offsetof(Vertex, position)}}};
         desc.pl_desc.primitive_topology = PrimitiveTopology::TRIANGLE_LIST;
       });
@@ -105,6 +109,10 @@ void initOpenglMaterial(PipelineConfigRegistry &registry) {
       // std140 automatically adds 4 bytes padding to 16 bytes
   });
   gl_default_mat.uniform_layout.computeLayout();
+
+  // Vertex layout for this material
+  gl_default_mat.vertex_layout = Vertex::getLayout();
+
   registry.add(std::move(gl_default_mat));
 }
 

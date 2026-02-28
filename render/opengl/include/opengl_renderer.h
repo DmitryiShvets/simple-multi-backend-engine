@@ -62,7 +62,6 @@ private:
 
   // Per-frame resources (Set 0: camera/projection)
   RID m_per_frame_ds_layout;
-  RID m_per_frame_descriptor_pool;
   std::vector<OpenGLPerFrameResources> m_per_frame_resources;
 };
 

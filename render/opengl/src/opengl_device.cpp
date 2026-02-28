@@ -41,8 +41,9 @@ RID OpenGLDevice::createBuffer(const BufferDesc &desc) {
     // 1. Define the layout of the buffer - match Vertex structure
     VBOLayout layout;
     layout.addLayoutElement(3, GL_FLOAT, GL_FALSE);   // Location 0: Position
+    layout.addLayoutElement(3, GL_FLOAT, GL_FALSE);   // Location 1: Normal
     // Note: Vertex only has position, no color attribute
-    uint64_t vertex_count = desc.size / sizeof(Vertex);
+    uint64_t vertex_count = desc.size / sizeof(VertexN);
 
 
     // 1. Create and initialize VBO
@@ -185,16 +186,30 @@ RID OpenGLDevice::createMaterial(const std::string &material_name, const Uniform
     RID mat_ds_layout = createDescriptorSetLayout(ds_layout_desc);
     // 6. Create descriptor set for material
     RID mat_desc_set = createDescriptorSet(mat_ds_layout, {mat_uniform_buffer});
-    // 7. Create material template
+    // 7. Create descriptor set layout for object uniforms
+    DescriptorSetLayoutDesc obj_ds_layout_desc;
+    const auto& obj_binding = config->desc.ds_layouts_desc[2].bindings[0];
+    obj_ds_layout_desc.bindings.push_back(obj_binding);
+    RID obj_ds_layout = createDescriptorSetLayout(obj_ds_layout_desc);
+    // 8. Create material template
     material_rid = m_resource_manager.add(std::make_unique<Material>(Material{
         .name = material_name,
         .render_data = {
             .pipeline = pipeline_rid,
             .uniforms_buf = mat_uniform_buffer,
-            .uniforms_ds = mat_desc_set
+            .uniforms_ds = mat_desc_set,
+            .object_uniform_ds_layout = obj_ds_layout,
         }
     }));
     return material_rid;
+}
+
+const PipelineConfig* OpenGLDevice::getPipelineConfig(const std::string& material_name) const {
+    return m_pl_registry.getByName(material_name);
+}
+
+Material* OpenGLDevice::getMaterial(RID material_rid) {
+    return m_resource_manager.get_ptr<Material>(material_rid);
 }
 
 void OpenGLDevice::free(RID rid) {}

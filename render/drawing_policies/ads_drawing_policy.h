@@ -12,9 +12,10 @@ namespace Render {
  * Expected descriptor sets:
  * - Set 0: Per-Frame (camera matrices, projection)
  * - Set 1: Per-Material (material textures, parameters)
+ * - Set 2: Per-Object (normal matrix)
  * - Push-constant (model matrix)
  */
-struct DefaultDrawingPolicy {
+struct AdsDrawingPolicy {
     /// Render function for default material
     static void render(CommandList& cmd, const DrawingData& data);
 

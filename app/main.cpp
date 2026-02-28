@@ -42,3 +42,38 @@ int main() {
 
   return 0;
 }
+// Косяки
+// 1) исправить хардкод в opengl_device.
+// сейчас девайс должен знат про VertexN.
+//  а что если он изменится. нужно доставать откуда-то размер вертекса:
+//  uint64_t vertex_count = desc.size / sizeof(VertexN);
+// 2) исправить хардкод в runtime_init_system.
+// сейчас инит система должна знать какими данными инициализуется юниформа
+// но в будущем она можетизмениться
+//  нужно откуда то доставать конфиг юниформ
+// Create material with uniform data
+// Core::UniformSet mat_uniforms;
+// mat_uniforms.set("color", Core::UniformValue(mat.color));
+// 3) исправвить хардкод в runtime_init_system.
+//  хорошо было бы доставать конфиг какую юниформу мы хотим создавать
+//  Core::Uniforms::ObjectUniforms obj_uniforms{
+//     .model_matrix = model_mat,
+//     .normal_matrix = normal_mat
+// };
+// 4) Сейчас в runtime_update_system  nowledge Coupling
+// `RuntimeInitSystem` знает внутреннюю структуру каждого материала (`mat.color`),
+//  что нарушает **Dependency Rule**
+// 4.а)  в файле runtime_update_system сразу создавать ObjectUniformsStd140
+// миную промежуточные шаги
+// 5) исправить хардкод в файле opengl_renderer
+// сейчас рендерд должен знать какую пушконстанту нужно создавать
+// и закидывать в draw_data.push_constants. нужно это решить
+//     UniformValue model_matrix_val(per_object_data.model_matrix);
+// model_matrix_val.setLabel("model_mat");
+// draw_data.push_constants.emplace("model_mat", model_matrix_val);
+// 6) еще есть проблема с map/unmap буфером в вулкане.
+// нужно подмуть. возможно для HOST_COHERENT памяти
+//  в Vulkan можно ержать буфер замапленным постоянно
+// на протяжении всего времени жизни буфера
+// 7) решить проблему с std140. как будто накладо всегда туда сбда гонять данные
+// 8) решить проблему с frame resource. как это делать декларативно?

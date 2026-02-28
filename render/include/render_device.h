@@ -29,6 +29,10 @@ public:
   // virtual RID createComputePipeline(const ComputePipelineDesc& desc) = 0;
   virtual RID createPipeline(const PipelineDesc &desc) = 0;
   virtual RID createMaterial(const std::string &mat_name, const UniformSet& material_uniforms) = 0;
+  virtual Material* getMaterial(RID material_rid) = 0;
+
+  // Get pipeline config by name (for accessing uniform layouts)
+  virtual const PipelineConfig* getPipelineConfig(const std::string& material_name) const = 0;
 
   // Update buffer data at runtime
   virtual void updateBufferRaw(RID rid, size_t offset, size_t size, const void *data) = 0;

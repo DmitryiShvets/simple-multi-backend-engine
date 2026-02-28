@@ -1,5 +1,6 @@
 #include "pipeline_config_registry.h"
 #include "../pipelines/default_pipeline.h"
+#include "../pipelines/ads_pipeline.h"
 #include "render_types.h"
 namespace Render {
 
@@ -20,6 +21,7 @@ PipelineConfigRegistry::PipelineConfigRegistry(BackendType type)
 
 void PipelineConfigRegistry::init() {
   DefaultPipeline::addConfigToRegistry(*this, m_backend_type);
+  AdsPipeline::addConfigToRegistry(*this, m_backend_type);
 }
 
 PipelineConfiglHandle PipelineConfigRegistry::add(PipelineConfig &&material) {

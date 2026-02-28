@@ -1,6 +1,5 @@
 #pragma once
 #include "concepts.h"
-#include "ecs/components/runtime_component.h"
 #include "ecs/components/transform_component.h"
 #include "scene_view.h"
 #include <vector>
@@ -25,7 +24,9 @@ public:
         sceneView.opaque_objects.push_back(SceneView::MeshRenderable{
             .geometry_id = e.geometry_id,
             .material_id = e.material_id,
-            .data_id = e.data_id
+            .obj_uniform_id = e.obj_uniform_id,
+            .obj_uniform_ds = e.obj_uniform_ds,
+            .model_matrix = e.model_matrix,
         });
       }
     });

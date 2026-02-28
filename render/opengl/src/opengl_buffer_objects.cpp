@@ -1,10 +1,11 @@
 #include "opengl_buffer_objects.h"
+#include <cassert>
 
 namespace Render::OpenGL {
 
 // *************** UniformBuffer *********************
 
-UniformBuffer::UniformBuffer(size_t size, const void* data) 
+UniformBuffer::UniformBuffer(size_t size, const void* data)
     : m_ubo(0), m_size(size) {
     glCreateBuffers(1, &m_ubo);
     glNamedBufferData(m_ubo, static_cast<GLsizeiptr>(size), data, GL_DYNAMIC_DRAW);
@@ -17,11 +18,20 @@ UniformBuffer::~UniformBuffer() {
 }
 
 void UniformBuffer::update(size_t offset, size_t size, const void* data) {
-    glNamedBufferSubData(m_ubo, static_cast<GLintptr>(offset), 
+    assert(offset + size <= m_size && "Invalid uniform buffer size!");
+    glNamedBufferSubData(m_ubo, static_cast<GLintptr>(offset),
                          static_cast<GLsizeiptr>(size), data);
 }
 
-UniformBuffer::UniformBuffer(UniformBuffer&& other) noexcept 
+void* UniformBuffer::map() {
+    return glMapNamedBufferRange(m_ubo, 0, m_size, GL_MAP_READ_BIT | GL_MAP_WRITE_BIT);
+}
+
+void UniformBuffer::unmap() {
+    glUnmapNamedBuffer(m_ubo);
+}
+
+UniformBuffer::UniformBuffer(UniformBuffer&& other) noexcept
     : m_ubo(other.m_ubo), m_size(other.m_size) {
     other.m_ubo = 0;
     other.m_size = 0;

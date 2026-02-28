@@ -1,10 +1,12 @@
 #include "drawing_policy_registry.h"
 #include "../drawing_policies/default_drawing_policy.h"
+#include "../drawing_policies/ads_drawing_policy.h"
 
 namespace Render {
 
  void DrawingPolicyRegistry::init() {
      add("default", DefaultDrawingPolicy::create());
+     add("ads", AdsDrawingPolicy::create());
  }
 
 void DrawingPolicyRegistry::add(const std::string &material_type,

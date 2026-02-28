@@ -53,8 +53,7 @@ private:
   PipelineConfigRegistry m_pl_registry;
   DrawingPolicyRegistry m_dp_registry;
   std::unique_ptr<DescriptorPool> m_imgui_descriptor_pool{};
-  std::unique_ptr<DescriptorPool> m_per_frame_descriptor_pool{};
-  std::shared_ptr<DescriptorSetLayout> m_per_frame_ds_layout{};
+  RID m_per_frame_ds_layout;
 
   // --- Frame and Swapchain Management ---
   std::unique_ptr<VulkanSwapChain> m_swap_chain;

@@ -44,7 +44,7 @@ target_link_libraries(vulkan_renderer
 )
 
 # ======================================================================================
-# AUTOMATIC SHADER COMPILATION (in-place)
+# AUTOMATIC SHADER COMPILATION (to build directory)
 # ======================================================================================
 
 # 1. Find the glslc compiler
@@ -55,22 +55,55 @@ endif()
 
 # 2. Find all shader source files
 file(GLOB SHADER_SOURCES
-    "${CMAKE_CURRENT_SOURCE_DIR}/res/shaders/*.vert"
-    "${CMAKE_CURRENT_SOURCE_DIR}/res/shaders/*.frag"
+    "${CMAKE_CURRENT_SOURCE_DIR}/res/shaders/*.glsl"
 )
 
-# 3. Create custom commands to compile shaders in-place (in the source directory)
+# 3. Create custom commands to compile shaders to build directory
 set(SPIRV_OUTPUTS "")
 foreach(SHADER_SOURCE IN ITEMS ${SHADER_SOURCES})
   get_filename_component(SHADER_NAME ${SHADER_SOURCE} NAME)
-  set(SPIRV_OUTPUT "${CMAKE_CURRENT_SOURCE_DIR}/res/shaders/${SHADER_NAME}.spv")
+  # Output to build directory instead of source directory
+  set(SPIRV_OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/res/shaders/${SHADER_NAME}.spv")
   list(APPEND SPIRV_OUTPUTS ${SPIRV_OUTPUT})
 
+  # Determine shader stage from filename prefix (v_ = vert, f_ = frag)
+  if(SHADER_NAME MATCHES "^v_.*\\.glsl$")
+    set(SHADER_STAGE "vert")
+  elseif(SHADER_NAME MATCHES "^f_.*\\.glsl$")
+    set(SHADER_STAGE "frag")
+  elseif(SHADER_NAME MATCHES "^c_.*\\.glsl$")
+    set(SHADER_STAGE "comp")
+  elseif(SHADER_NAME MATCHES "^g_.*\\.glsl$")
+    set(SHADER_STAGE "geom")
+  elseif(SHADER_NAME MATCHES "^t_.*\\.glsl$")
+    set(SHADER_STAGE "tesc")
+  elseif(SHADER_NAME MATCHES "^e_.*\\.glsl$")
+    set(SHADER_STAGE "tese")
+  elseif(SHADER_NAME MATCHES "^r_.*\\.glsl$")
+    set(SHADER_STAGE "rgen")
+  elseif(SHADER_NAME MATCHES "^m_.*\\.glsl$")
+    set(SHADER_STAGE "rmiss")
+  elseif(SHADER_NAME MATCHES "^h_.*\\.glsl$")
+    set(SHADER_STAGE "rchit")
+  elseif(SHADER_NAME MATCHES "^i_.*\\.glsl$")
+    set(SHADER_STAGE "rahit")
+  elseif(SHADER_NAME MATCHES "^cc_.*\\.glsl$")
+    set(SHADER_STAGE "rcall")
+  elseif(SHADER_NAME MATCHES "^a_.*\\.glsl$")
+    set(SHADER_STAGE "task")
+  elseif(SHADER_NAME MATCHES "^ms_.*\\.glsl$")
+    set(SHADER_STAGE "mesh")
+  else()
+    message(FATAL_ERROR "Unknown shader stage for file: ${SHADER_NAME}")
+  endif()
+
+  # Create output directory if it doesn't exist
   add_custom_command(
     OUTPUT  ${SPIRV_OUTPUT}
-    COMMAND ${GLSLC_EXECUTABLE} -o ${SPIRV_OUTPUT} ${SHADER_SOURCE}
+    COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_CURRENT_BINARY_DIR}/res/shaders"
+    COMMAND ${GLSLC_EXECUTABLE} -fshader-stage=${SHADER_STAGE} -o ${SPIRV_OUTPUT} ${SHADER_SOURCE}
     DEPENDS ${SHADER_SOURCE}
-    COMMENT "Compiling ${SHADER_NAME} to SPIR-V (in-place)"
+    COMMENT "Compiling ${SHADER_NAME} to SPIR-V (${SHADER_STAGE})"
     VERBATIM)
 endforeach()
 
@@ -78,18 +111,23 @@ endforeach()
 add_custom_target(compile_shaders DEPENDS ${SPIRV_OUTPUTS})
 
 # 5. Make the main library depend on the shader compilation target
-# This ensures shaders are compiled before the library is built.
 add_dependencies(vulkan_renderer compile_shaders)
 
+# 6. Copy shaders to bin directory (where the executable runs from)
+# Copy each shader individually with proper dependency tracking
+set(SHADER_BIN_OUTPUTS "")
+foreach(SHADER_SOURCE IN ITEMS ${SHADER_SOURCES})
+  get_filename_component(SHADER_NAME ${SHADER_SOURCE} NAME)
+  set(SPIRV_OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/res/shaders/${SHADER_NAME}.spv")
+  set(SPIRV_BIN_OUTPUT "${CMAKE_SOURCE_DIR}/build/bin/res/shaders/${SHADER_NAME}.spv")
+  list(APPEND SHADER_BIN_OUTPUTS ${SPIRV_BIN_OUTPUT})
 
-# ======================================================================================
-# POST BUILD - Copy the entire 'res' directory (now containing .spv files)
-# ======================================================================================
-if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/res)
-    add_custom_command(TARGET vulkan_renderer POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy_directory
-            ${CMAKE_CURRENT_SOURCE_DIR}/res
-            $<TARGET_FILE_DIR:vulkan_renderer>/res
-        COMMENT "Copying res directory to build output"
-    )
-endif()
+  add_custom_command(
+    OUTPUT  ${SPIRV_BIN_OUTPUT}
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different ${SPIRV_OUTPUT} ${SPIRV_BIN_OUTPUT}
+    DEPENDS ${SPIRV_OUTPUT}
+    COMMENT "Copying ${SHADER_NAME}.spv to bin directory"
+    VERBATIM)
+endforeach()
+
+add_custom_target(copy_shaders_to_bin ALL DEPENDS ${SHADER_BIN_OUTPUTS})

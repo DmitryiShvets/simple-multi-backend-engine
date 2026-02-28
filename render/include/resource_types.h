@@ -4,6 +4,7 @@
 #include "uniform_set.h"
 #include "uniform_value.h"
 #include "uniform_layout.h"
+#include "vertex_layout.h"
 #include <string>
 
 namespace Render {
@@ -15,6 +16,7 @@ using UniformValue = Core::UniformValue;
 using UniformMap = Core::UniformMap;
 using UniformSet = Core::UniformSet;
 using UniformLayout = Core::UniformLayout;
+using VertexLayout = Core::VertexLayout;
 // --- Enums ---
 
 enum class ResourceType {
@@ -40,6 +42,7 @@ struct Material {
     RID pipeline;
     RID uniforms_buf;   // Material-level uniform buffer RID (albedo, roughness, etc.)
     RID uniforms_ds;    // Descriptor set for material-level resources
+    RID object_uniform_ds_layout; // Descriptor set layout for object uniforms (for creating per-object DS)
   } render_data;
 };
 

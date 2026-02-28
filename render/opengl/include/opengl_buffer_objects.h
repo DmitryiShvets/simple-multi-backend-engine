@@ -14,6 +14,10 @@ public:
     // Обновление данных в буфере
     void update(size_t offset, size_t size, const void* data);
 
+    // Отображение буфера в память CPU для чтения/записи
+    void* map();
+    void unmap();
+
     GLuint getHandle() const { return m_ubo; }
     size_t getSize() const { return m_size; }
 

@@ -20,12 +20,7 @@ enum class ImageLayout {
 
 enum class LoadOp { DONT_CARE, LOAD, CLEAR };
 enum class StoreOp { DONT_CARE, STORE };
-enum class Format {
-  UNDEFINED,
-  R32G32B32_SFLOAT,
-  R32G32_SFLOAT,
-  // Add other formats as needed
-};
+
 
 enum class DescriptorType {
   SAMPLER,
@@ -119,22 +114,7 @@ struct PipelineLayoutDesc {
 
 // --- Graphics Pipeline Descriptors ---
 
-struct VertexInputBindingDesc {
-  uint32_t binding;
-  uint32_t stride;
-};
 
-struct VertexInputAttributeDesc {
-  uint32_t location;
-  uint32_t binding;
-  Format format;
-  uint32_t offset;
-};
-
-struct VertexInputStateDesc {
-  std::vector<VertexInputBindingDesc> bindings;
-  std::vector<VertexInputAttributeDesc> attributes;
-};
 
 struct ShaderModuleDesc {
   std::string file_path;
@@ -157,7 +137,7 @@ struct GraphicsPipelineDesc {
   std::string name;
   RID pipeline_layout_rid; // Now takes a pre-created layout
   std::vector<ShaderModuleDesc> shader_modules;
-  VertexInputStateDesc vertex_input_state;
+  Core::VertexInputStateDesc vertex_input_state;
   PrimitiveTopology primitive_topology = PrimitiveTopology::TRIANGLE_LIST;
   RasterizationStateDesc rasterization_state;
   DepthStencilStateDesc depth_stencil_state;
@@ -229,6 +209,8 @@ struct PipelineConfig {
   std::string name;
   PipelineDesc desc;
   UniformLayout uniform_layout;  // Layout для material uniforms (Set 1)
+  UniformLayout object_uniform_layout;  // Layout для object uniforms (Set 2)
+  VertexLayout vertex_layout;  // Layout для вершинных данных
 
   static PipelineConfig create(
       const std::string &name,

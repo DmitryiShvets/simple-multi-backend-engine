@@ -7,6 +7,8 @@ set(CORE_PUBLIC_HEADERS
   include/uniform_value.h
   include/uniform_set.h
   include/uniform_layout.h
+  include/common.h
+  include/vertex_layout.h
 )
 
 set(CORE_SOURCES
@@ -21,4 +23,4 @@ target_include_directories(core_module
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
 )
 
-target_link_libraries(core_module PRIVATE glm)
+target_link_libraries(core_module PRIVATE glm utils_module)

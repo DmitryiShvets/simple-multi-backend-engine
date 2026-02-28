@@ -16,11 +16,11 @@
 namespace Render::Vulkan {
 
 // Helper functions
-VkFormat Format_to_VkFormat(Render::Format format) {
+VkFormat Format_to_VkFormat(Core::Format format) {
   switch (format) {
-  case Render::Format::R32G32B32_SFLOAT:
+  case Core::Format::R32G32B32_SFLOAT:
     return VK_FORMAT_R32G32B32_SFLOAT;
-  case Render::Format::R32G32_SFLOAT:
+  case Core::Format::R32G32_SFLOAT:
     return VK_FORMAT_R32G32_SFLOAT;
   default:
     return VK_FORMAT_UNDEFINED;
@@ -254,6 +254,7 @@ RID VulkanRHIDevice::createGraphicsPipeline(const GraphicsPipelineDesc &desc) {
           .setColorAttachmentFormats(color_formats)
           .setPrimitiveTopology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST)
           .setCullMode(VK_CULL_MODE_BACK_BIT)
+          // .setCullMode(VK_CULL_MODE_NONE)
           .setFrontFace(VK_FRONT_FACE_COUNTER_CLOCKWISE)
           .enableDepthTest(true)
           .enableDepthWrite(true);
@@ -346,17 +347,27 @@ RID VulkanRHIDevice::createMaterial(const std::string &material_name, const Unif
   // Find the layout for Set 1 (material uniforms)
   RID mat_ds_layout = ds_layouts.size() > 1 ? ds_layouts[1] : ds_layouts[0];
   RID mat_desc_set = createDescriptorSet(mat_ds_layout, {mat_uniform_buffer});
-
-  // 9. Create material template
+  // 9. Create descriptor set layout for object uniforms
+  RID obj_ds_layout = ds_layouts.size() > 2 ? ds_layouts[2] : ds_layouts[0];
+  // 10. Create material template
   material_rid = m_resource_manager.add(std::make_unique<Material>(
       Material{.name = material_name,
                .render_data = {
                    .pipeline = pipeline_rid,
                    .uniforms_buf = mat_uniform_buffer,
-                   .uniforms_ds = mat_desc_set
+                   .uniforms_ds = mat_desc_set,
+                   .object_uniform_ds_layout = obj_ds_layout
                }}));
 
   return material_rid;
+}
+
+const PipelineConfig* VulkanRHIDevice::getPipelineConfig(const std::string& material_name) const {
+  return m_pl_registry.getByName(material_name);
+}
+
+Material* VulkanRHIDevice::getMaterial(RID material_rid) {
+  return m_resource_manager.get_ptr<Material>(material_rid);
 }
 
 void VulkanRHIDevice::updateBufferRaw(RID rid, size_t offset, size_t size, const void *data) {
@@ -365,9 +376,10 @@ void VulkanRHIDevice::updateBufferRaw(RID rid, size_t offset, size_t size, const
   if (!buffer) {
     return; // Invalid RID
   }
-
+  buffer->map();
   // For host-visible buffers, we can directly write
   buffer->writeToBuffer(const_cast<void *>(data), size, offset);
+  buffer->unmap();
 }
 
 void VulkanRHIDevice::free(RID rid) { m_resource_manager.free(rid); }

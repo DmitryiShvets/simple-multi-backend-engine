@@ -18,12 +18,16 @@ add_library(render_module STATIC
     src/pipeline_config_registry.cpp
     pipelines/default_pipeline.h
     pipelines/default_pipeline.cpp
+    pipelines/ads_pipeline.h
+    pipelines/ads_pipeline.cpp
     # Drawing Policy
     include/drawing_policy.h
     include/drawing_policy_registry.h
     src/drawing_policy_registry.cpp
     drawing_policies/default_drawing_policy.h
     drawing_policies/default_drawing_policy.cpp
+    drawing_policies/ads_drawing_policy.h
+    drawing_policies/ads_drawing_policy.cpp
 )
 
 target_include_directories(render_module

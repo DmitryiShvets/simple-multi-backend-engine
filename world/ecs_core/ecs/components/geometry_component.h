@@ -5,6 +5,6 @@
 namespace Core::Ecs::Component {
 
     struct Geometry {
-        std::vector<Vertex> vertices;
+        std::vector<VertexN> vertices;
     };
 }

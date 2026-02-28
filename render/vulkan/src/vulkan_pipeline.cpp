@@ -35,6 +35,7 @@ PipelineConfigInfo::Builder::Builder() {
   m_config->rasterizationInfo.depthClampEnable = VK_FALSE;
   m_config->rasterizationInfo.rasterizerDiscardEnable = VK_FALSE;
   m_config->rasterizationInfo.polygonMode = VK_POLYGON_MODE_FILL;
+  // m_config->rasterizationInfo.polygonMode = VK_POLYGON_MODE_LINE; // wireframe mode
   m_config->rasterizationInfo.lineWidth = 1.0f;
   m_config->rasterizationInfo.cullMode = VK_CULL_MODE_NONE;
   m_config->rasterizationInfo.frontFace = VK_FRONT_FACE_CLOCKWISE;

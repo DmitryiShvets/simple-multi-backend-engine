@@ -6,8 +6,8 @@ namespace Render {
 
 class PipelineConfigRegistry;
 
-// DefaultMaterial template (no lighting)
-struct DefaultPipeline {
+// ADS Material template
+struct AdsPipeline {
     // Register material config in PipelineConfigRegistry
     static void addConfigToRegistry(PipelineConfigRegistry &registry, BackendType type);
 };

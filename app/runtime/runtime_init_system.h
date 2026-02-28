@@ -12,13 +12,13 @@
 
 namespace Core::Ecs::System {
 
-inline RID createVertexBuffer(Render::Device &device, const void *data, size_t size) {
+inline RID createVertexBuffer(Render::Device &device, const void *data,
+                              size_t size) {
   Render::BufferDesc buffer_desc{
       .size = size,
       .usage = static_cast<uint32_t>(Render::BufferUsage::VERTEX_BUFFER),
       .is_host_visible = true,
       .initial_data = (void *)data};
-
 
   return device.createBuffer(buffer_desc);
 }
@@ -39,6 +39,7 @@ public:
     // Second pass: create material templates and uniform buffers for each
     // material type
     process_material_type<Component::DefaultMaterial>(geometry_commands);
+    process_material_type<Component::AdsMaterial>(geometry_commands);
     // Add new material types here:
     // process_material_type<Component::PbrMaterial>();
   }
@@ -85,8 +86,8 @@ private:
       EntityHandle entity;
       RID vk_material_template;
       RID gl_material_template;
-      Core::Uniforms::ObjectUniforms vk_per_object_data;     // Per-object uniforms (model matrix)
-      Core::Uniforms::ObjectUniforms gl_per_object_data;
+      RID vk_per_object_data; // Per-object uniform buffer RID
+      RID gl_per_object_data;
       RID vk_geom;
       RID gl_geom;
     };
@@ -109,56 +110,77 @@ private:
 
       // Create/get material template (cached, contains pipeline)
       // Create material with uniform data
-      Core::UniformSet mat_uniforms;
-      mat_uniforms.set("color", Core::UniformValue(mat.color));
+      UniformSet mat_uniforms;
+      mat_uniforms.set("color", UniformValue(mat.color));
 
-      RID vk_mat_tpl =
-          m_vk_device.createMaterial(MaterialComponent::material_type_name, mat_uniforms);
-      RID gl_mat_tpl =
-          m_gl_device.createMaterial(MaterialComponent::material_type_name, mat_uniforms);
+      RID vk_mat_tpl = m_vk_device.createMaterial(
+          MaterialComponent::material_type_name, mat_uniforms);
+      RID gl_mat_tpl = m_gl_device.createMaterial(
+          MaterialComponent::material_type_name, mat_uniforms);
 
       // Get the material to access uniform buffer RID
       // Per-object uniform buffer (unique per object, contains model matrix)
-      Core::Uniforms::ObjectUniforms obj_uniforms{
-          .model_matrix = transform.getModelMatrix()};
-      // RID vk_per_obj = m_vk_device.createBuffer(Render::BufferDesc{
-      //     .size = sizeof(Core::Uniforms::ObjectUniforms),
-      //     .usage = static_cast<uint32_t>(Render::BufferUsage::UNIFORM_BUFFER),
-      //     .is_host_visible = true,
-      //     .initial_data = &obj_uniforms
-      // });
-      // RID gl_per_obj = m_gl_device.createBuffer(Render::BufferDesc{
-      //     .size = sizeof(Core::Uniforms::ObjectUniforms),
-      //     .usage = static_cast<uint32_t>(Render::BufferUsage::UNIFORM_BUFFER),
-      //     .is_host_visible = true,
-      //     .initial_data = &obj_uniforms
-      // });
+      glm::mat4 model_mat = transform.getModelMatrix();
+      glm::mat3 normal_mat = glm::transpose(glm::inverse(glm::mat3(model_mat)));
 
-      commands.push_back(
-          {entity, vk_mat_tpl, gl_mat_tpl,
-           obj_uniforms, obj_uniforms,
-           vk_geom, gl_geom});
+      // Convert to std140 layout for GPU
+      Uniforms::ObjectUniforms obj_uniforms{.model_matrix = model_mat,
+                                            .normal_matrix = normal_mat};
+      auto packed_uniforms = Uniforms::ObjectUniformsStd140::from(obj_uniforms);
+
+      // Get object uniform layout size from material config
+      auto mat_type = MaterialComponent::material_type_name;
+      const auto *vk_config = m_vk_device.getPipelineConfig(mat_type);
+      const auto *gl_config = m_gl_device.getPipelineConfig(mat_type);
+
+      RID vk_per_obj = m_vk_device.createBuffer(Render::BufferDesc{
+          .size = vk_config->object_uniform_layout.getTotalSize(),
+          .usage = static_cast<uint32_t>(Render::BufferUsage::UNIFORM_BUFFER),
+          .is_host_visible = true,
+          .initial_data = &packed_uniforms});
+      RID gl_per_obj = m_gl_device.createBuffer(Render::BufferDesc{
+          .size = gl_config->object_uniform_layout.getTotalSize(),
+          .usage = static_cast<uint32_t>(Render::BufferUsage::UNIFORM_BUFFER),
+          .is_host_visible = true,
+          .initial_data = &packed_uniforms});
+
+      commands.push_back({entity, vk_mat_tpl, gl_mat_tpl, vk_per_obj,
+                          gl_per_obj, vk_geom, gl_geom});
     });
 
     // Create VkRuntime and GlRuntime components with all data
     for (const auto &cmd : commands) {
+      // Get material to access descriptor set layout for object uniforms
+      auto *vk_mat = m_vk_device.getMaterial(cmd.vk_material_template);
+      auto *gl_mat = m_gl_device.getMaterial(cmd.gl_material_template);
+
+      // Create descriptor set for this object's uniform buffer
+      RID vk_obj_ds = m_vk_device.createDescriptorSet(
+          vk_mat->render_data.object_uniform_ds_layout, {cmd.vk_per_object_data});
+      RID gl_obj_ds = m_gl_device.createDescriptorSet(
+          gl_mat->render_data.object_uniform_ds_layout, {cmd.gl_per_object_data});
+
       m_world.template addComponent<Component::VkRuntime>(
           cmd.entity,
-          Component::VkRuntime{.geometry_id = cmd.vk_geom,
-                               .material_id = cmd.vk_material_template,
-                               .data_id = cmd.vk_per_object_data,
-                               .material_type =
-                                   MaterialComponent::material_type_name,
-                               .visible = true});
+          Component::VkRuntime{
+              .geometry_id = cmd.vk_geom,
+              .material_id = cmd.vk_material_template,
+              .obj_uniform_id = cmd.vk_per_object_data,
+              .obj_uniform_ds = vk_obj_ds,
+              .material_type = MaterialComponent::material_type_name,
+              .visible = true,
+          });
 
       m_world.template addComponent<Component::GlRuntime>(
           cmd.entity,
-          Component::GlRuntime{.geometry_id = cmd.gl_geom,
-                               .material_id = cmd.gl_material_template,
-                               .data_id = cmd.gl_per_object_data,
-                               .material_type =
-                                   MaterialComponent::material_type_name,
-                               .visible = true});
+          Component::GlRuntime{
+              .geometry_id = cmd.gl_geom,
+              .material_id = cmd.gl_material_template,
+              .obj_uniform_id = cmd.gl_per_object_data,
+              .obj_uniform_ds = gl_obj_ds,
+              .material_type = MaterialComponent::material_type_name,
+              .visible = true
+          });
     }
   }
 

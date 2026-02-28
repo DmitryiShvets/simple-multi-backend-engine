@@ -16,11 +16,11 @@ layout(set = 1, binding = 0) uniform MaterialUBO {
 
 // Push constants для model matrix
 layout(push_constant) uniform Push {
-  mat4 modelMatrix;
+  mat4 model_mat;
 } push;
 
 
 void main() {
-  gl_Position = ubo.projectionViewMatrix * push.modelMatrix * vec4(position, 1.0);
+  gl_Position = ubo.projectionViewMatrix * push.model_mat * vec4(position, 1.0);
   fragColor = material.color;
 }

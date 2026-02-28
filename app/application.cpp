@@ -1,5 +1,6 @@
 #include "application.h"
 #include "ecs/components/transform_component.h"
+#include "ecs/components/material_component.h"
 #include "hello_widget.h"
 #include "i_main_window.h"
 #include "i_renderer.h"
@@ -7,8 +8,6 @@
 #include "objects_utils.h"
 #include "runtime/runtime_init_system.h"
 #include "scene_view.h"
-#include "sphere.h"
-#include "vertex.h"
 
 #include "flecs_world.h"
 #include "world.h"
@@ -44,36 +43,16 @@ void Application::init() {
   m_world = std::make_unique<Core::Ecs::World<Core::Ecs::FlecsWorldImpl>>();
 
   // Create test objects in the ECS
-  // auto triangle = m_world->createEntity();
-  auto sphere = getSphere3D(1, 16, 16);
-  std::vector<Vertex> pos1;
-  // int j = 1;
-  // for (auto i : sphere.indices) {
-
-  //   pos1.push_back({sphere.positions[i],
-  //                   {j % 3 == 1 * 1.0f, j % 3 == 2 * 1.0f, j % 3 == 0 * 1.0f}});
-  //   j++;
-  // }
-  auto pos2 = std::vector<Vertex>{
-      {{-0.5f, -0.5f, 0.0f}},
-      {{0.5f, -0.5f, 0.0f}},
-      {{0.0f, 0.5f, 0.0f}},
-  };
-  auto pos = std::vector<Vertex>{
-      {{-0.5f, 0.5f, -0.5f}},
-      {{0.f, -0.5f, -0.5f}},
-      {{0.5f, 0.5f, -0.5f}}, // pos, color
-  };
-  auto triangle = createMesh(*m_world, "triangle", pos, "default");
-  m_world->addComponent<Core::Ecs::Component::DefaultMaterial>(
-      triangle, Core::Ecs::Component::DefaultMaterial{
+  // Create spheres using the sphere generator
+  auto sphere1 = createSphere(*m_world, "sphere1", 0.5f, 32, 32, "ads");
+  m_world->addComponent<Core::Ecs::Component::AdsMaterial>(
+      sphere1, Core::Ecs::Component::AdsMaterial{
                     .color = glm::vec3(1.0f, 0.0f, 0.0f)});
 
-  auto triangle1 = createMesh(*m_world, "triangle1", pos2, "default");
-  m_world->addComponent<Core::Ecs::Component::DefaultMaterial>(
-      triangle1, Core::Ecs::Component::DefaultMaterial{
-                     .color = glm::vec3(0.0f, 1.0f, 0.0f)});
-
+  auto sphere2 = createSphere(*m_world, "sphere2", 0.6f, 32, 32, "ads");
+  m_world->addComponent<Core::Ecs::Component::AdsMaterial>(
+      sphere2, Core::Ecs::Component::AdsMaterial{
+                    .color = glm::vec3(1.0f, 1.0f, 0.0f)});
   // --- Initialize runtime resources ---
   auto runtime_init_system =
       std::make_unique<Core::Ecs::System::RuntimeInitSystem<
@@ -120,19 +99,28 @@ void Application::run() {
     m_ui_manager->render([&widget]() { widget.render(); },
                          [&widget]() { widget.render(); });
     // test only
-    auto triangle = m_world->getEntity("triangle");
-    auto &transform =
-        m_world->getComponent<Core::Ecs::Component::Transform>(triangle);
-    transform.position.z = widget.m_slider_value;
-
+    // auto triangle = m_world->getEntity("triangle");
+    // auto &transform =
+    //     m_world->getComponent<Core::Ecs::Component::Transform>(triangle);
+    // transform.position.z = widget.m_slider_value;
+    auto sphere1 = m_world->getEntity("sphere1");
+     auto& transform1 = m_world->getComponent<Core::Ecs::Component::Transform>(sphere1);
+     transform1.position.x = -widget.m_slider_value;
+     // transform1.position.z = -1;
+     auto sphere2 = m_world->getEntity("sphere2");
+     auto& transform2 = m_world->getComponent<Core::Ecs::Component::Transform>(sphere2);
+     transform2.position.x = widget.m_slider_value;
+     // transform2.position.z = 1;
     // Update per-object uniform buffers before rendering
     runtime_update_system->update();
 
     Core::SceneView gl_scene_view = gl_scene_view_system->run();
+    gl_scene_view.z = widget.m_slider_value -0.5;
     m_gl_renderer->renderFrame(gl_scene_view,
                                m_ui_manager->getOpenGLDrawData());
 
     Core::SceneView vk_scene_view = vk_scene_view_system->run();
+    vk_scene_view.z = widget.m_slider_value -0.5;
     m_vk_renderer->renderFrame(vk_scene_view,
                                m_ui_manager->getVulkanDrawData());
 

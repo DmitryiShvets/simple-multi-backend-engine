@@ -1,18 +1,20 @@
 #include "vulkan_renderer.h"
+#include "logger.h"
 #include "pipeline_config_registry.h"
 #include "resource_types.h"
+#include "vertex.h"
 #include "vulkan_buffer.h"
 #include "vulkan_command_list.h"
 #include "vulkan_pipeline.h"
 #include "vulkan_rhi_device.h"
 #include "vulkan_swap_chain.h"
-#include "vertex.h"
 
 #include "render_graph.h"
 #include "render_graph_executor.h"
 #include "scene_view.h"
 #include "uniforms.h"
 
+#include <cassert>
 #include <glm/gtc/constants.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
@@ -29,7 +31,6 @@ VulkanRenderer::VulkanRenderer(std::unique_ptr<VulkanDevice> device)
       m_pl_registry(PipelineConfigRegistry(m_backend_type)) {
   /* -------------INIT STATE-------------- */
   createSwapChain();
-  createPerFrameResources();
   m_rhi_device = std::make_unique<VulkanRHIDevice>(
       *m_device, m_resource_manager, m_pl_registry);
   m_imgui_descriptor_pool =
@@ -40,6 +41,7 @@ VulkanRenderer::VulkanRenderer(std::unique_ptr<VulkanDevice> device)
           .setPoolFlags(VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT)
           .setMaxSets(100) // More than enough for ImGui
           .build();
+  createPerFrameResources();
   /* -------------INIT 3D-------------- */
   /* -------------INIT MISC-------------- */
   m_executor = std::make_unique<RenderGraphExecutor>(m_rhi_device.get());
@@ -92,9 +94,6 @@ VulkanRenderer::~VulkanRenderer() {}
 void VulkanRenderer::renderFrame(const Core::SceneView &view,
                                  ImDrawData *ui_draw_data) {
   acquireNextImage();
-  if (m_swap_chain == nullptr) {
-    return;
-  }
 
   // Update per-frame uniforms (camera, projection)
   updatePerFrameResources(view);
@@ -157,13 +156,14 @@ void VulkanRenderer::renderFrame(const Core::SceneView &view,
       if (!policy) {
         continue; // Skip if policy not found
       }
-      // Get per-object uniform data (model matrix) from buffer
-      auto &per_object_data = renderable.data_id;
 
       // Get vertex count from geometry buffer
-      auto *geom_buffer = m_resource_manager.get_ptr<VulkanDataBuffer>(renderable.geometry_id);
-      uint32_t vertex_count = geom_buffer ? static_cast<uint32_t>(geom_buffer->getBufferSize() / sizeof(Vertex)) : 3;
-
+      auto *geom_buffer =
+          m_resource_manager.get_ptr<VulkanDataBuffer>(renderable.geometry_id);
+      uint32_t vertex_count =
+          geom_buffer ? static_cast<uint32_t>(geom_buffer->getBufferSize() /
+                                              sizeof(VertexN))
+                      : 3;
 
       // Render using DrawingPolicy
       DrawingData draw_data;
@@ -175,8 +175,11 @@ void VulkanRenderer::renderFrame(const Core::SceneView &view,
       draw_data.descriptor_sets[0] = per_frame_ds_rid;
       // Descriptor Set 1: Per-Material (color)
       draw_data.descriptor_sets[1] = material_tpl->render_data.uniforms_ds;
+      // Descriptor Set 2: Per-Object (normal matrix) - use object's own
+      // descriptor set
+      draw_data.descriptor_sets[2] = renderable.obj_uniform_ds;
       // Push Constants: model matrix
-      draw_data.push_constants.emplace("modelMatrix", per_object_data.model_matrix);
+      draw_data.push_constants.emplace("model_mat", renderable.model_matrix);
 
       policy->render(cmd, draw_data);
     }
@@ -241,91 +244,62 @@ void VulkanRenderer::createPerFrameResources() {
   if (m_per_frame_ds_layout) {
     return;
   }
-
-  auto frame_count = m_swap_chain->getImageCount();
-
   // Create descriptor set layout for per-frame uniforms (Set 0)
   // Binding 0: GlobalUBO (projectionViewMatrix)
-  m_per_frame_ds_layout = DescriptorSetLayout::Builder(*m_device)
-                              .addBinding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-                                          VK_SHADER_STAGE_VERTEX_BIT)
-                              .build();
-
-  // Create descriptor pool for per-frame sets
-  m_per_frame_descriptor_pool =
-      DescriptorPool::Builder(*m_device)
-          .addPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, frame_count)
-          .setMaxSets(frame_count)
-          .build();
-
+  DescriptorSetLayoutDesc ds_layout_desc;
+  ds_layout_desc.bindings.push_back(
+      {.binding = 0,
+       .type = DescriptorType::UNIFORM_BUFFER,
+       .stages = static_cast<uint32_t>(ShaderStage::VERTEX),
+       .count = 1});
+  m_per_frame_ds_layout =
+      m_rhi_device->createDescriptorSetLayout(ds_layout_desc);
   // Create per-frame resources
+  auto frame_count = m_swap_chain->getImageCount();
   m_per_frame_resources.resize(frame_count);
   for (uint32_t i = 0; i < frame_count; i++) {
     // Create uniform buffer for FrameUniforms
-    auto buffer = std::make_unique<VulkanDataBuffer>(
-        *m_device,
-        sizeof(Core::Uniforms::FrameUniforms), // instanceSize
-        1,                                     // instanceCount
-        VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
-            VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-
-    RID buffer_rid = m_resource_manager.add(std::move(buffer));
-    m_per_frame_resources[i].uniform_buffer = buffer_rid;
-
+    RID frame_uniform_buffer = m_rhi_device->createBuffer(
+        BufferDesc{.size = sizeof(Core::Uniforms::FrameUniformsStd140),
+                   .usage = static_cast<uint32_t>(BufferUsage::UNIFORM_BUFFER),
+                   .is_host_visible = true,
+                   .initial_data = nullptr});
     // Create descriptor set
-    auto *ds_layout_ptr = m_per_frame_ds_layout.get();
-    DescriptorWriter writer(*ds_layout_ptr, *m_per_frame_descriptor_pool);
+    RID per_frame_ds = m_rhi_device->createDescriptorSet(
+        m_per_frame_ds_layout, {frame_uniform_buffer});
 
-    auto *uniform_buffer =
-        m_resource_manager.get_ptr<VulkanDataBuffer>(buffer_rid);
-
-    VkDescriptorBufferInfo buffer_info{};
-    buffer_info.buffer = uniform_buffer->getBuffer();
-    buffer_info.offset = 0;
-    buffer_info.range = sizeof(Core::Uniforms::FrameUniforms);
-    writer.writeBuffer(0, &buffer_info);
-
-    VkDescriptorSet vk_descriptor_set = writer.build();
-    m_per_frame_resources[i].descriptor_set = vk_descriptor_set;
-
-    // Register descriptor set in resource manager for binding and save RID
-    RID ds_rid = m_resource_manager.add(vk_descriptor_set);
-    m_per_frame_resources[i].descriptor_set_rid = ds_rid;
+    m_per_frame_resources[i].uniform_buffer = frame_uniform_buffer;
+    m_per_frame_resources[i].descriptor_set_rid = per_frame_ds;
   }
 }
 
 void VulkanRenderer::updatePerFrameResources(const Core::SceneView &view) {
+  // Get uniform buffer
   auto frame_index = m_swap_chain->getCurrentFrameIndex();
   auto &frame = m_per_frame_resources[frame_index];
-
-  // Get uniform buffer and update data
-  auto *uniform_buffer =
-      m_resource_manager.get_ptr<VulkanDataBuffer>(frame.uniform_buffer);
-  if (!uniform_buffer)
-    return;
-
   // Calculate view-projection matrix
   // Camera at (0, 0, 5) looking at (0, 0, 0), up is +Y
-  glm::mat4 view_mat = glm::lookAt(
-      glm::vec3(0.0f, 0.0f, 5.0f),  // Camera position
-      glm::vec3(0.0f, 0.0f, 0.0f),  // Look at target
-      glm::vec3(0.0f, 1.0f, 0.0f)   // Up direction
-  );
+  glm::mat4 view_mat =
+      glm::lookAt(glm::vec3(0.0f, 0.0f, 5.0f + view.z), // Camera position
+                  glm::vec3(0.0f, 0.0f, 0.0f),          // Look at target
+                  glm::vec3(0.0f, 1.0f, 0.0f)           // Up direction
+      );
   // Vulkan uses Y-down clip space, so we need to flip Y axis
   glm::mat4 proj_mat = glm::perspective(
       glm::radians(45.0f), m_swap_chain->extentAspectRatio(), 0.1f, 100.0f);
-  proj_mat[1][1] *= -1.0f;  // Flip Y for Vulkan
+  proj_mat[1][1] *= -1.0f; // Flip Y for Vulkan
 
   Core::Uniforms::FrameUniforms uniforms{};
   uniforms.view_projection = proj_mat * view_mat;
-  uniforms.camera_position = glm::vec3(0.0f, 0.0f, 5.0f);
-
-  // Map, write, and unmap
-  uniform_buffer->map(sizeof(Core::Uniforms::FrameUniforms));
-  uniform_buffer->writeToBuffer(&uniforms,
-                                sizeof(Core::Uniforms::FrameUniforms));
-  uniform_buffer->unmap();
+  uniforms.light_position = glm::vec3(0.0f, 0.0f, 5.0f);
+  uniforms.Kd =
+      glm::vec3(1.0f, 1.0f, 1.0f); // Diffuse coefficient (white surface)
+  uniforms.Ld = glm::vec3(1.0f, 1.0f, 1.0f); // Light intensity (white light)
+  uniforms.camera_position = glm::vec3(0.0f, 5.0f, 5.0f);
+  auto packed = Core::Uniforms::FrameUniformsStd140::from(uniforms);
+  // Update buffer
+  m_rhi_device->updateBufferRaw(frame.uniform_buffer, 0, sizeof(packed),
+                                &packed);
 }
 
 void VulkanRenderer::present() {
