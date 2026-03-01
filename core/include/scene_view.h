@@ -16,7 +16,7 @@ public:
     RID obj_uniform_ds;     // Descriptor set for object uniform
     glm::mat4 model_matrix;
   };
-  float z;
+  float z = 0;
   std::vector<MeshRenderable> opaque_objects;
 };
 } // namespace Core

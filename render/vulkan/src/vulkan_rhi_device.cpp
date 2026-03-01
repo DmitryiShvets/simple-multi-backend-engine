@@ -1,9 +1,10 @@
 #include "vulkan_rhi_device.h"
+#include "logger.h"
 #include "pipeline_config_registry.h"
 #include "render_device.h"
 #include "render_types.h"
-#include "uniforms.h"
 #include "uniform_set.h"
+#include "uniforms.h"
 #include "vulkan_buffer.h"
 #include "vulkan_descriptor_set.h"
 #include "vulkan_pipeline.h"
@@ -72,12 +73,13 @@ RID VulkanRHIDevice::createBuffer(const BufferDesc &desc) {
   VkBufferUsageFlags usage_flags = 0;
   if (desc.usage & static_cast<uint32_t>(BufferUsage::VERTEX_BUFFER)) {
     usage_flags |= VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
-  }
-  if (desc.usage & static_cast<uint32_t>(BufferUsage::UNIFORM_BUFFER)) {
+  } else if (desc.usage & static_cast<uint32_t>(BufferUsage::UNIFORM_BUFFER)) {
     usage_flags |= VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
-  }
-  if (desc.usage & static_cast<uint32_t>(BufferUsage::INDEX_BUFFER)) {
+  } else if (desc.usage & static_cast<uint32_t>(BufferUsage::INDEX_BUFFER)) {
     usage_flags |= VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
+  } else {
+    Logger::error_log("Unsupported buffer type");
+    return RID::INVALID;
   }
 
   // Default to vertex buffer if no usage specified
@@ -104,17 +106,17 @@ RID VulkanRHIDevice::createDescriptorSetLayout(
     const DescriptorSetLayoutDesc &desc) {
   auto builder = DescriptorSetLayout::Builder(m_device);
   for (const auto &binding : desc.bindings) {
-    builder.addBinding(binding.binding,
-                       DescriptorType_to_VkDescriptorType(binding.type),
-                       ShaderStageFlags_to_VkShaderStageFlags(binding.stages),
-                       binding.count);
+    builder.addBinding(
+        binding.binding, DescriptorType_to_VkDescriptorType(binding.type),
+        ShaderStageFlags_to_VkShaderStageFlags(binding.stages), binding.count);
   }
   auto layout = builder.build();
   RID rid = m_resource_manager.add(std::move(layout));
   return rid;
 }
 
-RID VulkanRHIDevice::createDescriptorSet(RID layout_rid, const std::vector<RID>& buffer_rids) {
+RID VulkanRHIDevice::createDescriptorSet(RID layout_rid,
+                                         const std::vector<RID> &buffer_rids) {
   // Get layout
   auto layout = m_resource_manager.get_ptr<DescriptorSetLayout>(layout_rid);
   if (!layout) {
@@ -127,9 +129,10 @@ RID VulkanRHIDevice::createDescriptorSet(RID layout_rid, const std::vector<RID>&
   pool_builder.setMaxSets(1);
 
   // Add pool sizes based on layout
-  for (const auto& [binding_idx, binding_info] : layout->getBindings()) {
+  for (const auto &[binding_idx, binding_info] : layout->getBindings()) {
     (void)binding_idx; // unused
-    pool_builder.addPoolSize(binding_info.descriptorType, binding_info.descriptorCount);
+    pool_builder.addPoolSize(binding_info.descriptorType,
+                             binding_info.descriptorCount);
   }
 
   auto pool = pool_builder.build();
@@ -139,7 +142,7 @@ RID VulkanRHIDevice::createDescriptorSet(RID layout_rid, const std::vector<RID>&
 
   // Add binding for each buffer
   for (size_t i = 0; i < buffer_rids.size(); ++i) {
-    auto* buffer = m_resource_manager.get_ptr<VulkanDataBuffer>(buffer_rids[i]);
+    auto *buffer = m_resource_manager.get_ptr<VulkanDataBuffer>(buffer_rids[i]);
     if (!buffer) {
       throw std::runtime_error("Invalid buffer RID in createDescriptorSet");
     }
@@ -151,7 +154,8 @@ RID VulkanRHIDevice::createDescriptorSet(RID layout_rid, const std::vector<RID>&
     // Verify buffer has correct usage flag for the descriptor type
     if (binding_info.descriptorType == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER) {
       assert((buffer->getUsageFlags() & VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT) &&
-             "Buffer must be created with VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT for uniform buffer descriptor");
+             "Buffer must be created with VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT "
+             "for uniform buffer descriptor");
     }
 
     VkDescriptorBufferInfo buffer_info = buffer->descriptorInfo();
@@ -234,12 +238,14 @@ RID VulkanRHIDevice::createGraphicsPipeline(const GraphicsPipelineDesc &desc) {
 
   // 3. Translate abstract desc to Vulkan-specific PipelineConfigInfo
   std::vector<VkVertexInputBindingDescription> binding_descriptions;
-  for (const auto &binding : desc.vertex_input_state.bindings) {
+  const auto &bindings = desc.vertex_layout.getBindings();
+  for (const auto &binding : bindings) {
     binding_descriptions.push_back({binding.binding, binding.stride});
   }
 
   std::vector<VkVertexInputAttributeDescription> attribute_descriptions;
-  for (const auto &attr : desc.vertex_input_state.attributes) {
+  const auto &attributes = desc.vertex_layout.getAttributes();
+  for (const auto &attr : attributes) {
     attribute_descriptions.push_back({attr.location, attr.binding,
                                       Format_to_VkFormat(attr.format),
                                       attr.offset});
@@ -250,14 +256,14 @@ RID VulkanRHIDevice::createGraphicsPipeline(const GraphicsPipelineDesc &desc) {
 
   PipelineConfigInfo::Builder pipeline_config_builder;
   pipeline_config_builder.setPipelineLayout(vk_pipeline_layout)
-          .setVertexInputInfo(binding_descriptions, attribute_descriptions)
-          .setColorAttachmentFormats(color_formats)
-          .setPrimitiveTopology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST)
-          .setCullMode(VK_CULL_MODE_BACK_BIT)
-          // .setCullMode(VK_CULL_MODE_NONE)
-          .setFrontFace(VK_FRONT_FACE_COUNTER_CLOCKWISE)
-          .enableDepthTest(true)
-          .enableDepthWrite(true);
+      .setVertexInputInfo(binding_descriptions, attribute_descriptions)
+      .setColorAttachmentFormats(color_formats)
+      .setPrimitiveTopology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST)
+      .setCullMode(VK_CULL_MODE_BACK_BIT)
+      // .setCullMode(VK_CULL_MODE_NONE)
+      .setFrontFace(VK_FRONT_FACE_COUNTER_CLOCKWISE)
+      .enableDepthTest(true)
+      .enableDepthWrite(true);
 
   auto pipeline_config = pipeline_config_builder.build();
 
@@ -291,19 +297,22 @@ RID VulkanRHIDevice::createPipeline(const PipelineDesc &desc) {
   return createGraphicsPipeline(desc.pl_desc);
 }
 
-RID VulkanRHIDevice::createMaterial(const std::string &material_name, const UniformSet& material_uniforms) {
+RID VulkanRHIDevice::createMaterial(const std::string &material_name,
+                                    const UniformSet &material_uniforms) {
   // 1. Check if a material with this name already exists
   RID material_rid = m_resource_manager.findMaterial(material_name);
   if (material_rid) {
     // Material exists, just update uniforms
-    auto* mat = m_resource_manager.get_ptr<Material>(material_rid);
+    auto *mat = m_resource_manager.get_ptr<Material>(material_rid);
     if (mat && mat->render_data.uniforms_buf) {
       // Get layout from registry
-      auto* config = m_pl_registry.getByName(material_name);
+      auto *config = m_pl_registry.getByName(material_name);
       if (config) {
         // Pack uniforms and update buffer
-        std::vector<uint8_t> packed = config->uniform_layout.pack(material_uniforms);
-        updateBufferRaw(mat->render_data.uniforms_buf, 0, packed.size(), packed.data());
+        std::vector<uint8_t> packed =
+            config->uniform_layout.pack(material_uniforms);
+        updateBufferRaw(mat->render_data.uniforms_buf, 0, packed.size(),
+                        packed.data());
       }
     }
     return material_rid;
@@ -318,7 +327,7 @@ RID VulkanRHIDevice::createMaterial(const std::string &material_name, const Unif
   // 3. Create descriptor set layouts for each set
   std::vector<RID> ds_layouts;
   ds_layouts.reserve(config->desc.ds_layouts_desc.size());
-  for (const auto& ds_layout_desc : config->desc.ds_layouts_desc) {
+  for (const auto &ds_layout_desc : config->desc.ds_layouts_desc) {
     RID ds_layout = createDescriptorSetLayout(ds_layout_desc);
     ds_layouts.push_back(ds_layout);
   }
@@ -333,44 +342,49 @@ RID VulkanRHIDevice::createMaterial(const std::string &material_name, const Unif
   RID pipeline_rid = createGraphicsPipeline(config->desc.pl_desc);
 
   // 7. Create material uniform buffer using layout
-  const auto& layout = config->uniform_layout;
+  const auto &layout = config->uniform_layout;
   std::vector<uint8_t> packed_uniforms = layout.pack(material_uniforms);
 
-  RID mat_uniform_buffer = createBuffer(BufferDesc{
-      .size = layout.getTotalSize(),
-      .usage = static_cast<uint32_t>(BufferUsage::UNIFORM_BUFFER),
-      .is_host_visible = true,
-      .initial_data = packed_uniforms.data()
-  });
+  RID mat_uniform_buffer = createBuffer(
+      BufferDesc{.size = layout.getTotalSize(),
+                 .usage = static_cast<uint32_t>(BufferUsage::UNIFORM_BUFFER),
+                 .is_host_visible = true,
+                 .initial_data = packed_uniforms.data()});
 
   // 8. Create descriptor set for material uniforms (Set 1)
   // Find the layout for Set 1 (material uniforms)
   RID mat_ds_layout = ds_layouts.size() > 1 ? ds_layouts[1] : ds_layouts[0];
   RID mat_desc_set = createDescriptorSet(mat_ds_layout, {mat_uniform_buffer});
-  // 9. Create descriptor set layout for object uniforms
-  RID obj_ds_layout = ds_layouts.size() > 2 ? ds_layouts[2] : ds_layouts[0];
+
+  // 9. Create descriptor set layout for object uniforms (if used by material)
+  RID obj_ds_layout = RID::INVALID;
+  if (ds_layouts.size() > 2 &&
+      !config->object_uniform_layout.getVariables().empty()) {
+    obj_ds_layout = ds_layouts[2];
+  }
+
   // 10. Create material template
   material_rid = m_resource_manager.add(std::make_unique<Material>(
       Material{.name = material_name,
-               .render_data = {
-                   .pipeline = pipeline_rid,
-                   .uniforms_buf = mat_uniform_buffer,
-                   .uniforms_ds = mat_desc_set,
-                   .object_uniform_ds_layout = obj_ds_layout
-               }}));
+               .render_data = {.pipeline = pipeline_rid,
+                               .uniforms_buf = mat_uniform_buffer,
+                               .uniforms_ds = mat_desc_set,
+                               .object_uniform_ds_layout = obj_ds_layout}}));
 
   return material_rid;
 }
 
-const PipelineConfig* VulkanRHIDevice::getPipelineConfig(const std::string& material_name) const {
+const PipelineConfig *
+VulkanRHIDevice::getPipelineConfig(const std::string &material_name) const {
   return m_pl_registry.getByName(material_name);
 }
 
-Material* VulkanRHIDevice::getMaterial(RID material_rid) {
+Material *VulkanRHIDevice::getMaterial(RID material_rid) {
   return m_resource_manager.get_ptr<Material>(material_rid);
 }
 
-void VulkanRHIDevice::updateBufferRaw(RID rid, size_t offset, size_t size, const void *data) {
+void VulkanRHIDevice::updateBufferRaw(RID rid, size_t offset, size_t size,
+                                      const void *data) {
   // Get buffer from resource manager
   auto *buffer = m_resource_manager.get_ptr<VulkanDataBuffer>(rid);
   if (!buffer) {

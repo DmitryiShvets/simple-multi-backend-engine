@@ -9,14 +9,6 @@ namespace Core::MaterialParams {
 // Stored in ECS component for EACH object (instance-level)
 // ============================================================================
 
-
-enum class Format {
-  UNDEFINED,
-  R32G32B32_SFLOAT,
-  R32G32_SFLOAT,
-  // Add other formats as needed
-};
-
 struct DefaultMaterial {
   glm::vec3 color = glm::vec3(1.0f);
 

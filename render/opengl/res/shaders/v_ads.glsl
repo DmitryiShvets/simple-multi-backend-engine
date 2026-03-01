@@ -8,7 +8,7 @@ layout(location = 0) out vec3 fragColor;
 // Per-frame uniform
 layout(std140, binding = 0) uniform GlobalUBO {
   mat4 view_proj_mat;
-  vec3 light_pos;   // Позиция источника света в видимых координатах
+  vec3 light_pos;   // Позиция источника света в мировых координатах
   vec3 Kd;          // Коэффициент рассеивания
   vec3 Ld;          // Интенсивность источника света (цвет света)
 } ubo;

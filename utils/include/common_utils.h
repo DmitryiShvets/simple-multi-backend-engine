@@ -1,15 +1,14 @@
 #pragma once
-#include <string>
 #include <glm/vec3.hpp>
+#include <string>
 
-class CUtils
-{
+class CUtils {
 public:
+  static float lerp(float a, float b, float t) { return a + (b - a) * t; }
 
-	static float randomFloat(float min, float max);
+  static float randomFloat(float min, float max);
 
-	static glm::vec3 randomVec3F(float min, float max);
+  static glm::vec3 randomVec3F(float min, float max);
 
-	static std::string readFile(const std::string& path);
+  static std::string readFile(const std::string &path);
 };
-

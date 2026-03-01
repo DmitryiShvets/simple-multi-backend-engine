@@ -39,12 +39,7 @@ void initVulkanMaterial(PipelineConfigRegistry &registry) {
         desc.pl_desc.shader_modules = {
             {"res/shaders/v_default.glsl.spv", ShaderStage::VERTEX},
             {"res/shaders/f_default.glsl.spv", ShaderStage::FRAGMENT}};
-        desc.pl_desc.vertex_input_state = {
-            .bindings = {{.binding = 0, .stride = sizeof(Vertex)}},
-            .attributes = {{.location = 0,
-                            .binding = 0,
-                            .format = Core::Format::R32G32B32_SFLOAT,
-                            .offset = offsetof(Vertex, position)}}};
+        desc.pl_desc.vertex_layout = Vertex::getLayout();
         desc.pl_desc.primitive_topology = PrimitiveTopology::TRIANGLE_LIST;
       });
 
@@ -60,9 +55,6 @@ void initVulkanMaterial(PipelineConfigRegistry &registry) {
       // std140 automatically adds 4 bytes padding to 16 bytes
   });
   vk_default_mat.uniform_layout.computeLayout();
-
-  // Vertex layout for this material
-  vk_default_mat.vertex_layout = Vertex::getLayout();
 
   registry.add(std::move(vk_default_mat));
 }
@@ -88,12 +80,7 @@ void initOpenglMaterial(PipelineConfigRegistry &registry) {
         desc.pl_desc.shader_modules = {
             {"res/shaders/v_default.glsl", ShaderStage::VERTEX},
             {"res/shaders/f_default.glsl", ShaderStage::FRAGMENT}};
-        desc.pl_desc.vertex_input_state = {
-            .bindings = {{.binding = 0, .stride = sizeof(Vertex)}},
-            .attributes = {{.location = 0,
-                            .binding = 0,
-                            .format = Core::Format::R32G32B32_SFLOAT,
-                            .offset = offsetof(Vertex, position)}}};
+        desc.pl_desc.vertex_layout = Vertex::getLayout();
         desc.pl_desc.primitive_topology = PrimitiveTopology::TRIANGLE_LIST;
       });
 
@@ -109,9 +96,6 @@ void initOpenglMaterial(PipelineConfigRegistry &registry) {
       // std140 automatically adds 4 bytes padding to 16 bytes
   });
   gl_default_mat.uniform_layout.computeLayout();
-
-  // Vertex layout for this material
-  gl_default_mat.vertex_layout = Vertex::getLayout();
 
   registry.add(std::move(gl_default_mat));
 }

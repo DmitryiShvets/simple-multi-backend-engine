@@ -3,6 +3,28 @@
 
 namespace Render::OpenGL {
 
+namespace {
+// Helper function to convert Core::Format to OpenGL type and size
+struct FormatInfo {
+    GLenum type;
+    GLint count;
+    GLint size;
+};
+
+FormatInfo getFormatInfo(Core::Format format) {
+    switch (format) {
+        case Core::Format::R32G32B32_SFLOAT:
+            return {GL_FLOAT, 3, 3 * sizeof(GLfloat)};
+        case Core::Format::R32G32_SFLOAT:
+            return {GL_FLOAT, 2, 3 * sizeof(GLfloat)};
+        case Core::Format::UNDEFINED:
+        default:
+            assert(false && "Unsupported vertex format");
+            return {GL_FLOAT, 4, 4 * sizeof(GLfloat)};
+    }
+}
+} // anonymous namespace
+
 // *************** UniformBuffer *********************
 
 UniformBuffer::UniformBuffer(size_t size, const void* data)
@@ -165,6 +187,27 @@ void VAO::addBuffer(const VBO &buffer, const VBOLayout &layout,
   mBuffersCount += elements.size();
   if (countVertex != 0)
     mVertexCount = countVertex;
+}
+void VAO::addBuffer(const VBO &buffer, const Core::VertexLayout &layout,
+                    const unsigned int countVertex) {
+    bind();
+    buffer.bind();
+    GLbyte *offset = nullptr;
+    const auto &bindings = layout.getBindings();
+    const auto &attributes = layout.getAttributes();
+    for (int i = 0; i < attributes.size(); ++i) {
+        const auto &attr = attributes[i];
+        auto k = mBuffersCount + i;
+        auto formatInfo = getFormatInfo(attr.format);
+
+        glEnableVertexAttribArray(k);
+        glVertexAttribPointer(k, formatInfo.count, formatInfo.type,
+                            GL_FALSE, layout.getStride(), offset);
+        offset += formatInfo.size;
+    }
+    mBuffersCount += attributes.size();
+    if (countVertex != 0)
+        mVertexCount = countVertex;
 }
 
 unsigned int VAO::count() const { return mVertexCount; }

@@ -47,16 +47,7 @@ void initVulkanMaterial(PipelineConfigRegistry &registry) {
         desc.pl_desc.shader_modules = {
             {"res/shaders/v_ads.glsl.spv", ShaderStage::VERTEX},
             {"res/shaders/f_default.glsl.spv", ShaderStage::FRAGMENT}};
-        desc.pl_desc.vertex_input_state = {
-            .bindings = {{.binding = 0, .stride = sizeof(VertexN)}},
-            .attributes = {{.location = 0,
-                            .binding = 0,
-                            .format = Core::Format::R32G32B32_SFLOAT,
-                            .offset = offsetof(VertexN, position)},
-                           {.location = 1,
-                            .binding = 0,
-                            .format = Core::Format::R32G32B32_SFLOAT,
-                            .offset = offsetof(VertexN, normal)}}};
+        desc.pl_desc.vertex_layout = VertexN::getLayout();
         desc.pl_desc.primitive_topology = PrimitiveTopology::TRIANGLE_LIST;
       });
 
@@ -86,9 +77,6 @@ void initVulkanMaterial(PipelineConfigRegistry &registry) {
   });
   vk_default_mat.object_uniform_layout.computeLayout();
 
-  // Vertex layout for this material
-  vk_default_mat.vertex_layout = VertexN::getLayout();
-
   registry.add(std::move(vk_default_mat));
 }
 
@@ -117,16 +105,7 @@ void initOpenglMaterial(PipelineConfigRegistry &registry) {
         desc.pl_desc.shader_modules = {
             {"res/shaders/v_ads.glsl", ShaderStage::VERTEX},
             {"res/shaders/f_default.glsl", ShaderStage::FRAGMENT}};
-        desc.pl_desc.vertex_input_state = {
-            .bindings = {{.binding = 0, .stride = sizeof(VertexN)}},
-            .attributes = {{.location = 0,
-                            .binding = 0,
-                            .format = Core::Format::R32G32B32_SFLOAT,
-                            .offset = offsetof(VertexN, position)},
-                           {.location = 1,
-                            .binding = 0,
-                            .format = Core::Format::R32G32B32_SFLOAT,
-                            .offset = offsetof(VertexN, normal)}}};
+        desc.pl_desc.vertex_layout = VertexN::getLayout();
         desc.pl_desc.primitive_topology = PrimitiveTopology::TRIANGLE_LIST;
       });
 
@@ -155,9 +134,6 @@ void initOpenglMaterial(PipelineConfigRegistry &registry) {
       // std140: mat3 is padded to 48 bytes (3 * vec4)
   });
   gl_default_mat.object_uniform_layout.computeLayout();
-
-  // Vertex layout for this material
-  gl_default_mat.vertex_layout = VertexN::getLayout();
 
   registry.add(std::move(gl_default_mat));
 }

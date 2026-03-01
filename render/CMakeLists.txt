@@ -13,6 +13,7 @@ add_library(render_module STATIC
     include/render_device.h
     include/render_types.h
     include/resource_types.h
+    include/uniform_factory_registry.h
     # Materials
     include/pipeline_config_registry.h
     src/pipeline_config_registry.cpp

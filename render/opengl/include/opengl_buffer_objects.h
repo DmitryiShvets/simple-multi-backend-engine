@@ -2,6 +2,7 @@
 #include <glad/gl.h>
 #include <vector>
 #include <cstddef>
+#include "vertex_layout.h"
 
 namespace Render::OpenGL {
 
@@ -121,6 +122,9 @@ public:
   void unbind() const;
 
   void addBuffer(const VBO &buffer, const VBOLayout &layout,
+                 const unsigned int countVertex = 0);
+
+  void addBuffer(const VBO &buffer, const Core::VertexLayout &layout,
                  const unsigned int countVertex = 0);
 
   unsigned int count() const;

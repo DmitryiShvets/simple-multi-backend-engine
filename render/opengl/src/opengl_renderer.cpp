@@ -190,7 +190,7 @@ void OpenGLRenderer::updatePerFrameResources(const Core::SceneView &view) {
 
   Core::Uniforms::FrameUniforms uniforms{};
   uniforms.view_projection = proj_mat * view_mat;
-  uniforms.light_position = glm::vec3(0.0f, 0.0f, 5.0f);
+  uniforms.light_position = glm::vec3(0.0f, 0.0f, 1.0f);
   uniforms.Kd =
       glm::vec3(1.0f, 1.0f, 1.0f); // Diffuse coefficient (white surface)
   uniforms.Ld = glm::vec3(1.0f, 1.0f, 1.0f); // Light intensity (white light)

@@ -40,10 +40,15 @@ void main()
   vec3 light_dir = normalize(ubo.light_pos - world_pos.xyz);
   vec3 light_intensity = ubo.Ld * ubo.Kd * max(dot(light_dir, t_norm), 0.0);
   //fragColor =  light_intensity;
+  //fragColor =  light_dir;
   //fragColor =  ubo.Ld;
   //fragColor =  ubo.Kd;
   //fragColor =  ubo.light_pos;
   fragColor = material.color * light_intensity;
   //fragColor = material.color;
   //fragColor = t_norm * 0.5 + 0.5;
+  //fragColor = normal * 0.5 + 0.5;
+    //fragColor = vec3(1.0,1.0,1.0) * dot(light_dir, t_norm);
+  //  fragColor = vec3(1.0,1.0,1.0) * max(dot(light_dir, t_norm), 0.0);
+   // fragColor = light_intensity;
 }

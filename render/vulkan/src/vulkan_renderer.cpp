@@ -158,12 +158,16 @@ void VulkanRenderer::renderFrame(const Core::SceneView &view,
       }
 
       // Get vertex count from geometry buffer
+      // Use vertex stride from buffer descriptor if available
       auto *geom_buffer =
           m_resource_manager.get_ptr<VulkanDataBuffer>(renderable.geometry_id);
-      uint32_t vertex_count =
-          geom_buffer ? static_cast<uint32_t>(geom_buffer->getBufferSize() /
-                                              sizeof(VertexN))
-                      : 3;
+      uint32_t vertex_count = 3; // Default fallback
+      if (geom_buffer) {
+        // TODO: Get vertex stride from geometry descriptor
+        // For now, assume VertexN (24 bytes) for ads material, Vertex (12 bytes) for default
+        uint32_t stride = (material_tpl->name == "default") ? 12 : 24;
+        vertex_count = static_cast<uint32_t>(geom_buffer->getBufferSize() / stride);
+      }
 
       // Render using DrawingPolicy
       DrawingData draw_data;
@@ -175,10 +179,11 @@ void VulkanRenderer::renderFrame(const Core::SceneView &view,
       draw_data.descriptor_sets[0] = per_frame_ds_rid;
       // Descriptor Set 1: Per-Material (color)
       draw_data.descriptor_sets[1] = material_tpl->render_data.uniforms_ds;
-      // Descriptor Set 2: Per-Object (normal matrix) - use object's own
-      // descriptor set
+      // Descriptor Set 2: Per-Object (model matrix) - use object's own descriptor set
+      // For materials without object uniforms (e.g., default), this will be INVALID
       draw_data.descriptor_sets[2] = renderable.obj_uniform_ds;
-      // Push Constants: model matrix
+
+      // Push Constants: model matrix (Vulkan uses push constants, not uniforms)
       draw_data.push_constants.emplace("model_mat", renderable.model_matrix);
 
       policy->render(cmd, draw_data);
@@ -291,7 +296,7 @@ void VulkanRenderer::updatePerFrameResources(const Core::SceneView &view) {
 
   Core::Uniforms::FrameUniforms uniforms{};
   uniforms.view_projection = proj_mat * view_mat;
-  uniforms.light_position = glm::vec3(0.0f, 0.0f, 5.0f);
+  uniforms.light_position = glm::vec3(0.0f, 0.0f, 1.f);
   uniforms.Kd =
       glm::vec3(1.0f, 1.0f, 1.0f); // Diffuse coefficient (white surface)
   uniforms.Ld = glm::vec3(1.0f, 1.0f, 1.0f); // Light intensity (white light)

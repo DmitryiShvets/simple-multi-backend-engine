@@ -2,6 +2,7 @@
 
 #include "glm/ext/vector_float4.hpp"
 #include "resource_types.h"
+#include "vertex_layout.h"
 #include <cstdint>
 #include <string>
 #include <vector>
@@ -79,6 +80,7 @@ struct BufferDesc {
   BufferUsageFlags usage;
   bool is_host_visible = true;
   void *initial_data = nullptr;
+  VertexLayout vertex_layout;
 };
 
 struct TextureDesc {
@@ -137,7 +139,7 @@ struct GraphicsPipelineDesc {
   std::string name;
   RID pipeline_layout_rid; // Now takes a pre-created layout
   std::vector<ShaderModuleDesc> shader_modules;
-  Core::VertexInputStateDesc vertex_input_state;
+  Core::VertexLayout vertex_layout;
   PrimitiveTopology primitive_topology = PrimitiveTopology::TRIANGLE_LIST;
   RasterizationStateDesc rasterization_state;
   DepthStencilStateDesc depth_stencil_state;
@@ -210,7 +212,6 @@ struct PipelineConfig {
   PipelineDesc desc;
   UniformLayout uniform_layout;  // Layout для material uniforms (Set 1)
   UniformLayout object_uniform_layout;  // Layout для object uniforms (Set 2)
-  VertexLayout vertex_layout;  // Layout для вершинных данных
 
   static PipelineConfig create(
       const std::string &name,
