@@ -5,7 +5,7 @@
 
 namespace Render {
 
-RenderGraphExecutor::RenderGraphExecutor(Device *device) : m_rhi_device(device) {}
+RenderGraphExecutor::RenderGraphExecutor(RenderDevice *device) : m_rhi_device(device) {}
 
 RenderGraphExecutor::~RenderGraphExecutor() {}
 

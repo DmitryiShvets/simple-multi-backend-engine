@@ -1,6 +1,5 @@
 #include "glfw_vulkan_surface_creator.h"
 #include "logger.h"
-#include <vulkan/vulkan_core.h>
 
 // This file requires the full GLFW implementation
 #define GLFW_INCLUDE_VULKAN
@@ -18,13 +17,13 @@ GlfwVulkanSurfaceCreator::getRequiredInstanceExtensions() const {
   const char **glfwExtensions;
   glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
 
-  std::vector<const char *> extensions(glfwExtensions,
-                                       glfwExtensions + glfwExtensionCount);
+  std::vector extensions(glfwExtensions, glfwExtensions + glfwExtensionCount);
   return extensions;
 }
 
-VkResult GlfwVulkanSurfaceCreator::createWindowSurface(VkInstance vkInstance,
-                                                       VkSurfaceKHR *surface) {
+VkSurfaceKHR
+GlfwVulkanSurfaceCreator::createWindowSurface(vk::Instance vkInstance) const {
+  VkSurfaceKHR surface;
   uint32_t version;
   vkEnumerateInstanceVersion(&version);
   // 3 macros to extract version info
@@ -33,7 +32,8 @@ VkResult GlfwVulkanSurfaceCreator::createWindowSurface(VkInstance vkInstance,
   uint32_t patch = VK_VERSION_PATCH(version);
   Logger::info_log("Initialized Vulkan version " + std::to_string(major) + "." +
                    std::to_string(minor));
-  return glfwCreateWindowSurface(vkInstance, m_window, nullptr, surface);
+  glfwCreateWindowSurface(vkInstance, m_window, nullptr, &surface);
+  return surface;
 }
 
 } // namespace Window

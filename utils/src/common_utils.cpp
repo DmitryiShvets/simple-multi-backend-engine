@@ -22,6 +22,24 @@ std::string CUtils::readFile(const std::string& path) {
 	return std::string{ (std::istreambuf_iterator<char>(input_file)), std::istreambuf_iterator<char>() };
 }
 
+std::vector<char> CUtils::readFileChar(const std::string &filepath) {
+  std::ifstream file(filepath, std::ios::ate | std::ios::binary);
+
+  if (!file.is_open()) {
+    throw std::runtime_error("failed to open file: " + filepath);
+  }
+
+  size_t fileSize = (size_t)file.tellg();
+  std::vector<char> buffer(fileSize);
+
+  file.seekg(0);
+  file.read(buffer.data(), fileSize);
+
+  file.close();
+
+  return buffer;
+}
+
 glm::vec3 CUtils::randomVec3F(float min, float max)
 {
 	return glm::vec3(CUtils::randomFloat(min, max), CUtils::randomFloat(min, max), CUtils::randomFloat(min, max));

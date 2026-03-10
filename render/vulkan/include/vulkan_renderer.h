@@ -18,7 +18,7 @@ class DescriptorSetLayout;
 class VulkanCommandList;
 } // namespace Render::Vulkan
 namespace Render {
-class Device;
+class RenderDevice;
 }
 namespace Core {
 class SceneView;
@@ -42,7 +42,7 @@ public:
 
   void destroy() override;
 
-  Device &getRenderDeivce() override { return *m_rhi_device; };
+  RenderDevice &getRenderDeivce() override { return *m_rhi_device; };
 
 private:
   // This class now owns the core device and resource manager
@@ -64,7 +64,7 @@ private:
   struct PerFrameResources {
     RID uniform_buffer;       // FrameUniforms buffer (RID in resource manager)
     RID descriptor_set_rid;   // RID of descriptor set in resource manager
-    VkDescriptorSet descriptor_set; // Set 0 for camera/projection (cached)
+    vk::DescriptorSet descriptor_set; // Set 0 for camera/projection (cached)
   };
   std::vector<PerFrameResources> m_per_frame_resources;
 
@@ -75,7 +75,7 @@ private:
   void createSwapChain(); // Will be called during initialization
   void createPerFrameResources(); // Create per-frame uniform buffers and descriptor sets
   void updatePerFrameResources(const Core::SceneView &view); // Update per-frame uniforms
-  void acquireNextImage();
+  void acquireNextImage(); // wait for fences and retrives new image
   void submitCommands();
   void present();
 };

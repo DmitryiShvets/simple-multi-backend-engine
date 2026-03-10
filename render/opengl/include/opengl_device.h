@@ -10,13 +10,13 @@ namespace Render::OpenGL {
 
 class OpenglResourceManager; // Forward-declaration
 
-// This is the concrete OpenGL implementation of the pure Device interface.
-class OpenGLDevice final : public Device {
+// This is the concrete OpenGL implementation of the pure RenderDevice interface.
+class OpenGLDevice final : public RenderDevice {
 public:
     OpenGLDevice(OpenglResourceManager& resource_manager, PipelineConfigRegistry& pl_registry);
     virtual ~OpenGLDevice() override;
 
-    // --- Device Interface Implementation ---
+    // --- RenderDevice Interface Implementation ---
 
     RID createBuffer(const BufferDesc& desc) override;
     RID createTexture(const TextureDesc& desc) override;

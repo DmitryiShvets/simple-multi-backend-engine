@@ -10,7 +10,7 @@
 
 // Forward-declarations
 namespace Render {
-class Device;
+class RenderDevice;
 }
 namespace Core {
 class SceneView;
@@ -41,14 +41,14 @@ public:
 
   void destroy() override;
 
-  Device &getRenderDeivce() override { return *m_rhi_device; };
+  RenderDevice &getRenderDeivce() override { return *m_rhi_device; };
 
 private:
   void createPerFrameResources();
   void updatePerFrameResources(const Core::SceneView &view);
 
   BackendType m_backend_type = BackendType::OpenGL;
-  std::unique_ptr<Device> m_rhi_device;
+  std::unique_ptr<RenderDevice> m_rhi_device;
 
   // Shared, API-agnostic systems
   std::unique_ptr<RenderGraphExecutor> m_executor;

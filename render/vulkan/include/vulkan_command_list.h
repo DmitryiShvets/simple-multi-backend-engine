@@ -1,12 +1,11 @@
 #pragma once
 
 #include "command_list.h"
-#include "vulkan_resource_manager.h"
-#include <vulkan/vulkan.h>
 
 namespace Render::Vulkan {
 
 class VulkanDevice;
+class VulkanResourceManager;
 
 class VulkanCommandList final : public CommandList {
 public:
@@ -46,12 +45,12 @@ public:
 
 
   // --- Vulkan-specific methods ---
-  VkCommandBuffer getHandle() const { return m_command_buffer; }
+  vk::CommandBuffer getHandle() const { return *m_command_buffer; }
 
 private:
   VulkanDevice &m_device;
   VulkanResourceManager &m_resource_manager;
-  VkCommandBuffer m_command_buffer;
+  vk::raii::CommandBuffer m_command_buffer = nullptr;
 };
 
 } // namespace Render::Vulkan

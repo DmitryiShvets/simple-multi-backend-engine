@@ -4,7 +4,7 @@
 #include <memory>
 #include <string>
 #include <vector>
-#include <vulkan/vulkan_core.h>
+#include <vulkan/vulkan_raii.hpp>
 
 namespace Render::Vulkan {
 
@@ -19,15 +19,15 @@ public:
     Builder &operator=(Builder &&) noexcept;
 
     // Fluent interface setters
-    Builder &setPipelineLayout(VkPipelineLayout layout);
-    Builder &setColorAttachmentFormats(const std::vector<VkFormat>& formats);
+    Builder &setPipelineLayout(vk::PipelineLayout layout);
+    Builder &setColorAttachmentFormats(const std::vector<vk::Format> &formats);
     Builder &setVertexInputInfo(
-        const std::vector<VkVertexInputBindingDescription> &binding_desc,
-        const std::vector<VkVertexInputAttributeDescription> &attrib_desc);
-    Builder &setPrimitiveTopology(VkPrimitiveTopology topology);
-    Builder &setPolygonMode(VkPolygonMode mode);
-    Builder &setCullMode(VkCullModeFlags cullMode);
-    Builder &setFrontFace(VkFrontFace frontFace);
+        const std::vector<vk::VertexInputBindingDescription> &binding_desc,
+        const std::vector<vk::VertexInputAttributeDescription> &attrib_desc);
+    Builder &setPrimitiveTopology(vk::PrimitiveTopology topology);
+    Builder &setPolygonMode(vk::PolygonMode mode);
+    Builder &setCullMode(vk::CullModeFlags cullMode);
+    Builder &setFrontFace(vk::FrontFace frontFace);
     Builder &enableDepthTest(bool enable);
     Builder &enableDepthWrite(bool enable);
 
@@ -41,18 +41,18 @@ public:
   PipelineConfigInfo(const PipelineConfigInfo &) = delete;
   PipelineConfigInfo &operator=(const PipelineConfigInfo &) = delete;
 
-  VkPipelineVertexInputStateCreateInfo vertexInputInfo;
-  VkPipelineViewportStateCreateInfo viewportInfo;
-  VkPipelineInputAssemblyStateCreateInfo inputAssemblyInfo;
-  VkPipelineRasterizationStateCreateInfo rasterizationInfo;
-  VkPipelineMultisampleStateCreateInfo multisampleInfo;
-  VkPipelineColorBlendAttachmentState colorBlendAttachment;
-  VkPipelineColorBlendStateCreateInfo colorBlendInfo;
-  VkPipelineDepthStencilStateCreateInfo depthStencilInfo;
-  std::vector<VkDynamicState> dynamicStateEnables;
-  VkPipelineDynamicStateCreateInfo dynamicStateInfo;
-  VkPipelineLayout pipelineLayout = nullptr;
-  std::vector<VkFormat> colorAttachmentFormats;
+  vk::PipelineDynamicStateCreateInfo dynamic_state_info;
+  vk::PipelineVertexInputStateCreateInfo vertex_input_info;
+  vk::PipelineInputAssemblyStateCreateInfo input_assembly_info;
+  vk::PipelineViewportStateCreateInfo viewport_info;
+  vk::PipelineRasterizationStateCreateInfo rasterization_info;
+  vk::PipelineMultisampleStateCreateInfo multisample_info;
+  vk::PipelineDepthStencilStateCreateInfo depth_stencil_info;
+  vk::PipelineColorBlendAttachmentState color_blend_attachment;
+  vk::PipelineColorBlendStateCreateInfo color_blend_info;
+  vk::PipelineLayout pipeline_layout = nullptr;
+  std::vector<vk::Format> dynamic_color_attachment_formats;
+  std::vector<vk::DynamicState> dynamic_states;
 };
 
 class VulkanPipeLine {
@@ -64,24 +64,21 @@ public:
 
   ~VulkanPipeLine();
 
-  void bind_buffer(VkCommandBuffer buffer);
-  VkPipeline getHandle() const { return m_graphics_pipeline; }
-  VkPipelineLayout getLayoutHandle() const { return m_pipeline_layout; }
+  vk::Pipeline getHandle() const { return *m_graphics_pipeline; }
+  vk::PipelineLayout getLayoutHandle() const { return m_pipeline_layout; }
   VulkanPipeLine(const VulkanPipeLine &) = delete;
   VulkanPipeLine &operator=(const VulkanPipeLine &) = delete;
 
 private:
-  static std::vector<char> read_file(const std::string &filepath);
-  void create_graphics_pipeline(const std::string &vert_shader_filepath,
+  void createGraphicsPipeline(const std::string &vert_shader_filepath,
                                 const std::string &frag_shader_filepath,
                                 const PipelineConfigInfo &config);
-  void create_shader_module(const std::vector<char> &code,
-                            VkShaderModule *shader_module);
+  [[nodiscard]]
+  vk::raii::ShaderModule createShaderModule(const std::vector<char> &code);
+
+  vk::raii::Pipeline m_graphics_pipeline = nullptr;
+  vk::PipelineLayout m_pipeline_layout;
   VulkanDevice &m_device;
-  VkPipeline m_graphics_pipeline;
-  VkPipelineLayout m_pipeline_layout;
-  VkShaderModule m_vert_shader_module;
-  VkShaderModule m_frag_shader_module;
 };
 
 } // namespace Render::Vulkan

@@ -12,9 +12,7 @@ namespace Render::Vulkan {
 class VulkanDevice;
 class VulkanResourceManager;
 
-// This class is the concrete Vulkan implementation of the pure Device interface
-// (Level 5). Its name is changed to reflect its role.
-class VulkanRHIDevice final : public Device {
+class VulkanRHIDevice final : public RenderDevice {
 public:
   VulkanRHIDevice(VulkanDevice &device, VulkanResourceManager &resource_manager,
                   PipelineConfigRegistry &pl_registry);

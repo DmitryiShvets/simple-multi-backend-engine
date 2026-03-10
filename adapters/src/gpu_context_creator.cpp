@@ -28,6 +28,7 @@ bool OpenGLGpuContextCreator::createContext(void *window) const {
 
 void VulkanGpuContextCreator::prepareWindowCreationHints() const {
   glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
+  glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
 }
 
 bool VulkanGpuContextCreator::createContext(void *window) const {

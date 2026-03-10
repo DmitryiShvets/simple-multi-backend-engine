@@ -7,55 +7,16 @@
 #include "uniforms.h"
 #include "vulkan_buffer.h"
 #include "vulkan_descriptor_set.h"
+#include "vulkan_helpers.h"
 #include "vulkan_pipeline.h"
 #include "vulkan_pipeline_layout.h"
 #include "vulkan_resource_manager.h"
 #include <cassert>
+#include <memory>
 #include <stdexcept>
-#include <vulkan/vulkan_core.h>
+#include <vulkan/vulkan_raii.hpp>
 
 namespace Render::Vulkan {
-
-// Helper functions
-VkFormat Format_to_VkFormat(Core::Format format) {
-  switch (format) {
-  case Core::Format::R32G32B32_SFLOAT:
-    return VK_FORMAT_R32G32B32_SFLOAT;
-  case Core::Format::R32G32_SFLOAT:
-    return VK_FORMAT_R32G32_SFLOAT;
-  default:
-    return VK_FORMAT_UNDEFINED;
-  }
-}
-
-VkDescriptorType
-DescriptorType_to_VkDescriptorType(Render::DescriptorType type) {
-  switch (type) {
-  case Render::DescriptorType::UNIFORM_BUFFER:
-    return VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-  case Render::DescriptorType::COMBINED_IMAGE_SAMPLER:
-    return VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-    // Add other types as needed
-  default:
-    assert(false && "Unsupported descriptor type");
-    return VK_DESCRIPTOR_TYPE_MAX_ENUM;
-  }
-}
-
-VkShaderStageFlags
-ShaderStageFlags_to_VkShaderStageFlags(Render::ShaderStageFlags flags) {
-  VkShaderStageFlags vk_flags = 0;
-  if (flags & static_cast<uint32_t>(Render::ShaderStage::VERTEX)) {
-    vk_flags |= VK_SHADER_STAGE_VERTEX_BIT;
-  }
-  if (flags & static_cast<uint32_t>(Render::ShaderStage::FRAGMENT)) {
-    vk_flags |= VK_SHADER_STAGE_FRAGMENT_BIT;
-  }
-  if (flags & static_cast<uint32_t>(Render::ShaderStage::COMPUTE)) {
-    vk_flags |= VK_SHADER_STAGE_COMPUTE_BIT;
-  }
-  return vk_flags;
-}
 
 VulkanRHIDevice::VulkanRHIDevice(VulkanDevice &device,
                                  VulkanResourceManager &resource_manager,
@@ -63,34 +24,28 @@ VulkanRHIDevice::VulkanRHIDevice(VulkanDevice &device,
     : m_device(device), m_resource_manager(resource_manager),
       m_pl_registry(pl_registry) {}
 
-VulkanRHIDevice::~VulkanRHIDevice() {
-  // Destruction is handled by unique_ptr in resource manager.
-}
+VulkanRHIDevice::~VulkanRHIDevice() {}
 
 // --- Resource Management ---
 RID VulkanRHIDevice::createBuffer(const BufferDesc &desc) {
   // Determine usage flags based on buffer usage type
-  VkBufferUsageFlags usage_flags = 0;
-  if (desc.usage & static_cast<uint32_t>(BufferUsage::VERTEX_BUFFER)) {
-    usage_flags |= VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
-  } else if (desc.usage & static_cast<uint32_t>(BufferUsage::UNIFORM_BUFFER)) {
-    usage_flags |= VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
-  } else if (desc.usage & static_cast<uint32_t>(BufferUsage::INDEX_BUFFER)) {
-    usage_flags |= VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
-  } else {
+  vk::BufferUsageFlags usage_flags = toVkBufferUsageFlags(desc.usage);
+  // TODO: TEST, MAKE DESSIGIN fallback or error;
+  // Default to vertex buffer if no usage specified
+  if (!usage_flags) {
+    usage_flags = vk::BufferUsageFlagBits::eVertexBuffer;
     Logger::error_log("Unsupported buffer type");
     return RID::INVALID;
   }
-
-  // Default to vertex buffer if no usage specified
-  if (usage_flags == 0) {
-    usage_flags = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
+  const auto stride = desc.vertex_layout.getStride();
+  if (usage_flags == vk::BufferUsageFlagBits::eVertexBuffer && stride == 0) {
+    Logger::error_log("Cannot create buffer with zero stride");
+    return RID::INVALID;
   }
-
   auto buffer = std::make_unique<VulkanDataBuffer>(
-      m_device, desc.size, 1, usage_flags,
-      VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
-          VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+      m_device, desc.size, stride, 1, usage_flags,
+      vk::MemoryPropertyFlagBits::eHostVisible |
+          vk::MemoryPropertyFlagBits::eHostCoherent);
   if (desc.initial_data) {
     buffer->map();
     buffer->writeToBuffer(desc.initial_data);
@@ -106,9 +61,8 @@ RID VulkanRHIDevice::createDescriptorSetLayout(
     const DescriptorSetLayoutDesc &desc) {
   auto builder = DescriptorSetLayout::Builder(m_device);
   for (const auto &binding : desc.bindings) {
-    builder.addBinding(
-        binding.binding, DescriptorType_to_VkDescriptorType(binding.type),
-        ShaderStageFlags_to_VkShaderStageFlags(binding.stages), binding.count);
+    builder.addBinding(binding.binding, toVkDescriptorType(binding.type),
+                       toVkShaderStageFlags(binding.stages), binding.count);
   }
   auto layout = builder.build();
   RID rid = m_resource_manager.add(std::move(layout));
@@ -126,11 +80,11 @@ RID VulkanRHIDevice::createDescriptorSet(RID layout_rid,
   // Create descriptor pool (could reuse existing if needed)
   // For simplicity, create a new pool for each set
   auto pool_builder = DescriptorPool::Builder(m_device);
-  pool_builder.setMaxSets(1);
+  pool_builder.setMaxSets(1).setPoolFlags(
+      vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet);
 
   // Add pool sizes based on layout
   for (const auto &[binding_idx, binding_info] : layout->getBindings()) {
-    (void)binding_idx; // unused
     pool_builder.addPoolSize(binding_info.descriptorType,
                              binding_info.descriptorCount);
   }
@@ -152,29 +106,29 @@ RID VulkanRHIDevice::createDescriptorSet(RID layout_rid,
     uint32_t binding = binding_info.binding;
 
     // Verify buffer has correct usage flag for the descriptor type
-    if (binding_info.descriptorType == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER) {
-      assert((buffer->getUsageFlags() & VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT) &&
-             "Buffer must be created with VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT "
-             "for uniform buffer descriptor");
+    if (binding_info.descriptorType == vk::DescriptorType::eUniformBuffer) {
+      assert(
+          (buffer->getUsageFlags() & vk::BufferUsageFlagBits::eUniformBuffer) &&
+          "Buffer must be created with VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT "
+          "for uniform buffer descriptor");
     }
 
-    VkDescriptorBufferInfo buffer_info = buffer->descriptorInfo();
+    vk::DescriptorBufferInfo buffer_info = buffer->getDescriptorInfo();
     writer.writeBuffer(binding, &buffer_info);
   }
 
   // Allocate and write descriptor set
-  VkDescriptorSet set = writer.build();
-
+  auto ds_set = writer.build();
   // Store pool and set in resource manager
   // Pool must be stored to keep descriptor set alive
   RID pool_rid = m_resource_manager.add(std::move(pool));
-  RID set_rid = m_resource_manager.add<VkDescriptorSet>(set);
+  RID set_rid = m_resource_manager.add<VulkanDescriptorSet>(std::move(ds_set));
 
   return set_rid;
 }
 
 RID VulkanRHIDevice::createPipelineLayout(const PipelineLayoutDesc &desc) {
-  std::vector<VkDescriptorSetLayout> vk_ds_layouts;
+  std::vector<vk::DescriptorSetLayout> vk_ds_layouts;
   vk_ds_layouts.reserve(desc.descriptor_set_layouts.size());
   for (auto rid : desc.descriptor_set_layouts) {
     auto ds_layout = m_resource_manager.get_ptr<DescriptorSetLayout>(rid);
@@ -187,33 +141,28 @@ RID VulkanRHIDevice::createPipelineLayout(const PipelineLayoutDesc &desc) {
     }
   }
 
-  std::vector<VkPushConstantRange> vk_push_ranges;
+  std::vector<vk::PushConstantRange> vk_push_ranges;
   vk_push_ranges.reserve(desc.push_constant_ranges.size());
   for (const auto &range : desc.push_constant_ranges) {
     vk_push_ranges.push_back({
-        ShaderStageFlags_to_VkShaderStageFlags(range.stages),
+        toVkShaderStageFlags(range.stages),
         range.offset,
         range.size,
     });
   }
 
-  VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
-  pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-  pipelineLayoutInfo.setLayoutCount =
-      static_cast<uint32_t>(vk_ds_layouts.size());
-  pipelineLayoutInfo.pSetLayouts = vk_ds_layouts.data();
-  pipelineLayoutInfo.pushConstantRangeCount =
-      static_cast<uint32_t>(vk_push_ranges.size());
-  pipelineLayoutInfo.pPushConstantRanges = vk_push_ranges.data();
+  vk::PipelineLayoutCreateInfo pl_create_info{
+      .setLayoutCount = static_cast<uint32_t>(vk_ds_layouts.size()),
+      .pSetLayouts = vk_ds_layouts.data(),
+      .pushConstantRangeCount = static_cast<uint32_t>(vk_push_ranges.size()),
+      .pPushConstantRanges = vk_push_ranges.data(),
+  };
 
-  VkPipelineLayout vk_pipeline_layout;
-  if (vkCreatePipelineLayout(m_device.getDeviceHandle(), &pipelineLayoutInfo,
-                             nullptr, &vk_pipeline_layout) != VK_SUCCESS) {
-    throw std::runtime_error("failed to create pipeline layout!");
-  }
+  vk::raii::PipelineLayout vk_pipeline_layout =
+      m_device.getHandle().createPipelineLayout(pl_create_info);
 
-  auto layout_wrapper =
-      std::make_unique<VulkanPipelineLayout>(m_device, vk_pipeline_layout);
+  auto layout_wrapper = std::move(std::make_unique<VulkanPipelineLayout>(
+      m_device, std::move(vk_pipeline_layout)));
 
   return m_resource_manager.add(std::move(layout_wrapper));
 }
@@ -234,34 +183,39 @@ RID VulkanRHIDevice::createGraphicsPipeline(const GraphicsPipelineDesc &desc) {
   if (!pipeline_layout_wrapper) {
     throw std::runtime_error("Invalid pipeline layout RID in createPipeline");
   }
-  VkPipelineLayout vk_pipeline_layout = pipeline_layout_wrapper->getHandle();
+  vk::PipelineLayout vk_pipeline_layout = pipeline_layout_wrapper->getHandle();
+
+  // Debug: Check if handle is valid
+  if (!vk_pipeline_layout) {
+    throw std::runtime_error(
+        "createGraphicsPipeline: vk_pipeline_layout is VK_NULL_HANDLE");
+  }
 
   // 3. Translate abstract desc to Vulkan-specific PipelineConfigInfo
-  std::vector<VkVertexInputBindingDescription> binding_descriptions;
+  // this data describes how to pass this data format to the vertex shader
+  std::vector<vk::VertexInputBindingDescription> binding_descriptions;
   const auto &bindings = desc.vertex_layout.getBindings();
   for (const auto &binding : bindings) {
     binding_descriptions.push_back({binding.binding, binding.stride});
   }
 
-  std::vector<VkVertexInputAttributeDescription> attribute_descriptions;
+  std::vector<vk::VertexInputAttributeDescription> attribute_descriptions;
   const auto &attributes = desc.vertex_layout.getAttributes();
   for (const auto &attr : attributes) {
-    attribute_descriptions.push_back({attr.location, attr.binding,
-                                      Format_to_VkFormat(attr.format),
-                                      attr.offset});
+    attribute_descriptions.push_back(
+        {attr.location, attr.binding, toVkFormat(attr.format), attr.offset});
   }
 
   // TODO: Get swapchain format properly
-  std::vector<VkFormat> color_formats = {VK_FORMAT_B8G8R8A8_SRGB};
+  std::vector<vk::Format> color_formats = {vk::Format::eB8G8R8A8Srgb};
 
   PipelineConfigInfo::Builder pipeline_config_builder;
   pipeline_config_builder.setPipelineLayout(vk_pipeline_layout)
       .setVertexInputInfo(binding_descriptions, attribute_descriptions)
       .setColorAttachmentFormats(color_formats)
-      .setPrimitiveTopology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST)
-      .setCullMode(VK_CULL_MODE_BACK_BIT)
+      .setCullMode(vk::CullModeFlagBits::eBack)
       // .setCullMode(VK_CULL_MODE_NONE)
-      .setFrontFace(VK_FRONT_FACE_COUNTER_CLOCKWISE)
+      .setFrontFace(vk::FrontFace::eCounterClockwise)
       .enableDepthTest(true)
       .enableDepthWrite(true);
 

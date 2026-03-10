@@ -21,7 +21,7 @@ namespace Core::Ecs::System {
 // Helper Functions
 // ============================================================================
 
-inline RID createVertexBuffer(Render::Device &device, const void *data,
+inline RID createVertexBuffer(Render::RenderDevice &device, const void *data,
                               size_t size, const VertexLayout &vertex_layout) {
   Render::BufferDesc buffer_desc{
       .size = size,
@@ -51,8 +51,8 @@ template <typename WorldType>
   requires EcsWorld<WorldType>
 class RuntimeInitSystem {
 public:
-  RuntimeInitSystem(WorldType &world, Render::Device &gl_device,
-                    Render::Device &vk_device)
+  RuntimeInitSystem(WorldType &world, Render::RenderDevice &gl_device,
+                    Render::RenderDevice &vk_device)
       : m_world(world), m_gl_device(gl_device), m_vk_device(vk_device) {}
 
   void initialize() {
@@ -253,8 +253,8 @@ private:
   }
 
   WorldType &m_world;
-  Render::Device &m_vk_device;
-  Render::Device &m_gl_device;
+  Render::RenderDevice &m_vk_device;
+  Render::RenderDevice &m_gl_device;
 };
 
 } // namespace Core::Ecs::System

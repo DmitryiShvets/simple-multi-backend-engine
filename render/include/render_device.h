@@ -13,9 +13,9 @@ struct PipelineConfig;
 
 // This is the main "factory" and "submission" interface for the GPU.
 // It is completely API-agnostic.
-class Device {
+class RenderDevice {
 public:
-  virtual ~Device() = default;
+  virtual ~RenderDevice() = default;
 
   // --- Resource Management ---
   virtual RID createBuffer(const BufferDesc &desc) = 0;
@@ -45,7 +45,7 @@ public:
 };
 
 template <typename T>
-void Device::updateBuffer(RID rid, const T &data) {
+void RenderDevice::updateBuffer(RID rid, const T &data) {
   updateBufferRaw(rid, 0, sizeof(T), &data);
 }
 

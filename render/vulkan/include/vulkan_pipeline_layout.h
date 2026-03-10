@@ -1,20 +1,19 @@
 #pragma once
 #include "vulkan_device.h"
-#include <vulkan/vulkan.h>
 
 namespace Render::Vulkan {
 class VulkanPipelineLayout {
 public:
-    VulkanPipelineLayout(VulkanDevice& device, VkPipelineLayout layout);
+    VulkanPipelineLayout(VulkanDevice& device, vk::raii::PipelineLayout layout);
     ~VulkanPipelineLayout();
 
     // Non-copyable
     VulkanPipelineLayout(const VulkanPipelineLayout&) = delete;
     VulkanPipelineLayout& operator=(const VulkanPipelineLayout&) = delete;
 
-    VkPipelineLayout getHandle() const { return m_layout; }
+    vk::PipelineLayout getHandle() const { return *m_layout; }
 private:
     VulkanDevice& m_device;
-    VkPipelineLayout m_layout;
+    vk::raii::PipelineLayout m_layout = nullptr;
 };
 }

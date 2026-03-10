@@ -4,6 +4,11 @@
 void Logger::error_log(const std::string &description) {
   std::cerr << "[ERROR] " << description << std::endl;
 }
+void Logger::validation_log(const std::string &type,
+                            const std::string &description) {
+  std::cerr << "[VALIDATION LAYER] type:" << type << " msg: " << description
+            << std::endl;
+}
 void Logger::info_log(const std::string &description) {
   std::cerr << "[INFO] " << description << std::endl;
 }

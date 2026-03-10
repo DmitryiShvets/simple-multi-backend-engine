@@ -14,8 +14,8 @@ template <typename WorldType>
   requires EcsWorld<WorldType>
 class RuntimeUpdateSystem {
 public:
-  RuntimeUpdateSystem(WorldType &world, Render::Device &vk_device,
-                      Render::Device &gl_device)
+  RuntimeUpdateSystem(WorldType &world, Render::RenderDevice &vk_device,
+                      Render::RenderDevice &gl_device)
       : m_world(world), m_vk_device(vk_device), m_gl_device(gl_device),
         m_query(world.template createQuery<Component::Transform,
                                            Component::VkRuntime,
@@ -55,8 +55,8 @@ public:
 
 private:
   WorldType &m_world;
-  Render::Device &m_vk_device;
-  Render::Device &m_gl_device;
+  Render::RenderDevice &m_vk_device;
+  Render::RenderDevice &m_gl_device;
   decltype(m_world
                .template createQuery<Component::Transform, Component::VkRuntime,
                                      Component::GlRuntime>()) m_query;

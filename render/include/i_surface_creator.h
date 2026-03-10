@@ -1,8 +1,7 @@
 #pragma once
 
 #include <vector>
-#include <vulkan/vulkan.h>
-
+#include <vulkan/vulkan.hpp>
 /**
  * @class IVulkanSurfaceCreator
  * @brief An interface for creating a Vulkan rendering surface (VkSurfaceKHR)
@@ -41,5 +40,5 @@ public:
      *                surface will be stored.
      * @return VkResult indicating the success or failure of the operation.
      */
-    virtual VkResult createWindowSurface(VkInstance instance, VkSurfaceKHR* surface) = 0;
+    virtual VkSurfaceKHR createWindowSurface(vk::Instance instance) const = 0;
 };

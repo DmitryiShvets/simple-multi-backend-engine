@@ -11,6 +11,7 @@ set(VULKAN_RENDER_PUBLIC_HEADERS
     include/vulkan_descriptor_set.h
     include/vulkan_buffer.h
     include/vulkan_texture.h
+    include/vulkan_helpers.h
 )
 
 set(VULKAN_RENDER_SOURCES
@@ -26,9 +27,16 @@ set(VULKAN_RENDER_SOURCES
     src/vulkan_descriptor_set.cpp
     src/vulkan_buffer.cpp
     src/vulkan_texture.cpp
+    src/vulkan_helpers.cpp
 )
 
 add_library(vulkan_renderer STATIC ${VULKAN_RENDER_SOURCES} ${VULKAN_RENDER_PUBLIC_HEADERS})
+
+target_compile_definitions(vulkan_renderer PRIVATE
+ VULKAN_HPP_DISPATCH_LOADER_DYNAMIC=1
+ VULKAN_HPP_NO_STRUCT_CONSTRUCTORS=1
+ VULKAN_HPP_NO_STD_MODULE=1
+)
 
 target_include_directories(vulkan_renderer
     PUBLIC
@@ -41,6 +49,18 @@ target_include_directories(vulkan_renderer
 find_package(Vulkan REQUIRED)
 target_link_libraries(vulkan_renderer
     PRIVATE Vulkan::Vulkan glm utils_module core_module render_module imgui
+)
+
+
+target_precompile_headers(vulkan_renderer PRIVATE
+    <vulkan/vulkan_raii.hpp>
+    <vulkan/vulkan.hpp>
+    <vulkan/vulkan_core.h>
+    <vulkan/vulkan.h>
+    <vector>
+    <memory>
+    <cassert>
+    <iostream>
 )
 
 # ======================================================================================

@@ -5,7 +5,7 @@
 namespace Render {
 // Forward-declare
 class RenderGraph;
-class Device;
+class RenderDevice;
 class CommandList;
 
 // This is the "Graph Executor" (Level 4b).
@@ -13,7 +13,7 @@ class CommandList;
 // by recording commands into a provided CommandList.
 class RenderGraphExecutor {
 public:
-  RenderGraphExecutor(Device *device);
+  RenderGraphExecutor(RenderDevice *device);
   ~RenderGraphExecutor();
 
   // The main function: compiles the graph and records its commands into the
@@ -21,7 +21,7 @@ public:
   void execute(RenderGraph &graph, RID back_buffer,RID depth_buffer, CommandList &cmd, const Rect& render_area);
 
 private:
-  Device *m_rhi_device;
+  RenderDevice *m_rhi_device;
 };
 
 } // namespace Render

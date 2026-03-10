@@ -11,7 +11,6 @@
 #include <atomic>
 #include <memory>
 #include <string>
-#include <vulkan/vulkan.h>
 
 // Forward-declarations for Vulkan implementation classes
 namespace Render::Vulkan {
@@ -22,6 +21,7 @@ class VulkanPipeLine;
 class DescriptorSetLayout;
 class DescriptorPool;
 class VulkanPipelineLayout;
+class VulkanDescriptorSet;
 // Add other resource types here as they are created
 } // namespace Render::Vulkan
 
@@ -64,6 +64,9 @@ public:
     } else if constexpr (std::is_same_v<T, Material>) {
       type = ResourceType::MATERIAL_TEMPLATE;
       m_materials_owner.insert(rid, std::move(resource));
+    } else if constexpr (std::is_same_v<T, VulkanDescriptorSet>) {
+      type = ResourceType::DESCRIPTOR_SET;
+      m_descriptor_set_owner.insert(rid, std::move(resource));
     } else {
       static_assert(sizeof(T) < 0,
                     "Unsupported resource type in VulkanResourceManager");
@@ -81,15 +84,12 @@ public:
 
     ResourceType type = ResourceType::UNDEFINED;
 
-    if constexpr (std::is_same_v<T, VkImage>) {
+    if constexpr (std::is_same_v<T, vk::Image>) {
       type = ResourceType::IMAGE;
       m_image_registry.insert(rid, handle);
-    } else if constexpr (std::is_same_v<T, VkImageView>) {
+    } else if constexpr (std::is_same_v<T, vk::ImageView>) {
       type = ResourceType::IMAGE_VIEW;
       m_image_view_registry.insert(rid, handle);
-    } else if constexpr (std::is_same_v<T, VkDescriptorSet>) {
-      type = ResourceType::DESCRIPTOR_SET;
-      m_descriptor_set_registry.insert(rid, handle);
     } else {
       static_assert(sizeof(T) < 0, "Unsupported handle type for unowned "
                                    "resources in VulkanResourceManager");
@@ -115,17 +115,17 @@ public:
       return m_pl_layout_owner.get(rid);
     } else if constexpr (std::is_same_v<T, Material>) {
       return m_materials_owner.get(rid);
+    } else if constexpr (std::is_same_v<T, VulkanDescriptorSet>) {
+      return m_descriptor_set_owner.get(rid);
     }
     return nullptr;
   }
 
   template <typename T> T get_val(RID rid) {
-    if constexpr (std::is_same_v<T, VkImage>) {
+    if constexpr (std::is_same_v<T, vk::Image>) {
       return m_image_registry.get(rid);
-    } else if constexpr (std::is_same_v<T, VkImageView>) {
-        return m_image_view_registry.get(rid);
-    } else if constexpr (std::is_same_v<T, VkDescriptorSet>) {
-        return m_descriptor_set_registry.get(rid);
+    } else if constexpr (std::is_same_v<T, vk::ImageView>) {
+      return m_image_view_registry.get(rid);
     }
     return nullptr;
   }
@@ -153,7 +153,9 @@ public:
     return RID{}; // Return invalid RID if not found
   }
 
-  void registerMaterial(const std::string &name, RID rid) { m_mat_map[name] = rid; }
+  void registerMaterial(const std::string &name, RID rid) {
+    m_mat_map[name] = rid;
+  }
 
 private:
   std::atomic<uint64_t> m_next_rid;
@@ -170,11 +172,11 @@ private:
   Core::ResourceOwner<DescriptorPool> m_descriptor_pool_owner;
   Core::ResourceOwner<VulkanPipelineLayout> m_pl_layout_owner;
   Core::ResourceOwner<Material> m_materials_owner;
+  Core::ResourceOwner<VulkanDescriptorSet> m_descriptor_set_owner;
 
   // --- Unowned (Registered) Resources ---
-  Core::ResourceRegistry<VkImage> m_image_registry;
-  Core::ResourceRegistry<VkImageView> m_image_view_registry;
-  Core::ResourceRegistry<VkDescriptorSet> m_descriptor_set_registry;
+  Core::ResourceRegistry<vk::Image> m_image_registry;
+  Core::ResourceRegistry<vk::ImageView> m_image_view_registry;
 };
 
 } // namespace Render::Vulkan

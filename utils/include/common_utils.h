@@ -11,4 +11,6 @@ public:
   static glm::vec3 randomVec3F(float min, float max);
 
   static std::string readFile(const std::string &path);
+
+  static std::vector<char> readFileChar(const std::string &filepath);
 };

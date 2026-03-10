@@ -25,6 +25,6 @@ public:
   virtual void destroy() = 0;
   // virtual void cleanupUI() = 0;
 
-  virtual Device &getRenderDeivce() = 0;
+  virtual RenderDevice &getRenderDeivce() = 0;
 };
 } // namespace Render

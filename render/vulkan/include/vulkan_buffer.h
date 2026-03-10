@@ -1,61 +1,65 @@
 #pragma once
 #include "vulkan_device.h"
+#include <cstdint>
 
 namespace Render::Vulkan {
 
 class VulkanDataBuffer {
 public:
-  VulkanDataBuffer(VulkanDevice &device, VkDeviceSize instanceSize,
-             uint32_t instanceCount, VkBufferUsageFlags usageFlags,
-             VkMemoryPropertyFlags memoryPropertyFlags,
-             VkDeviceSize minOffsetAlignment = 1);
+  VulkanDataBuffer(VulkanDevice &device, vk::DeviceSize instanceSize,
+                   uint32_t stride, uint32_t instanceCount,
+                   vk::BufferUsageFlags usageFlags,
+                   vk::MemoryPropertyFlags memoryPropertyFlags,
+                   vk::DeviceSize minOffsetAlignment = 1);
   ~VulkanDataBuffer();
 
   VulkanDataBuffer(const VulkanDataBuffer &) = delete;
   VulkanDataBuffer &operator=(const VulkanDataBuffer &) = delete;
 
-  VkResult map(VkDeviceSize size = VK_WHOLE_SIZE, VkDeviceSize offset = 0);
+  void map(vk::DeviceSize size = vk::WholeSize, vk::DeviceSize offset = 0);
   void unmap();
-
-  void writeToBuffer(void *data, VkDeviceSize size = VK_WHOLE_SIZE,
-                     VkDeviceSize offset = 0);
-  VkResult flush(VkDeviceSize size = VK_WHOLE_SIZE, VkDeviceSize offset = 0);
-  VkDescriptorBufferInfo descriptorInfo(VkDeviceSize size = VK_WHOLE_SIZE,
-                                        VkDeviceSize offset = 0);
-  VkResult invalidate(VkDeviceSize size = VK_WHOLE_SIZE,
-                      VkDeviceSize offset = 0);
-
+  void writeToBuffer(void *data, vk::DeviceSize size = vk::WholeSize,
+                     vk::DeviceSize offset = 0);
+  void flush(vk::DeviceSize size = vk::WholeSize, vk::DeviceSize offset = 0);
+  void invalidate(vk::DeviceSize size = vk::WholeSize,
+                  vk::DeviceSize offset = 0);
+  uint32_t count() const { return m_buffer_size / m_stride; }
   void writeToIndex(void *data, int index);
-  VkResult flushIndex(int index);
-  VkDescriptorBufferInfo descriptorInfoForIndex(int index);
-  VkResult invalidateIndex(int index);
+  void flushIndex(int index);
+  void invalidateIndex(int index);
+  vk::DescriptorBufferInfo
+  getDescriptorInfo(vk::DeviceSize size = vk::WholeSize,
+                    vk::DeviceSize offset = 0);
+  vk::DescriptorBufferInfo getDescriptorInfoForIndex(int index);
 
-  VkBuffer getBuffer() const { return buffer; }
-  void *getMappedMemory() const { return mapped; }
-  uint32_t getInstanceCount() const { return instanceCount; }
-  VkDeviceSize getInstanceSize() const { return instanceSize; }
-  VkDeviceSize getAlignmentSize() const { return instanceSize; }
-  VkBufferUsageFlags getUsageFlags() const { return usageFlags; }
-  VkMemoryPropertyFlags getMemoryPropertyFlags() const {
-    return memoryPropertyFlags;
+  vk::Buffer getBuffer() const { return *m_buffer; }
+  void *getMappedMemory() const { return m_mapped; }
+  uint32_t getInstanceCount() const { return m_instance_count; }
+  vk::DeviceSize getInstanceSize() const { return m_instance_size; }
+  vk::DeviceSize getAlignmentSize() const { return m_alignment_size; }
+  vk::BufferUsageFlags getUsageFlags() const { return m_usage_flags; }
+  vk::MemoryPropertyFlags getMemoryPropertyFlags() const {
+    return m_memory_property_flags;
   }
-  VkDeviceSize getBufferSize() const { return bufferSize; }
+
+  vk::DeviceSize getBufferSize() const { return m_buffer_size; }
 
 private:
-  static VkDeviceSize getAlignment(VkDeviceSize instanceSize,
-                                   VkDeviceSize minOffsetAlignment);
+  static vk::DeviceSize getAlignment(vk::DeviceSize instanceSize,
+                                     vk::DeviceSize minOffsetAlignment);
 
-  VulkanDevice &lveDevice;
-  void *mapped = nullptr;
-  VkBuffer buffer = VK_NULL_HANDLE;
-  VkDeviceMemory memory = VK_NULL_HANDLE;
+  VulkanDevice &m_device;
+  void *m_mapped = nullptr;
+  vk::raii::Buffer m_buffer = nullptr;
+  vk::raii::DeviceMemory m_memory = nullptr;
 
-  VkDeviceSize bufferSize;
-  uint32_t instanceCount;
-  VkDeviceSize instanceSize;
-  VkDeviceSize alignmentSize;
-  VkBufferUsageFlags usageFlags;
-  VkMemoryPropertyFlags memoryPropertyFlags;
+  vk::DeviceSize m_buffer_size;
+  vk::DeviceSize m_instance_size;
+  vk::DeviceSize m_alignment_size;
+  uint32_t m_instance_count;
+  uint32_t m_stride;
+  vk::BufferUsageFlags m_usage_flags;
+  vk::MemoryPropertyFlags m_memory_property_flags;
 };
 
 } // namespace Render::Vulkan
