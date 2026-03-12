@@ -3,8 +3,8 @@
 #include "logger.h"
 #include "opengl_command_list.h"
 
-#include "imgui.h"
-#include "imgui_impl_opengl3.h"
+#include <imgui/imgui.h>
+#include <imgui/backends/imgui_impl_opengl3.h>
 #include "opengl_buffer_objects.h"
 #include "opengl_device.h"
 #include "opengl_resource_manager.h"

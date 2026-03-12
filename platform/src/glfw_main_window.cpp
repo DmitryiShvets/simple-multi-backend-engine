@@ -1,7 +1,7 @@
 #include "glfw_main_window.h"
 #include "i_main_window.h"
-#include "imgui.h"
-#include "imgui_impl_glfw.h"
+#include <imgui/imgui.h>
+#include <imgui/backends/imgui_impl_glfw.h>
 #include "imgui_internal.h"
 #include "logger.h"
 

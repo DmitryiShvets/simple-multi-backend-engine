@@ -41,14 +41,12 @@ target_compile_definitions(vulkan_renderer PRIVATE
 target_include_directories(vulkan_renderer
     PUBLIC
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-    PRIVATE
-        $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/render/include>
 )
 
 # DEPENDENCIES
 find_package(Vulkan REQUIRED)
 target_link_libraries(vulkan_renderer
-    PRIVATE Vulkan::Vulkan glm utils_module core_module render_module imgui
+    PRIVATE Vulkan::Vulkan external::glm utils_module core_module render_module external::imgui
 )
 
 

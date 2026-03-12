@@ -25,14 +25,12 @@ add_library(opengl_renderer STATIC ${OPENGL_RENDER_SOURCES} ${OPENGL_RENDER_PUBL
 target_include_directories(opengl_renderer
     PUBLIC
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-    PRIVATE
-        $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/render/include>
 )
 
 # DEPENDENCIES
 find_package(OpenGL REQUIRED)
 target_link_libraries(opengl_renderer
-    PRIVATE ${OPENGL_LIBRARIES} glad glm utils_module core_module render_module imgui
+    PRIVATE ${OPENGL_LIBRARIES} glad external::glm utils_module core_module render_module external::imgui
 )
 
 # POST BUILD

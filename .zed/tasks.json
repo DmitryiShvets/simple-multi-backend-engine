@@ -25,6 +25,12 @@
     "reveal": "always",
   },
   {
+    "label": "🔨 Ninja - Build libs",
+    "command": "scripts/build_libraries.sh",
+    "use_new_terminal": false,
+    "reveal": "always",
+  },
+  {
     "label": "🔄 Ninja - Re-Build (Debug)",
     "command": "scripts/ninja_incremental_build_debug.sh",
     "use_new_terminal": false,

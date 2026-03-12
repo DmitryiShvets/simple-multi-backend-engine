@@ -1,10 +1,10 @@
 #include "ui_manager.h"
 #include "i_main_window.h" // Нужен для получения GLFWwindow*
 
-#include <imgui.h>
-#include <imgui_impl_glfw.h> // Нужен для Init/Shutdown
-#include <imgui_impl_opengl3.h>
-#include <imgui_impl_vulkan.h>
+#include <imgui/imgui.h>
+#include <imgui/backends/imgui_impl_glfw.h>
+#include <imgui/backends/imgui_impl_opengl3.h>
+#include <imgui/backends/imgui_impl_vulkan.h>
 
 namespace UI {
 UIManager::UIManager() {}

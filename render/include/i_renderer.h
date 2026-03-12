@@ -1,7 +1,7 @@
 #pragma once
 #include "render_device.h"
 
-#include <imgui.h>
+#include <imgui/imgui.h>
 
 namespace Core {
 class SceneView;

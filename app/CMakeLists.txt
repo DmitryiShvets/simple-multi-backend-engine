@@ -18,4 +18,4 @@ target_include_directories(app
         ${CMAKE_CURRENT_SOURCE_DIR}/include
 )
 
-target_link_libraries(app PRIVATE adapters_module world_module render_module platform_module utils_module core_module glm ui_module imgui)
+target_link_libraries(app PRIVATE adapters_module world_module render_module platform_module utils_module core_module external::glm ui_module external::imgui)

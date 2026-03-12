@@ -1,5 +1,5 @@
 #include "hello_widget.h"
-#include "imgui.h" // Нужен для вызовов ImGui::
+#include <imgui/imgui.h> // Нужен для вызовов ImGui::
 
 namespace UI {
 

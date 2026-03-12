@@ -12,4 +12,4 @@ target_include_directories(ui_module PUBLIC
 )
 
 # DEPENDENCIES
-target_link_libraries(ui_module PRIVATE imgui)
+target_link_libraries(ui_module PRIVATE external::imgui)

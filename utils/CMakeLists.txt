@@ -25,4 +25,4 @@ target_include_directories(utils_module
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
 )
 
-target_link_libraries(utils_module PRIVATE glm)
+target_link_libraries(utils_module PRIVATE external::glm)

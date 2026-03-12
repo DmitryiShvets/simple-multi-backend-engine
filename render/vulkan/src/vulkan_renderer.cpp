@@ -16,7 +16,7 @@
 #include <glm/gtc/constants.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
-#include "imgui_impl_vulkan.h"
+#include <imgui/backends/imgui_impl_vulkan.h>
 
 #include <stdexcept>
 #include <vector>

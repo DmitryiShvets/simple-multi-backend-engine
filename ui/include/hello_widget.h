@@ -1,7 +1,7 @@
 #pragma once
 
 // Включаем imgui.h, так как мы используем его типы, например ImVec4
-#include "imgui.h"
+#include <imgui/imgui.h>
 
 namespace UI {
 

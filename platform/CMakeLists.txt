@@ -17,4 +17,4 @@ target_include_directories(platform_module
 )
 
 # DEPENDENCIES
-target_link_libraries(platform_module PUBLIC glfw PRIVATE utils_module imgui )
+target_link_libraries(platform_module PUBLIC external::glfw PRIVATE utils_module external::imgui )

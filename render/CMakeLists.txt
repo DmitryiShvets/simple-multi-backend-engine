@@ -39,7 +39,7 @@ target_include_directories(render_module
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/opengl/include>
 )
 
-target_link_libraries(render_module PRIVATE glm utils_module core_module imgui)
+target_link_libraries(render_module PRIVATE external::glm utils_module core_module external::imgui)
 
 # OpenGL submodule
 if(BUILD_OPENGL_RENDERER)

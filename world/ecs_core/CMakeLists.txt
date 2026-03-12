@@ -30,4 +30,4 @@ target_include_directories(ecs_module
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
 )
 
-target_link_libraries(ecs_module PUBLIC flecs PRIVATE glm core_module utils_module)
+target_link_libraries(ecs_module PUBLIC external::flecs PRIVATE external::glm core_module utils_module)
