@@ -9,6 +9,7 @@ set(CORE_PUBLIC_HEADERS
   include/uniform_layout.h
   include/common.h
   include/vertex_layout.h
+  include/backend_type.h
 )
 
 set(CORE_SOURCES

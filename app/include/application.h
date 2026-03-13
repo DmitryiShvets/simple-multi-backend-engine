@@ -3,18 +3,14 @@
 
 // Forward declarations
 namespace Window {
-class IMainWindow;
+class WindowManager;
 }
 namespace Render {
-class IRenderer;
+class RenderManager;
 }
 namespace UI {
 class UIManager;
 }
-// namespace Core::Ecs {
-// template <typename T> class World;
-// class FlecsWorldImpl;
-// }
 #include "flecs_world.h"
 #include "world.h"
 
@@ -29,19 +25,14 @@ public:
   Application(const Application &) = delete;
   Application &operator=(const Application &) = delete;
 
-  Application(std::unique_ptr<Window::IMainWindow> gl_window,
-              std::unique_ptr<Window::IMainWindow> vk_window,
-              std::unique_ptr<Render::IRenderer> gl_renderer,
-              std::unique_ptr<Render::IRenderer> vk_renderer,
+  Application(std::unique_ptr<Window::WindowManager> window_manager,
+              std::unique_ptr<Render::RenderManager> render_manager,
               std::unique_ptr<UI::UIManager> ui_manager);
 
 private:
-  // Windows
-  std::unique_ptr<Window::IMainWindow> m_gl_window;
-  std::unique_ptr<Window::IMainWindow> m_vk_window;
-  // Renderers
-  std::unique_ptr<Render::IRenderer> m_gl_renderer;
-  std::unique_ptr<Render::IRenderer> m_vk_renderer;
+  // Window & Render managers
+  std::unique_ptr<Window::WindowManager> m_window_manager;
+  std::unique_ptr<Render::RenderManager> m_render_manager;
   // UI
   std::unique_ptr<UI::UIManager> m_ui_manager;
   // ECS

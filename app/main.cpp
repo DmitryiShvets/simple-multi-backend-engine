@@ -1,16 +1,21 @@
 #include "application.h"
 #include "gpu_context_creator.h"
+#include "backend_type.h"  // ← Core::BackendType
 
 #include "glfw_vulkan_surface_creator.h"
 #include "logger.h"
 #include "render_factory.h"
+#include "render_manager.h"
 #include "ui_manager.h"
+#include "imgui_backend.h"
 #include "window_factory.h"
+#include "window_manager.h"
 
 #include <cstdlib>
 #include <exception>
 #include <memory>
 #include <stdexcept>
+#include <vector>
 
 int main() {
 
@@ -26,21 +31,51 @@ int main() {
         Window::API::GLFW, Window::WindowConfig{"Vulkan Window", 800, 600},
         vk_gpu_ctx_creator);
 
-    auto ui = std::make_unique<UI::UIManager>();
-    ui->init(*window_vulkan, *window_opengl);
+    // Create Window Manager and add windows
+    auto window_manager = std::make_unique<Window::WindowManager>();
+    window_manager->addWindow(std::move(window_opengl));
+    window_manager->addWindow(std::move(window_vulkan));
 
-    // 1. Create the OpenGL Renderer using the simple overload
+    // --- Renderer Creation ---
+    // 1. Create the OpenGL Renderer
     auto gl_renderer = Render::RenderFactory::create(Render::API::OpenGL);
-    gl_renderer->init(ui->getOpenGLContext());
-    // 2. Create the Vulkan Renderer using the overload that takes a surface
-    // creator
-    void *native_handle = window_vulkan->getNativeWindow();
+    // 2. Create the Vulkan Renderer
+    void *native_handle = window_manager->getWindowByIndex(1).getNativeWindow();
     Window::GlfwVulkanSurfaceCreator vk_surface_creator(native_handle);
     auto vk_renderer = Render::RenderFactory::create(vk_surface_creator);
-    vk_renderer->init(ui->getVulkanContext());
+
+    // Create Render Manager
+    auto render_manager = std::make_unique<Render::RenderManager>();
+    
+    // Add renderers with explicit backend types
+    render_manager->addRenderer(Core::BackendType::OpenGL, std::move(gl_renderer));
+    render_manager->addRenderer(Core::BackendType::Vulkan, std::move(vk_renderer));
+
+    // --- UI Creation ---
+    auto ui = std::make_unique<UI::UIManager>();
+
+    // Add backends in SAME order as BackendType enum: OpenGL first, Vulkan second
+    ui->addBackend(std::make_unique<UI::ImGuiOpenGLBackend>());
+    ui->addBackend(std::make_unique<UI::ImGuiVulkanBackend>());
+
+    // Initialize UI with windows
+    // Order must match backends: [0] = OpenGL, [1] = Vulkan
+    std::vector<std::reference_wrapper<Window::IMainWindow>> windows = {
+        window_manager->getWindowByIndex(0),  // OpenGL window
+        window_manager->getWindowByIndex(1)   // Vulkan window
+    };
+    ui->init(windows);
+
+    // Initialize renderers with UI contexts
+    // Order must match: [0] = OpenGL, [1] = Vulkan
+    std::vector<ImGuiContext*> ui_contexts = {
+        ui->getContext(Core::BackendType::OpenGL),   // OpenGL context
+        ui->getContext(Core::BackendType::Vulkan)    // Vulkan context
+    };
+    render_manager->init(ui_contexts);
+
     // --- Application Creation ---
-    auto app = Application(std::move(window_opengl), std::move(window_vulkan),
-                           std::move(gl_renderer), std::move(vk_renderer),
+    auto app = Application(std::move(window_manager), std::move(render_manager),
                            std::move(ui));
 
     app.init();

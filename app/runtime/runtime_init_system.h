@@ -6,6 +6,7 @@
 #include "ecs/components/transform_component.h"
 #include "logger.h"
 #include "render_device.h"
+#include "render_manager.h"
 #include "uniform_factory_registry.h"
 #include "uniforms.h"
 #include "vertex_layout.h"
@@ -51,9 +52,10 @@ template <typename WorldType>
   requires EcsWorld<WorldType>
 class RuntimeInitSystem {
 public:
-  RuntimeInitSystem(WorldType &world, Render::RenderDevice &gl_device,
-                    Render::RenderDevice &vk_device)
-      : m_world(world), m_gl_device(gl_device), m_vk_device(vk_device) {}
+  RuntimeInitSystem(WorldType &world, Render::RenderManager &render)
+      : m_world(world), 
+        m_gl_device(render.getDevice(Core::BackendType::OpenGL)),
+        m_vk_device(render.getDevice(Core::BackendType::Vulkan)) {}
 
   void initialize() {
     // First pass: create vertex buffers for all geometry
@@ -89,18 +91,18 @@ private:
   void process_geometry_type(std::vector<GeometryCommand> &commands) {
     auto query = m_world.template createQuery<const GeometryComponent>();
 
-    query.each(
-        [this, &commands](EntityHandle entity, const GeometryComponent &geom) {
-        const auto vertex_layout = GeometryComponent::getLayout();
-          uint64_t total_size = vertex_layout.getStride() * geom.vertices.size();
+    query.each([this, &commands](EntityHandle entity,
+                                 const GeometryComponent &geom) {
+      const auto vertex_layout = GeometryComponent::getLayout();
+      uint64_t total_size = vertex_layout.getStride() * geom.vertices.size();
 
-          RID vk_geom = createVertexBuffer(m_vk_device, geom.vertices.data(),
-                                           total_size, vertex_layout);
-          RID gl_geom = createVertexBuffer(m_gl_device, geom.vertices.data(),
-                                           total_size, vertex_layout);
+      RID vk_geom = createVertexBuffer(m_vk_device, geom.vertices.data(),
+                                       total_size, vertex_layout);
+      RID gl_geom = createVertexBuffer(m_gl_device, geom.vertices.data(),
+                                       total_size, vertex_layout);
 
-          commands.push_back({entity, vk_geom, gl_geom});
-        });
+      commands.push_back({entity, vk_geom, gl_geom});
+    });
   }
 
   // Process all materials using factories from registry

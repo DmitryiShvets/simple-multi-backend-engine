@@ -1,38 +1,53 @@
 #pragma once
 
-#include "hello_widget.h"
+#include "backend_type.h" // ← Core::BackendType
+#include "imgui_backend.h"
 #include <functional>
+#include <memory>
+#include <vector>
 
-struct ImGuiContext;
 struct ImDrawData;
+
 namespace Window {
 class IMainWindow;
 }
 
 namespace UI {
+
+/**
+ * @brief Фасад для управления несколькими UI-бекендами
+ */
 class UIManager {
 public:
-  UIManager();
+  UIManager() = default;
   ~UIManager();
 
-  void init(Window::IMainWindow &wnd_vulkan, Window::IMainWindow &wnd_opengl);
-  void render(const std::function<void()> &draw_vulkan_ui,
-              const std::function<void()> &draw_opengl_ui);
+  UIManager(const UIManager &) = delete;
+  UIManager &operator=(const UIManager &) = delete;
+
+  void addBackend(std::unique_ptr<ImGuiBackend> backend);
+
+  void
+  init(const std::vector<std::reference_wrapper<Window::IMainWindow>> &windows,
+       const UIBackendConfig &config = UIBackendConfig{});
+
+  void render(const std::function<void()> &draw_fn);
+
   void destroy();
-  ImDrawData *getVulkanDrawData() const;
-  ImDrawData *getOpenGLDrawData() const;
-  ImGuiContext *getVulkanContext() const;
-  ImGuiContext *getOpenGLContext() const;
+
+  size_t getBackendCount() const;
+
+  // Доступ по типу бекенда
+  ImGuiBackend &getBackend(Core::BackendType type);
+  const ImGuiBackend &getBackend(Core::BackendType type) const;
+
+  ImDrawData *getDrawData(Core::BackendType type) const;
+  std::vector<ImDrawData *> getBundleDrawData() const;
+
+  ImGuiContext *getContext(Core::BackendType type) const;
 
 private:
-  void configureNewContext();
-
-  ImGuiContext *m_ctx_vulkan = nullptr;
-  ImGuiContext *m_ctx_opengl = nullptr;
-
-  ImDrawData *m_draw_data_vulkan = nullptr;
-  ImDrawData *m_draw_data_opengl = nullptr;
-
-  UI::HelloWidget widget;
+  std::vector<std::unique_ptr<ImGuiBackend>> m_backends;
 };
+
 } // namespace UI

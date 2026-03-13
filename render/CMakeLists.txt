@@ -29,6 +29,8 @@ add_library(render_module STATIC
     drawing_policies/default_drawing_policy.cpp
     drawing_policies/ads_drawing_policy.h
     drawing_policies/ads_drawing_policy.cpp
+    include/render_manager.h
+    src/render_manager.cpp
 )
 
 target_include_directories(render_module

@@ -3,6 +3,7 @@
 #include "ecs/components/runtime_component.h"
 #include "ecs/components/transform_component.h"
 #include "render_device.h"
+#include "render_manager.h"
 #include "uniforms.h"
 
 namespace Core::Ecs::System {
@@ -14,9 +15,10 @@ template <typename WorldType>
   requires EcsWorld<WorldType>
 class RuntimeUpdateSystem {
 public:
-  RuntimeUpdateSystem(WorldType &world, Render::RenderDevice &vk_device,
-                      Render::RenderDevice &gl_device)
-      : m_world(world), m_vk_device(vk_device), m_gl_device(gl_device),
+  RuntimeUpdateSystem(WorldType &world, Render::RenderManager &render)
+      : m_world(world), 
+        m_gl_device(render.getDevice(Core::BackendType::OpenGL)),
+        m_vk_device(render.getDevice(Core::BackendType::Vulkan)),
         m_query(world.template createQuery<Component::Transform,
                                            Component::VkRuntime,
                                            Component::GlRuntime>()) {}
@@ -25,7 +27,6 @@ public:
     m_query.each([this](
                      EntityHandle /*entity*/, Component::Transform &transform,
                      Component::VkRuntime &vk_rt, Component::GlRuntime &gl_rt) {
-
       // Update per-object model matrix and normal matrix
       glm::mat4 model_mat = transform.getModelMatrix();
       glm::mat3 normal_mat = glm::transpose(glm::inverse(glm::mat3(model_mat)));

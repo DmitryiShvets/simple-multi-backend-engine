@@ -1,5 +1,6 @@
 #pragma once
 
+#include "backend_type.h"  // ← Core::BackendType
 #include "glm/ext/vector_float4.hpp"
 #include "resource_types.h"
 #include "vertex_layout.h"
@@ -8,7 +9,10 @@
 #include <vector>
 
 namespace Render {
-enum class BackendType { Vulkan, OpenGL };
+
+// Используем BackendType из Core
+using Core::BackendType;
+
 // --- Core Enums ---
 enum class ImageLayout {
   UNDEFINED,
