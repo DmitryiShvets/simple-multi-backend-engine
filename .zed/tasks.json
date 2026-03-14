@@ -13,6 +13,13 @@
     "reveal": "always",
   },
   {
+    "label": "▶️ Run new",
+    "command": "./app_new",
+    "cwd": "$ZED_WORKTREE_ROOT/build/bin",
+    "use_new_terminal": false,
+    "reveal": "always",
+  },
+  {
     "label": "🛠️ Ninja - Configure (Debug)",
     "command": "scripts/ninja_gen_debug.sh",
     "use_new_terminal": false,

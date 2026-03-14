@@ -81,3 +81,25 @@ set_target_properties(external::imgui PROPERTIES
     IMPORTED_LOCATION_DEBUG "${IMGUI_LIB}"
     INTERFACE_INCLUDE_DIRECTORIES "${IMGUI_DIR};${IMGUI_PARENT_DIR}"
 )
+# ------------------------------------------------------------------------------
+# Glad
+# ------------------------------------------------------------------------------
+find_library(GLAD_LIB NAMES glad
+    PATHS "${MY_EXTERNAL_DIR}/lib" "${MY_EXTERNAL_DIR}/lib64"
+    NO_DEFAULT_PATH)
+find_path(GLAD_INCLUDE NAMES glad/gl.h
+    PATHS "${MY_EXTERNAL_DIR}/include"
+    NO_DEFAULT_PATH)
+
+if(NOT GLAD_LIB OR NOT GLAD_INCLUDE)
+    message(FATAL_ERROR "Glad not found! Run: ./scripts/build_libraries.sh")
+endif()
+
+add_library(external::glad UNKNOWN IMPORTED)
+set_target_properties(external::glad PROPERTIES
+    IMPORTED_LOCATION "${GLAD_LIB}"
+    INTERFACE_INCLUDE_DIRECTORIES "${GLAD_INCLUDE}"
+)
+
+# Add library search path
+link_directories("${MY_EXTERNAL_DIR}/lib" "${MY_EXTERNAL_DIR}/lib64")

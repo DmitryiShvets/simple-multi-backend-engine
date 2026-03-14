@@ -20,4 +20,4 @@ target_include_directories(adapters_module
 )
 
 # DEPENDENCIES
-target_link_libraries(adapters_module PRIVATE external::imgui glad platform_module utils_module render_module ui_module core_module)
+target_link_libraries(adapters_module PRIVATE external::imgui external::glad platform_module utils_module render_module ui_module core_module)

@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.12)
-project(ExternalLibraries CXX)
+project(ExternalLibraries C CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -18,6 +18,16 @@ set(GLFW_INSTALL ON CACHE BOOL "" FORCE)  # <-- Важно для установ
 add_subdirectory(flecs)
 add_subdirectory(glfw)
 add_subdirectory(glm)
+
+# Glad - needs special handling
+add_subdirectory(glad)
+install(TARGETS glad
+    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+)
+install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/glad/include/glad
+    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+)
 
 # ============================================================================
 # ImGui (с копированием CMakeLists.txt если нужно)

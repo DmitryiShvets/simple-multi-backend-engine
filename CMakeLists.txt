@@ -20,14 +20,17 @@ endif()
 include(external/FindExternalLibs.cmake)
 
 # INNER LIBS
-add_subdirectory(core)
-add_subdirectory(utils)
-add_subdirectory(adapters)
-add_subdirectory(render)
-add_subdirectory(platform)
-add_subdirectory(ui)
-add_subdirectory(world)
-add_subdirectory(app)
+#add_subdirectory(core)
+#add_subdirectory(utils)
+#add_subdirectory(adapters)
+#add_subdirectory(render)
+#add_subdirectory(platform)
+#add_subdirectory(ui)
+#add_subdirectory(world)
+#add_subdirectory(app)
+add_subdirectory(engine)
+add_subdirectory(app_new)
+
 
 # POST BUILD
 execute_process(
