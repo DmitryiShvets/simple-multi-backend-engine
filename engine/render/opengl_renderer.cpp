@@ -21,7 +21,8 @@ namespace ssme {
 
 //================================================================
 // THIS IS LEGACY. WE NEED TO GET RIG OF IT
-
+// по сути это задача экнкодинга команд. она должна выполняться конкретным render pass
+// в данном сслучае функция renderGL. это имплементация SimpleRenderPass
 void renderGL(CommandList &cmd, const DrawingData &data) {
   // Validate required data
   assert(data.pipeline.isValid() && "DrawingData: pipeline is not valid");
@@ -171,6 +172,7 @@ void OpenGLRenderer::renderFrame(const SceneView &view,
     draw_data.push_constants.emplace("model_mat", model_matrix_val);
 
     // Render using DrawingPolicy
+    // заменить на render_pass.encode()
     renderGL(*m_command_list, draw_data);
   }
   if (ui_draw_data) {

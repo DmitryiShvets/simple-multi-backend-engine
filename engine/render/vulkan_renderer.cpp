@@ -24,7 +24,8 @@ namespace ssme {
 
 //================================================================
 // THIS IS LEGACY. WE NEED TO GET RIG OF IT
-
+// по сути это задача экнкодинга команд. она должна выполняться конкретным render pass
+// в данном сслучае функция renderVK. это имплементация SimpleRenderPass
 void renderVK(CommandList &cmd, const DrawingData &data) {
   // Validate required data
   assert(data.pipeline.isValid() && "DrawingData: pipeline is not valid");
@@ -253,6 +254,7 @@ void VulkanRenderer::renderFrame(const SceneView &view,
       // Push Constants: model matrix (Vulkan uses push constants, not uniforms)
       draw_data.push_constants.emplace("model_mat", renderable.model_matrix);
 
+      // заменить на render_pass.encode()
       renderVK(cmd, draw_data);
     }
 

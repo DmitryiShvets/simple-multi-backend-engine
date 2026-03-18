@@ -1,5 +1,6 @@
 set(CORE_SOURCES
   core/uniform_layout.cpp
+  core/rid_allocator.cpp
 )
 
 set(UTILS_SOURCES

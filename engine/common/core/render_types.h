@@ -43,6 +43,8 @@ enum class BufferUsage {
   VERTEX_BUFFER = 0x0008,
   INDEX_BUFFER = 0x0010,
   UNIFORM_BUFFER = 0x0020,
+  STORAGE_BUFFER = 0x0040,
+  INDIRECT_BUFFER = 0x0080,
 };
 
 enum class PrimitiveTopology {

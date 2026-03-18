@@ -1,20 +1,17 @@
 #pragma once
 
-#include "core/resource_types.h"
-#include "core/rid.h"
 #include "resource.h"
+#include "core/rid.h"
+#include "core/resource_types.h"
 
 namespace ssme {
+
 class Buffer : public Resource {
 public:
   static constexpr ResourceId ID = ResourceId::MESH;
-  explicit Buffer(const std::string &id,
-                  const std::vector<RenderDevice *> &devices);
-  explicit Buffer(const BufferDesc &desc,
-                  const std::vector<RenderDevice *> &devices);
-  ~Buffer() override {
-    unload(); // Ensure proper cleanup when object is destroyed
-  }
+
+  explicit Buffer(const BufferDesc &desc, const VecRefRD &devices);
+  ~Buffer() override;
 
   bool doLoad() override;
   bool doUnload() override;

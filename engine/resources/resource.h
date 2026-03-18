@@ -1,12 +1,14 @@
 #pragma once
 
-#include "resource_manager.h"
+#include <functional>
 #include <string>
 #include <vector>
 
 namespace ssme {
 
 class RenderDevice;
+using VecRefRD = std::vector<std::reference_wrapper<RenderDevice>>;
+
 // Resource base class
 class Resource {
 private:
@@ -15,8 +17,7 @@ public:
    * @brief Constructor with a resource ID.
    * @param id The unique identifier for the resource.
    */
-  explicit Resource(const std::string &id,
-                    const std::vector<RenderDevice *> &devices)
+  explicit Resource(const std::string &id, const VecRefRD &devices)
       : m_id(id), m_devices(devices) {}
   /**
    * @brief Virtual destructor for proper cleanup.
@@ -63,6 +64,6 @@ protected:
   // Loading state flag for resource lifecycle management
   bool m_loaded = false;
   // Array of rhi device interface for creating/destoying resource
-  std::vector<RenderDevice *> m_devices;
+  VecRefRD m_devices;
 };
 } // namespace ssme

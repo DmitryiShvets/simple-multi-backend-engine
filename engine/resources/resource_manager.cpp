@@ -12,6 +12,13 @@ void ResourceManager::registerDevice(GpuBackend type, RenderDevice *device) {
 }
 
 void ResourceManager::clear() {
+  // Free all RIDs
+  for (const auto &[rid_id, mapData] : m_rid_to_uuid) {
+    m_rid_allocator.free(RID{rid_id});
+  }
+  m_rid_to_uuid.clear();
+
+  // Unload all resources
   for (auto &kv : m_resources) {
     auto &val = kv.second;
     for (auto &innerKv : val) {
@@ -21,5 +28,7 @@ void ResourceManager::clear() {
     val.clear();
   }
   m_resources.clear();
+  refCounts.clear();
 }
+
 } // namespace ssme

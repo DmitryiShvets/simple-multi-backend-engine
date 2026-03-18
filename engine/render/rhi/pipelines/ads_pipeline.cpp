@@ -49,7 +49,7 @@ void initVulkanMaterial(PipelineConfigRegistry &registry) {
         desc.pl_desc.shader_modules = {
             {"res/shaders/v_ads.glsl.spv", ShaderStage::VERTEX},
             {"res/shaders/f_default.glsl.spv", ShaderStage::FRAGMENT}};
-        desc.pl_desc.vertex_layout = VertexN::getLayout();
+        desc.pl_desc.vertex_layout = VertexPN::getLayout();
         desc.pl_desc.primitive_topology = PrimitiveTopology::TRIANGLE_LIST;
       });
 
@@ -107,7 +107,7 @@ void initOpenglMaterial(PipelineConfigRegistry &registry) {
         desc.pl_desc.shader_modules = {
             {"res/shaders/v_ads.glsl", ShaderStage::VERTEX},
             {"res/shaders/f_default.glsl", ShaderStage::FRAGMENT}};
-        desc.pl_desc.vertex_layout = VertexN::getLayout();
+        desc.pl_desc.vertex_layout = VertexPN::getLayout();
         desc.pl_desc.primitive_topology = PrimitiveTopology::TRIANGLE_LIST;
       });
 
