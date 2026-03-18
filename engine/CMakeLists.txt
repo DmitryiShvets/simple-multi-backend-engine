@@ -5,6 +5,11 @@ project(SSME VERSION 1.0.0 LANGUAGES CXX C)
 # Internal libs
 add_subdirectory(common)
 add_subdirectory(platform)
+add_subdirectory(ui)
+add_subdirectory(render/rhi)
+add_subdirectory(render/backends/opengl)
+add_subdirectory(render/backends/vulkan)
+add_subdirectory(render)
 add_subdirectory(world)
 
 # Engine sources
@@ -24,8 +29,11 @@ target_include_directories(ssme_engine
 # DEPENDENCIES
 target_link_libraries(ssme_engine
     PUBLIC
-        ssme::platform
-    PRIVATE
         ssme::common
+    PRIVATE
+        ssme::rhi
+        ssme::platform
+        ssme::ui
+        ssme::render
         ssme::world
 )

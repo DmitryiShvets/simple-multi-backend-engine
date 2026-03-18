@@ -1,232 +1,293 @@
 #include "desktop_platform.h"
-#include "desktop/backends/glfw/glfw_main_window.h"
-#include "desktop/backends/glfw/glfw_gpu_context_creator.h"
+#include "core/gpu_types.h"
+#include "desktop/glfw/glfw_gpu_context_creator.h"
+#include "desktop/glfw/glfw_main_window.h"
+#include <algorithm>
+#include <stdexcept>
+
+// This file requires the full GLFW implementation
+#define GLFW_INCLUDE_VULKAN
+#include <GLFW/glfw3.h>
+#include <vulkan/vulkan.hpp>
 
 namespace ssme {
 
-DesktopPlatform::~DesktopPlatform() {
-    cleanup();
-}
+DesktopPlatform::~DesktopPlatform() { cleanup(); }
 
 // ==================== Window Management ====================
 
-bool DesktopPlatform::initialize(const std::string& appName, int width, int height) {
-    auto window = createWindow(appName, width, height);
-    if (!window) {
-        return false;
-    }
-
-    m_windows.push_back(std::move(window));
-    m_windowResized.push_back(false);
-    m_windowWidths.push_back(width);
-    m_windowHeights.push_back(height);
-
-    return true;
+bool DesktopPlatform::initialize(const std::string &appName, int width,
+                                 int height) {
+  return true;
 }
 
-void DesktopPlatform::addWindow(const std::string& title, int width, int height) {
-    auto window = createWindow(title, width, height);
-    if (!window) {
-        return;
-    }
+void DesktopPlatform::addWindow(const std::string &title, int width, int height,
+                                GpuBackend type) {
+  auto window = createWindow(title, width, height, type);
+  if (!window) {
+    return;
+  }
 
-    m_windows.push_back(std::move(window));
-    m_windowResized.push_back(false);
-    m_windowWidths.push_back(width);
-    m_windowHeights.push_back(height);
+  m_windows.push_back(std::move(window));
+  m_windowResized.push_back(false);
+  m_windowWidths.push_back(width);
+  m_windowHeights.push_back(height);
 }
 
 void DesktopPlatform::removeWindow(size_t index) {
-    if (index >= m_windows.size()) {
-        return;
-    }
+  if (index >= m_windows.size()) {
+    return;
+  }
 
-    m_windows.erase(m_windows.begin() + static_cast<long>(index));
-    m_windowResized.erase(m_windowResized.begin() + static_cast<long>(index));
-    m_windowWidths.erase(m_windowWidths.begin() + static_cast<long>(index));
-    m_windowHeights.erase(m_windowHeights.begin() + static_cast<long>(index));
+  m_windows.erase(m_windows.begin() + static_cast<long>(index));
+  m_windowResized.erase(m_windowResized.begin() + static_cast<long>(index));
+  m_windowWidths.erase(m_windowWidths.begin() + static_cast<long>(index));
+  m_windowHeights.erase(m_windowHeights.begin() + static_cast<long>(index));
 }
 
-size_t DesktopPlatform::getWindowCount() const {
-    return m_windows.size();
-}
+size_t DesktopPlatform::getWindowCount() const { return m_windows.size(); }
 
-bool DesktopPlatform::allAlive() const {
-    if (m_windows.empty()) {
-        return false;
-    }
+bool DesktopPlatform::allWindowsAlive() const {
+  if (m_windows.empty()) {
+    return false;
+  }
 
-    for (const auto& window : m_windows) {
-        if (window->shouldClose()) {
-            return false;
-        }
+  for (const auto &window : m_windows) {
+    if (window->shouldClose()) {
+      return false;
     }
-    return true;
+  }
+  return true;
 }
 
 void DesktopPlatform::updateAllWindows() {
-    for (auto& window : m_windows) {
-        window->update();
-    }
+  for (auto &window : m_windows) {
+    window->update();
+  }
 }
 
 void DesktopPlatform::cleanup() {
-    for (auto& window : m_windows) {
-        window->destroy();
-    }
-    m_windows.clear();
-    m_windowResized.clear();
-    m_windowWidths.clear();
-    m_windowHeights.clear();
+  for (auto &window : m_windows) {
+    window->destroy();
+  }
+  m_windows.clear();
+  m_windowResized.clear();
+  m_windowWidths.clear();
+  m_windowHeights.clear();
 }
 
 // ==================== Per-Window Access ====================
+MainWindow &DesktopPlatform::getWindow(size_t type) { return *m_windows[type]; }
+const MainWindow &DesktopPlatform::getWindow(size_t type) const {
+  return *m_windows[type];
+}
 
-void DesktopPlatform::getWindowSize(size_t index, int* width, int* height) const {
-    if (index >= m_windows.size()) {
-        return;
-    }
+void DesktopPlatform::getWindowSize(size_t index, int *width,
+                                    int *height) const {
+  if (index >= m_windows.size()) {
+    return;
+  }
 
-    if (width) *width = m_windowWidths[index];
-    if (height) *height = m_windowHeights[index];
+  if (width)
+    *width = m_windowWidths[index];
+  if (height)
+    *height = m_windowHeights[index];
 }
 
 bool DesktopPlatform::hasWindowResized(size_t index) const {
-    if (index >= m_windows.size()) {
-        return false;
-    }
-    return m_windowResized[index];
+  if (index >= m_windows.size()) {
+    return false;
+  }
+  return m_windowResized[index];
 }
 
-void* DesktopPlatform::createVulkanSurface(size_t index, void* instance) {
-    if (index >= m_windows.size()) {
-        return nullptr;
-    }
+// GlfwVulkanSurfaceCreator::GlfwVulkanSurfaceCreator(void *native_window) {
+//   m_window = static_cast<GLFWwindow *>(native_window);
+// }
 
-    // TODO: Implement Vulkan surface creation using the window's native handle
-    // This requires access to Vulkan instance and proper surface creation
-    return nullptr;
+// std::vector<const char *>
+// GlfwVulkanSurfaceCreator::getRequiredInstanceExtensions() const {
+//   uint32_t glfwExtensionCount = 0;
+//   const char **glfwExtensions;
+//   glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
+
+//   std::vector extensions(glfwExtensions, glfwExtensions +
+//   glfwExtensionCount); return extensions;
+// }
+
+// VkSurfaceKHR
+// GlfwVulkanSurfaceCreator::createWindowSurface(vk::Instance vkInstance) const
+// {
+//   VkSurfaceKHR surface;
+//   uint32_t version;
+//   vkEnumerateInstanceVersion(&version);
+//   // 3 macros to extract version info
+//   uint32_t major = VK_VERSION_MAJOR(version);
+//   uint32_t minor = VK_VERSION_MINOR(version);
+//   uint32_t patch = VK_VERSION_PATCH(version);
+//   Logger::info_log("Initialized Vulkan version " + std::to_string(major) +
+//   "." +
+//                    std::to_string(minor));
+//   glfwCreateWindowSurface(vkInstance, m_window, nullptr, &surface);
+//   return surface;
+// }
+void *DesktopPlatform::createVulkanSurface(void *instance) {
+  auto vk_window =
+      std::find_if(m_windows.cbegin(), m_windows.cend(), [](const auto &e) {
+        return e->getGpuBackend() == GpuBackend::Vulkan;
+      });
+  if (vk_window == m_windows.end()) {
+    // Нашли Vulkan окно
+    throw std::runtime_error("Failed to create window surface! Failed to find "
+                             "suitable Vulkan-context window.");
+  }
+  MainWindow *window = vk_window->get();
+  VkInstance vkInstance = static_cast<VkInstance>(instance);
+  VkSurfaceKHR surface;
+
+  glfwCreateWindowSurface(vkInstance, (GLFWwindow *)window->getNativeWindow(),
+                          nullptr, &surface);
+  return surface;
 }
 
-std::vector<const char*> DesktopPlatform::getRequiredVulkanInstanceExtensions() const {
-    // TODO: Get actual extensions from GLFW
-    return {};
+std::vector<const char *>
+DesktopPlatform::getRequiredVulkanInstanceExtensions() const {
+  uint32_t glfwExtensionCount = 0;
+  const char **glfwExtensions;
+  glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
+
+  std::vector extensions(glfwExtensions, glfwExtensions + glfwExtensionCount);
+  return extensions;
 }
 
 // ==================== Callbacks ====================
 
 void DesktopPlatform::setResizeCallback(
-    std::function<void(size_t, int, int)> callback
-) {
-    m_resizeCallback = std::move(callback);
+    std::function<void(size_t, int, int)> callback) {
+  m_resizeCallback = std::move(callback);
 }
 
 void DesktopPlatform::setMouseCallback(
-    std::function<void(size_t, float, float, uint32_t)> callback
-) {
-    m_mouseCallback = std::move(callback);
+    std::function<void(size_t, float, float, uint32_t)> callback) {
+  m_mouseCallback = std::move(callback);
 }
 
 void DesktopPlatform::setKeyboardCallback(
-    std::function<void(size_t, uint32_t, bool)> callback
-) {
-    m_keyboardCallback = std::move(callback);
+    std::function<void(size_t, uint32_t, bool)> callback) {
+  m_keyboardCallback = std::move(callback);
 }
 
 void DesktopPlatform::setCharCallback(
-    std::function<void(size_t, uint32_t)> callback
-) {
-    m_charCallback = std::move(callback);
+    std::function<void(size_t, uint32_t)> callback) {
+  m_charCallback = std::move(callback);
 }
 
 // ==================== Window Title ====================
 
-void DesktopPlatform::setWindowTitle(size_t index, const std::string& title) {
-    if (index >= m_windows.size()) {
-        return;
-    }
+void DesktopPlatform::setWindowTitle(size_t index, const std::string &title) {
+  if (index >= m_windows.size()) {
+    return;
+  }
 
-    // TODO: Set window title via IMainWindow interface
-    // For now, this would need to be added to IMainWindow
+  // TODO: Set window title via IMainWindow interface
+  // For now, this would need to be added to IMainWindow
 }
 
 // ==================== Internal Helpers ====================
 
-std::unique_ptr<MainWindow> DesktopPlatform::createWindow(
-    const std::string& title, int width, int height
-) {
-    WindowConfig config{title, width, height};
-    auto window = std::make_unique<GLFWMainWindow>(config);
+std::unique_ptr<MainWindow>
+DesktopPlatform::createWindow(const std::string &title, int width, int height,
+                              GpuBackend type) {
+  WindowConfig config{title, width, height};
+  auto window = std::make_unique<GLFWMainWindow>(config);
 
-    // Initialize with OpenGL context strategy
-    // TODO: Make this configurable (OpenGL/Vulkan)
-    OpenGLGpuContextCreator context_creator;
-    window->init(context_creator);
+  // Initialize with OpenGL context strategy
+  // TODO: Make this configurable (OpenGL/Vulkan)
+  OpenGLGpuContextCreator gl_context_creator;
+  VulkanGpuContextCreator vk_gpu_ctx_creator;
+  if (type == GpuBackend::OpenGL) {
+    window->init(gl_context_creator);
+  } else {
+    window->init(vk_gpu_ctx_creator);
+  }
 
-    // Set up callbacks
-    size_t window_index = m_windows.size();
+  // Set up callbacks
+  size_t window_index = m_windows.size();
 
-    window->setResizeCallback(
-        [this, window_index](int w, int h) {
-            onWindowResize(window_index, w, h);
-        }
-    );
+  window->setResizeCallback([this, window_index](int w, int h) {
+    onWindowResize(window_index, w, h);
+  });
 
-    window->setMouseCallback(
-        [this, window_index](MouseButton button, Action action,
-                            int mods, double x, double y) {
-            onWindowMouse(window_index, button, action, x, y);
-        }
-    );
+  window->setMouseCallback([this, window_index](MouseButton button,
+                                                Action action, int mods,
+                                                double x, double y) {
+    onWindowMouse(window_index, button, action, x, y);
+  });
 
-    window->setKeyCallback(
-        [this, window_index](Key key, Action action, int scancode) {
-            onWindowKey(window_index, key, action, scancode);
-        }
-    );
+  window->setKeyCallback(
+      [this, window_index](Key key, Action action, int scancode) {
+        onWindowKey(window_index, key, action, scancode);
+      });
 
-    window->setCharCallback(
-        [this, window_index](unsigned int codepoint) {
-            onWindowChar(window_index, codepoint);
-        }
-    );
+  window->setCharCallback([this, window_index](unsigned int codepoint) {
+    onWindowChar(window_index, codepoint);
+  });
 
-    return window;
+  return window;
 }
 
 void DesktopPlatform::onWindowResize(size_t index, int width, int height) {
-    if (index < m_windows.size()) {
-        m_windowResized[index] = true;
-        m_windowWidths[index] = width;
-        m_windowHeights[index] = height;
+  if (index < m_windows.size()) {
+    m_windowResized[index] = true;
+    m_windowWidths[index] = width;
+    m_windowHeights[index] = height;
 
-        if (m_resizeCallback) {
-            m_resizeCallback(index, width, height);
-        }
+    if (m_resizeCallback) {
+      m_resizeCallback(index, width, height);
     }
+  }
 }
 
 void DesktopPlatform::onWindowMouse(size_t index, MouseButton button,
-                                     Action action, double x, double y) {
-    if (m_mouseCallback) {
-        uint32_t button_code = static_cast<uint32_t>(button);
-        m_mouseCallback(index, static_cast<float>(x), static_cast<float>(y), button_code);
-    }
+                                    Action action, double x, double y) {
+  if (m_mouseCallback) {
+    uint32_t button_code = static_cast<uint32_t>(button);
+    m_mouseCallback(index, static_cast<float>(x), static_cast<float>(y),
+                    button_code);
+  }
 }
 
-void DesktopPlatform::onWindowKey(size_t index, Key key,
-                                   Action action, int /*scancode*/) {
-    if (m_keyboardCallback) {
-        uint32_t key_code = static_cast<uint32_t>(key);
-        bool pressed = (action == Action::Press);
-        m_keyboardCallback(index, key_code, pressed);
-    }
+void DesktopPlatform::onWindowKey(size_t index, Key key, Action action,
+                                  int /*scancode*/) {
+  if (m_keyboardCallback) {
+    uint32_t key_code = static_cast<uint32_t>(key);
+    bool pressed = (action == Action::Press);
+    m_keyboardCallback(index, key_code, pressed);
+  }
 }
 
 void DesktopPlatform::onWindowChar(size_t index, unsigned int codepoint) {
-    if (m_charCallback) {
-        m_charCallback(index, codepoint);
-    }
+  if (m_charCallback) {
+    m_charCallback(index, codepoint);
+  }
+}
+
+void DesktopPlatform::setWindowPosition(size_t index,
+                                        std::pair<int, int> position) {
+  m_windows[index]->setPosition(position.first, position.second);
+}
+
+void DesktopPlatform::swapOpenGLBuffers() {
+  auto gl_window =
+      std::find_if(m_windows.cbegin(), m_windows.cend(), [](const auto &e) {
+        return e->getGpuBackend() == GpuBackend::OpenGL;
+      });
+  if (gl_window == m_windows.end()) {
+    // Нашли Vulkan окно
+    throw std::runtime_error("Failed to swap buffers! Failed to find "
+                             "suitable Opengl-context window.");
+  }
+  gl_window->get()->swapBuffers();
 }
 
 } // namespace ssme

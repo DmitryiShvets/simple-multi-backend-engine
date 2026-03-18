@@ -105,7 +105,7 @@ void Application::run() {
 
   UI::HelloWidget widget;
   // The main loop is now extremely simple and clean.
-  while (m_window_manager->allAlive()) {
+  while (m_window_manager->allWindowsAlive()) {
     auto currentTime = std::chrono::high_resolution_clock::now();
     float deltaTime =
         std::chrono::duration<float>(currentTime - lastTime).count();

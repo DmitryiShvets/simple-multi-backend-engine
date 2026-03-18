@@ -1,5 +1,6 @@
-#include "logger.h"
+#include "utils/logger.h"
 #include <iostream>
+namespace ssme {
 
 void Logger::error_log(const std::string &description) {
   std::cerr << "[ERROR] " << description << std::endl;
@@ -25,3 +26,4 @@ void Logger::warning_log(const std::string &description) {
 // void Logger::warning_log(std::string_view description) {
 //   std::cerr << "[Warning] " << description << std::endl;
 // }
+} // namespace ssme

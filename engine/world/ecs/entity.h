@@ -88,6 +88,7 @@ public:
                   "T must derive from Component");
 
     // NOT IMPLEMENTED
+    return true;
   }
 
   /**
@@ -95,10 +96,10 @@ public:
    * @tparam T The type of component to check for.
    * @return True if the entity has the component, false otherwise.
    */
-  template <typename T> bool HasComponent() const {
+  template <typename T> bool hasComponent() const {
     static_assert(std::is_base_of<Component, T>::value,
                   "T must derive from Component");
-    return GetComponent<T>() != nullptr;
+    return getComponent<T>() != nullptr;
   }
 };
 

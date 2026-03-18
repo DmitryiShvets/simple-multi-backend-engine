@@ -1,5 +1,6 @@
 #pragma once
 
+#include "core/gpu_types.h"
 namespace ssme {
 
 /**
@@ -13,13 +14,16 @@ public:
      * @brief Prepare window creation hints for this GPU context.
      */
     virtual void prepareWindowCreationHints() const = 0;
-    
+
     /**
      * @brief Create GPU context for the given window.
      * @param window Native window handle (GLFWwindow*).
      * @return True if context was created successfully.
      */
     virtual bool createContext(void* window) const = 0;
+
+    virtual GpuBackend getGpuBackend() const = 0;
+
 };
 
 } // namespace ssme

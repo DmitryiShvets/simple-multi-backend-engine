@@ -1,5 +1,6 @@
 #pragma once
 
+#include "core/gpu_types.h"
 #include "gpu_context_strategy.h"
 #include <functional>
 #include <string>
@@ -102,6 +103,7 @@ public:
     virtual WindowConfig getConfig() = 0;
     virtual void* getNativeWindow() const = 0;
     virtual void setUiContext(void* ctx) = 0;
+    virtual GpuBackend getGpuBackend() = 0;
 };
 
 } // namespace ssme

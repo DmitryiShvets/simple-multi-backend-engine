@@ -2,6 +2,8 @@
 #include <glm/vec3.hpp>
 #include <string>
 
+namespace ssme {
+
 class CUtils {
 public:
   static float lerp(float a, float b, float t) { return a + (b - a) * t; }
@@ -14,3 +16,5 @@ public:
 
   static std::vector<char> readFileChar(const std::string &filepath);
 };
+
+} // namespace ssme

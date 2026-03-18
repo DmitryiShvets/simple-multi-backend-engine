@@ -1,8 +1,8 @@
 # Platform sources
 set(PLATFORM_SOURCES
     desktop/desktop_platform.cpp
-    desktop/backends/glfw/glfw_main_window.cpp
-    desktop/backends/glfw/glfw_gpu_context_creator.cpp
+    desktop/glfw/glfw_main_window.cpp
+    desktop/glfw/glfw_gpu_context_creator.cpp
 )
 
 # Create platform library

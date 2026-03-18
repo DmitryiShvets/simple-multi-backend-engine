@@ -1,18 +1,25 @@
 #pragma once
 #include "core/time.h"
+#include "ui/hello_widget.h"
 #include "world/ecs/entity.h"
 #include <glm/fwd.hpp>
+#include <memory>
+
 // ssme = Simple Study Multi-backend Engine
 namespace ssme {
 
+class Platform;
+class UIManager;
+class RenderSystem;
+class ResourceManager;
 class CameraComponent;
+
 class Engine {
 public:
   /**
    * @brief Default constructor.
    */
   Engine();
-
   /**
    * @brief Destructor for proper cleanup.
    */
@@ -68,13 +75,22 @@ public:
   bool removeEntity(const std::string &name);
 
 private:
+  std::unique_ptr<Platform> m_platform;
+  std::unique_ptr<UIManager> m_ui_manager;
+  std::unique_ptr<RenderSystem> m_render_system;
+  std::unique_ptr<ResourceManager> m_resource_manager;
+
   std::vector<std::unique_ptr<Entity>> m_entities;
   // Active camera
   CameraComponent *m_active_camera = nullptr;
 
+  HelloWidget m_test_widget;   // this is templrary
+
   // Engine state
-  bool initialized = false;
-  bool running = false;
+  bool m_initialized = false;
+  bool m_running = false;
+  int m_window_width = 0;
+  int m_window_height = 0;
 
   // Delta time calculation
   // deltaTimeMs: time since last frame in milliseconds (for clarity)
@@ -117,17 +133,46 @@ private:
   void handleResize(int width, int height) const;
 
   /**
-   * @brief Update camera controls based on input state.
-   * @param deltaTime The time elapsed since the last update.
+   * @brief Handles mouse input for interaction and camera control.
+   *
+   * This method processes mouse input for various functionalities, including
+   * interacting with the scene, camera rotation, and delegating handling to
+   * ImGui or hover systems.
+   *
+   * @param x The x-coordinate of the mouse position.
+   * @param y The y-coordinate of the mouse position.
+   * @param buttons A bitmask representing the state of mouse buttons.
+   *                Bit 0 corresponds to the left button, and Bit 1 corresponds
+   * to the right button.
    */
-  void updateCameraControls(TimeDelta deltaTime);
+  void handleMouseInput(float x, float y, uint32_t buttons);
+
+  /**
+   * @brief Handles keyboard input events for controlling the camera and other
+   * subsystems.
+   *
+   * This method processes key press and release events to update the camera's
+   * movement state. It also forwards the input to other subsystems like the
+   * ImGui interface if applicable.
+   *
+   * @param key The key code of the keyboard input.
+   * @param pressed Indicates whether the key is pressed (true) or released
+   * (false).
+   */
+  void handleKeyInput(uint32_t key, bool pressed);
 
   /**
    * @brief Handle mouse hover to track current mouse position.
    * @param mouseX The x-coordinate of the mouse position.
    * @param mouseY The y-coordinate of the mouse position.
    */
-  void HandleMouseHover(float mouseX, float mouseY);
+  void handleMouseHover(float mouseX, float mouseY);
+
+  /**
+   * @brief Update camera controls based on input state.
+   * @param deltaTime The time elapsed since the last update.
+   */
+  void updateCameraControls(TimeDelta deltaTime);
 };
 
 } // namespace ssme

@@ -1,5 +1,5 @@
 set(CORE_SOURCES
-  core/time.h
+  core/uniform_layout.cpp
 )
 
 set(UTILS_SOURCES
@@ -10,13 +10,13 @@ set(UTILS_SOURCES
     utils/sphere.cpp
 )
 
-add_library(module_common STATIC ${CORE_SOURCES} ${UTILS_SOURCES})
-add_library(ssme::common ALIAS module_common)
+add_library(ssme_common STATIC ${CORE_SOURCES} ${UTILS_SOURCES})
+add_library(ssme::common ALIAS ssme_common)
 
-target_include_directories(module_common
+target_include_directories(ssme_common
     PUBLIC
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/>
 )
 
 # DEPENDENCIES
-target_link_libraries(module_common PUBLIC external::glm)
+target_link_libraries(ssme_common PUBLIC external::glm)

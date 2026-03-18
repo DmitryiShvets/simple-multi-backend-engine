@@ -1,5 +1,6 @@
 #pragma once
 
+#include "core/gpu_types.h"
 #include "platform.h"
 #include "main_window.h"  // From old platform code
 #include <memory>
@@ -19,18 +20,21 @@ public:
     // ==================== Window Management ====================
 
     bool initialize(const std::string& appName, int width, int height) override;
-    void addWindow(const std::string& title, int width, int height) override;
+    void addWindow(const std::string& title, int width, int height, GpuBackend type) override;
     void removeWindow(size_t index) override;
     size_t getWindowCount() const override;
-    bool allAlive() const override;
+    bool allWindowsAlive() const override;
     void updateAllWindows() override;
+    void swapOpenGLBuffers() override;
     void cleanup() override;
 
     // ==================== Per-Window Access ====================
 
     void getWindowSize(size_t index, int* width, int* height) const override;
     bool hasWindowResized(size_t index) const override;
-    void* createVulkanSurface(size_t index, void* instance) override;
+    void* createVulkanSurface(void* instance) override;
+    MainWindow &getWindow(size_t type) override;
+    const MainWindow &getWindow(size_t type) const override;
     std::vector<const char*> getRequiredVulkanInstanceExtensions() const override;
 
     // ==================== Callbacks ====================
@@ -55,6 +59,8 @@ public:
 
     void setWindowTitle(size_t index, const std::string& title) override;
 
+    void setWindowPosition(size_t index, std::pair<int, int> position) override;
+
 private:
     // All windows
     std::vector<std::unique_ptr<MainWindow>> m_windows;
@@ -72,7 +78,7 @@ private:
 
     // Internal helper to create window
     std::unique_ptr<MainWindow> createWindow(
-        const std::string& title, int width, int height);
+        const std::string& title, int width, int height, GpuBackend type);
 
     // Internal callback adapters
     void onWindowResize(size_t index, int width, int height);

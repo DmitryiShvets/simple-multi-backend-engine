@@ -1,0 +1,16 @@
+#pragma once
+
+#include <cstddef>
+
+namespace ssme {
+
+/**
+ * @brief Type render backend
+ */
+enum class GpuBackend : size_t {
+  OpenGL = 0,
+  Vulkan = 1,
+  Count // Для проверки границ
+};
+
+} // namespace ssme

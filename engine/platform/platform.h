@@ -1,12 +1,13 @@
 #pragma once
 
+#include "core/gpu_types.h"
 #include <cstdint>
 #include <functional>
 #include <string>
 #include <vector>
 
 namespace ssme {
-
+class MainWindow;
 /**
  * @brief Interface for platform-specific functionality with multi-window
  * support.
@@ -34,7 +35,7 @@ public:
    * @param width Window width.
    * @param height Window height.
    */
-  virtual void addWindow(const std::string &title, int width, int height) = 0;
+  virtual void addWindow(const std::string &title, int width, int height, GpuBackend type) = 0;
 
   /**
    * @brief Remove a window by index.
@@ -52,7 +53,12 @@ public:
    * @brief Check if all windows are alive.
    * @return True if all windows are open.
    */
-  virtual bool allAlive() const = 0;
+  virtual bool allWindowsAlive() const = 0;
+
+  /**
+   * @brief Update opengl buffers to show frame (like swap chain present.).
+   */
+  virtual void swapOpenGLBuffers() = 0;
 
   /**
    * @brief Update all windows (process events, etc.).
@@ -73,6 +79,9 @@ public:
    * @param height Pointer to store height.
    */
   virtual void getWindowSize(size_t index, int *width, int *height) const = 0;
+  // Доступ к окну по типу бекенда
+  virtual MainWindow &getWindow(size_t type) = 0;
+  virtual const MainWindow &getWindow(size_t type) const = 0;
 
   /**
    * @brief Check if specific window has been resized.
@@ -87,7 +96,7 @@ public:
    * @param instance Vulkan instance (void* for abstraction).
    * @return Surface handle (void* for abstraction).
    */
-  virtual void *createVulkanSurface(size_t index, void *instance) = 0;
+  virtual void *createVulkanSurface(void *instance) = 0;
 
   /**
    * @brief Get required Vulkan instance extensions.
@@ -142,6 +151,9 @@ public:
    * @param title New title.
    */
   virtual void setWindowTitle(size_t index, const std::string &title) = 0;
+
+  virtual void setWindowPosition(size_t index,
+                                 std::pair<int, int> position) = 0;
 };
 
 } // namespace ssme
