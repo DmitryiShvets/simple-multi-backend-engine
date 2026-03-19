@@ -42,7 +42,7 @@ RID VulkanRenderDevice::createBuffer(const BufferDesc &desc) {
     Logger::error_log("Cannot create buffer with zero stride");
     return RID::INVALID;
   }
-  auto buffer = std::make_unique<VulkanDataBuffer>(
+  auto buffer = std::make_unique<VulkanBuffer>(
       m_device, desc.size, stride, 1, usage_flags,
       vk::MemoryPropertyFlagBits::eHostVisible |
           vk::MemoryPropertyFlagBits::eHostCoherent);
@@ -51,7 +51,7 @@ RID VulkanRenderDevice::createBuffer(const BufferDesc &desc) {
     buffer->writeToBuffer(desc.initial_data);
     buffer->unmap();
   }
-  RID rid = m_resource_manager.add<VulkanDataBuffer>(std::move(buffer));
+  RID rid = m_resource_manager.add<VulkanBuffer>(std::move(buffer));
   return rid;
 }
 RID VulkanRenderDevice::createTexture(const TextureDesc &desc) { return RID{}; }
@@ -59,7 +59,7 @@ RID VulkanRenderDevice::createSampler(const SamplerDesc &desc) { return RID{}; }
 
 RID VulkanRenderDevice::createDescriptorSetLayout(
     const DescriptorSetLayoutDesc &desc) {
-  auto builder = DescriptorSetLayout::Builder(m_device);
+  auto builder = VulkanDescriptorSetLayout::Builder(m_device);
   for (const auto &binding : desc.bindings) {
     builder.addBinding(binding.binding, toVkDescriptorType(binding.type),
                        toVkShaderStageFlags(binding.stages), binding.count);
@@ -72,14 +72,14 @@ RID VulkanRenderDevice::createDescriptorSetLayout(
 RID VulkanRenderDevice::createDescriptorSet(
     RID layout_rid, const std::vector<RID> &buffer_rids) {
   // Get layout
-  auto layout = m_resource_manager.get_ptr<DescriptorSetLayout>(layout_rid);
+  auto layout = m_resource_manager.get_ptr<VulkanDescriptorSetLayout>(layout_rid);
   if (!layout) {
     throw std::runtime_error("Invalid descriptor set layout RID");
   }
 
   // Create descriptor pool (could reuse existing if needed)
   // For simplicity, create a new pool for each set
-  auto pool_builder = DescriptorPool::Builder(m_device);
+  auto pool_builder = VulkanDescriptorPool::Builder(m_device);
   pool_builder.setMaxSets(1).setPoolFlags(
       vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet);
 
@@ -96,7 +96,7 @@ RID VulkanRenderDevice::createDescriptorSet(
 
   // Add binding for each buffer
   for (size_t i = 0; i < buffer_rids.size(); ++i) {
-    auto *buffer = m_resource_manager.get_ptr<VulkanDataBuffer>(buffer_rids[i]);
+    auto *buffer = m_resource_manager.get_ptr<VulkanBuffer>(buffer_rids[i]);
     if (!buffer) {
       throw std::runtime_error("Invalid buffer RID in createDescriptorSet");
     }
@@ -131,7 +131,7 @@ RID VulkanRenderDevice::createPipelineLayout(const PipelineLayoutDesc &desc) {
   std::vector<vk::DescriptorSetLayout> vk_ds_layouts;
   vk_ds_layouts.reserve(desc.descriptor_set_layouts.size());
   for (auto rid : desc.descriptor_set_layouts) {
-    auto ds_layout = m_resource_manager.get_ptr<DescriptorSetLayout>(rid);
+    auto ds_layout = m_resource_manager.get_ptr<VulkanDescriptorSetLayout>(rid);
     if (ds_layout) {
       vk_ds_layouts.push_back(ds_layout->getDescriptorSetLayout());
     } else {
@@ -341,7 +341,7 @@ Material *VulkanRenderDevice::getMaterial(RID material_rid) {
 void VulkanRenderDevice::updateBufferRaw(RID rid, size_t offset, size_t size,
                                          const void *data) {
   // Get buffer from resource manager
-  auto *buffer = m_resource_manager.get_ptr<VulkanDataBuffer>(rid);
+  auto *buffer = m_resource_manager.get_ptr<VulkanBuffer>(rid);
   if (!buffer) {
     return; // Invalid RID
   }

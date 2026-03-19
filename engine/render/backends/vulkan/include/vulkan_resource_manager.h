@@ -15,11 +15,11 @@
 // Forward-declarations for Vulkan implementation classes
 namespace ssme::vulkan {
 class VulkanSwapChain;
-class VulkanDataBuffer;
+class VulkanBuffer;
 class VulkanTexture;
 class VulkanPipeLine;
-class DescriptorSetLayout;
-class DescriptorPool;
+class VulkanDescriptorSetLayout;
+class VulkanDescriptorPool;
 class VulkanPipelineLayout;
 class VulkanDescriptorSet;
 // Add other resource types here as they are created
@@ -43,7 +43,7 @@ public:
     if constexpr (std::is_same_v<T, VulkanSwapChain>) {
       type = ResourceType::SWAP_CHAIN;
       m_swap_chain_owner.insert(rid, std::move(resource));
-    } else if constexpr (std::is_same_v<T, VulkanDataBuffer>) {
+    } else if constexpr (std::is_same_v<T, VulkanBuffer>) {
       type = ResourceType::BUFFER;
       m_buffers_owner.insert(rid, std::move(resource));
     } else if constexpr (std::is_same_v<T, VulkanTexture>) {
@@ -52,13 +52,13 @@ public:
     } else if constexpr (std::is_same_v<T, VulkanPipeLine>) {
       type = ResourceType::PIPELINE;
       m_pipelines_owner.insert(rid, std::move(resource));
-    } else if constexpr (std::is_same_v<T, DescriptorSetLayout>) {
+    } else if constexpr (std::is_same_v<T, VulkanDescriptorSetLayout>) {
       type = ResourceType::DESCRIPTOR_SET_LAYOUT;
       m_ds_layout_owner.insert(rid, std::move(resource));
     } else if constexpr (std::is_same_v<T, VulkanPipelineLayout>) {
       type = ResourceType::PIPELINE_LAYOUT;
       m_pl_layout_owner.insert(rid, std::move(resource));
-    } else if constexpr (std::is_same_v<T, DescriptorPool>) {
+    } else if constexpr (std::is_same_v<T, VulkanDescriptorPool>) {
       type = ResourceType::DESCRIPTOR_POOL;
       m_descriptor_pool_owner.insert(rid, std::move(resource));
     } else if constexpr (std::is_same_v<T, Material>) {
@@ -103,13 +103,13 @@ public:
   template <typename T> T *get_ptr(RID rid) {
     if constexpr (std::is_same_v<T, VulkanSwapChain>) {
       return m_swap_chain_owner.get(rid);
-    } else if constexpr (std::is_same_v<T, VulkanDataBuffer>) {
+    } else if constexpr (std::is_same_v<T, VulkanBuffer>) {
       return m_buffers_owner.get(rid);
     } else if constexpr (std::is_same_v<T, VulkanTexture>) {
       return m_textures_owner.get(rid);
     } else if constexpr (std::is_same_v<T, VulkanPipeLine>) {
       return m_pipelines_owner.get(rid);
-    } else if constexpr (std::is_same_v<T, DescriptorSetLayout>) {
+    } else if constexpr (std::is_same_v<T, VulkanDescriptorSetLayout>) {
       return m_ds_layout_owner.get(rid);
     } else if constexpr (std::is_same_v<T, VulkanPipelineLayout>) {
       return m_pl_layout_owner.get(rid);
@@ -165,11 +165,11 @@ private:
 
   // --- Owned Resources ---
   ResourceOwner<VulkanSwapChain> m_swap_chain_owner;
-  ResourceOwner<VulkanDataBuffer> m_buffers_owner;
+  ResourceOwner<VulkanBuffer> m_buffers_owner;
   ResourceOwner<VulkanTexture> m_textures_owner;
   ResourceOwner<VulkanPipeLine> m_pipelines_owner;
-  ResourceOwner<DescriptorSetLayout> m_ds_layout_owner;
-  ResourceOwner<DescriptorPool> m_descriptor_pool_owner;
+  ResourceOwner<VulkanDescriptorSetLayout> m_ds_layout_owner;
+  ResourceOwner<VulkanDescriptorPool> m_descriptor_pool_owner;
   ResourceOwner<VulkanPipelineLayout> m_pl_layout_owner;
   ResourceOwner<Material> m_materials_owner;
   ResourceOwner<VulkanDescriptorSet> m_descriptor_set_owner;

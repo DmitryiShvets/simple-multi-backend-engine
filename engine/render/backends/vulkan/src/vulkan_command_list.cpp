@@ -56,7 +56,7 @@ void VulkanCommandList::setDepthBias(float constant_factor,
                                      float slope_factor) {}
 void VulkanCommandList::setVertexBuffer(uint32_t first_binding, RID buffer_rid,
                                         uint64_t offset) {
-  auto buffer = m_resource_manager.get_ptr<VulkanDataBuffer>(buffer_rid);
+  auto buffer = m_resource_manager.get_ptr<VulkanBuffer>(buffer_rid);
   if (buffer) {
     vk::Buffer vk_buffer = buffer->getBuffer();
     m_command_buffer.bindVertexBuffers(first_binding, vk_buffer, offset);

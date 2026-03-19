@@ -9,7 +9,7 @@ namespace ssme::vulkan {
 
 // *************** Descriptor Set Layout Builder *********************
 
-DescriptorSetLayout::Builder &DescriptorSetLayout::Builder::addBinding(
+VulkanDescriptorSetLayout::Builder &VulkanDescriptorSetLayout::Builder::addBinding(
     uint32_t binding, vk::DescriptorType descriptorType,
     vk::ShaderStageFlags stageFlags, uint32_t count) {
   assert(m_bindings.count(binding) == 0 && "Binding already in use");
@@ -23,14 +23,14 @@ DescriptorSetLayout::Builder &DescriptorSetLayout::Builder::addBinding(
   return *this;
 }
 
-std::unique_ptr<DescriptorSetLayout>
-DescriptorSetLayout::Builder::build() const {
-  return std::make_unique<DescriptorSetLayout>(m_device, m_bindings);
+std::unique_ptr<VulkanDescriptorSetLayout>
+VulkanDescriptorSetLayout::Builder::build() const {
+  return std::make_unique<VulkanDescriptorSetLayout>(m_device, m_bindings);
 }
 
 // *************** Descriptor Set Layout *********************
 
-DescriptorSetLayout::DescriptorSetLayout(
+VulkanDescriptorSetLayout::VulkanDescriptorSetLayout(
     VulkanDevice &device,
     std::unordered_map<uint32_t, vk::DescriptorSetLayoutBinding> bindings)
     : m_device(device), m_bindings(bindings) {
@@ -47,36 +47,36 @@ DescriptorSetLayout::DescriptorSetLayout(
       vk::raii::DescriptorSetLayout(m_device.getHandle(), create_info);
 }
 
-DescriptorSetLayout::~DescriptorSetLayout() {
+VulkanDescriptorSetLayout::~VulkanDescriptorSetLayout() {
 }
 
 // *************** Descriptor Pool Builder *********************
 
-DescriptorPool::Builder &
-DescriptorPool::Builder::addPoolSize(vk::DescriptorType descriptorType,
+VulkanDescriptorPool::Builder &
+VulkanDescriptorPool::Builder::addPoolSize(vk::DescriptorType descriptorType,
                                      uint32_t count) {
   m_pool_sizes.push_back(vk::DescriptorPoolSize{descriptorType, count});
   return *this;
 }
 
-DescriptorPool::Builder &
-DescriptorPool::Builder::setPoolFlags(vk::DescriptorPoolCreateFlags flags) {
+VulkanDescriptorPool::Builder &
+VulkanDescriptorPool::Builder::setPoolFlags(vk::DescriptorPoolCreateFlags flags) {
   m_pool_flags = flags;
   return *this;
 }
-DescriptorPool::Builder &DescriptorPool::Builder::setMaxSets(uint32_t count) {
+VulkanDescriptorPool::Builder &VulkanDescriptorPool::Builder::setMaxSets(uint32_t count) {
   m_max_sets_count = count;
   return *this;
 }
 
-std::unique_ptr<DescriptorPool> DescriptorPool::Builder::build() const {
-  return std::make_unique<DescriptorPool>(m_device, m_max_sets_count,
+std::unique_ptr<VulkanDescriptorPool> VulkanDescriptorPool::Builder::build() const {
+  return std::make_unique<VulkanDescriptorPool>(m_device, m_max_sets_count,
                                           m_pool_flags, m_pool_sizes);
 }
 
 // *************** Descriptor Pool *********************
 
-DescriptorPool::DescriptorPool(
+VulkanDescriptorPool::VulkanDescriptorPool(
     VulkanDevice &device, uint32_t maxSets,
     vk::DescriptorPoolCreateFlags poolFlags,
     const std::vector<vk::DescriptorPoolSize> &poolSizes)
@@ -90,11 +90,11 @@ DescriptorPool::DescriptorPool(
   m_ds_pool = vk::raii::DescriptorPool(m_device.getHandle(), creat_info);
 }
 
-DescriptorPool::~DescriptorPool() {
+VulkanDescriptorPool::~VulkanDescriptorPool() {
 
 }
 
-vk::raii::DescriptorSet DescriptorPool::allocateDescriptor(
+vk::raii::DescriptorSet VulkanDescriptorPool::allocateDescriptor(
     const vk::DescriptorSetLayout &descriptorSetLayout) const {
   vk::DescriptorSetAllocateInfo alloc_info{
       .descriptorPool = m_ds_pool,
@@ -107,21 +107,21 @@ vk::raii::DescriptorSet DescriptorPool::allocateDescriptor(
   return ds;
 }
 
-void DescriptorPool::freeDescriptors(
+void VulkanDescriptorPool::freeDescriptors(
     std::vector<vk::raii::DescriptorSet> &descriptors) const {
   for (auto &ds : descriptors) {
     ds.clear();
   }
 }
 
-void DescriptorPool::resetPool() {
+void VulkanDescriptorPool::resetPool() {
   m_ds_pool.reset();
 }
 
 // *************** Descriptor Writer *********************
 
-DescriptorWriter::DescriptorWriter(DescriptorSetLayout &setLayout,
-                                   DescriptorPool &pool)
+DescriptorWriter::DescriptorWriter(VulkanDescriptorSetLayout &setLayout,
+                                   VulkanDescriptorPool &pool)
     : m_ds_layout(setLayout), m_ds_pool(pool) {}
 
 DescriptorWriter &

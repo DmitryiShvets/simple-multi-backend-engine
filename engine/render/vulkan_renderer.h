@@ -12,7 +12,7 @@
 namespace ssme::vulkan {
 class VulkanDevice;
 class VulkanSwapChain;
-class DescriptorSetLayout;
+class VulkanDescriptorSetLayout;
 class VulkanCommandList;
 } // namespace ssme::vulkan
 
@@ -51,7 +51,7 @@ private:
   std::unique_ptr<ssme::vulkan::VulkanRenderDevice> m_rhi_device;
   ssme::vulkan::VulkanResourceManager m_resource_manager;
   PipelineConfigRegistry m_pl_registry;
-  std::unique_ptr<ssme::vulkan::DescriptorPool> m_imgui_descriptor_pool{};
+  std::unique_ptr<ssme::vulkan::VulkanDescriptorPool> m_imgui_descriptor_pool{};
   RID m_per_frame_ds_layout;
 
   // --- Frame and Swapchain Management ---

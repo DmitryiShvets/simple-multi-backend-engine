@@ -9,7 +9,7 @@
 
 namespace ssme::vulkan {
 
-class DescriptorSetLayout {
+class VulkanDescriptorSetLayout {
 public:
   class Builder {
   public:
@@ -17,19 +17,19 @@ public:
     Builder &addBinding(uint32_t binding, vk::DescriptorType descriptorType,
                         vk::ShaderStageFlags stageFlags, uint32_t count = 1);
 
-    std::unique_ptr<DescriptorSetLayout> build() const;
+    std::unique_ptr<VulkanDescriptorSetLayout> build() const;
 
   private:
     VulkanDevice &m_device;
     std::unordered_map<uint32_t, vk::DescriptorSetLayoutBinding> m_bindings{};
   };
 
-  DescriptorSetLayout(
+  VulkanDescriptorSetLayout(
       VulkanDevice &device,
       std::unordered_map<uint32_t, vk::DescriptorSetLayoutBinding> bindings);
-  ~DescriptorSetLayout();
-  DescriptorSetLayout(const DescriptorSetLayout &) = delete;
-  DescriptorSetLayout &operator=(const DescriptorSetLayout &) = delete;
+  ~VulkanDescriptorSetLayout();
+  VulkanDescriptorSetLayout(const VulkanDescriptorSetLayout &) = delete;
+  VulkanDescriptorSetLayout &operator=(const VulkanDescriptorSetLayout &) = delete;
 
   vk::DescriptorSetLayout getDescriptorSetLayout() const {
     return *m_ds_layout;
@@ -47,7 +47,7 @@ private:
   friend class DescriptorWriter;
 };
 
-class DescriptorPool {
+class VulkanDescriptorPool {
 public:
   class Builder {
   public:
@@ -56,7 +56,7 @@ public:
     Builder &addPoolSize(vk::DescriptorType descriptorType, uint32_t count);
     Builder &setPoolFlags(vk::DescriptorPoolCreateFlags flags);
     Builder &setMaxSets(uint32_t count);
-    std::unique_ptr<DescriptorPool> build() const;
+    std::unique_ptr<VulkanDescriptorPool> build() const;
 
   private:
     VulkanDevice &m_device;
@@ -65,12 +65,12 @@ public:
     vk::DescriptorPoolCreateFlags m_pool_flags;
   };
 
-  DescriptorPool(VulkanDevice &device, uint32_t maxSets,
+  VulkanDescriptorPool(VulkanDevice &device, uint32_t maxSets,
                  vk::DescriptorPoolCreateFlags poolFlags,
                  const std::vector<vk::DescriptorPoolSize> &poolSizes);
-  ~DescriptorPool();
-  DescriptorPool(const DescriptorPool &) = delete;
-  DescriptorPool &operator=(const DescriptorPool &) = delete;
+  ~VulkanDescriptorPool();
+  VulkanDescriptorPool(const VulkanDescriptorPool &) = delete;
+  VulkanDescriptorPool &operator=(const VulkanDescriptorPool &) = delete;
 
   vk::raii::DescriptorSet
   allocateDescriptor(const vk::DescriptorSetLayout &descriptorSetLayout) const;
@@ -105,7 +105,7 @@ private:
 
 class DescriptorWriter {
 public:
-  DescriptorWriter(DescriptorSetLayout &setLayout, DescriptorPool &pool);
+  DescriptorWriter(VulkanDescriptorSetLayout &setLayout, VulkanDescriptorPool &pool);
 
   DescriptorWriter &writeBuffer(uint32_t binding,
                                 vk::DescriptorBufferInfo *bufferInfo);
@@ -116,8 +116,8 @@ public:
   void overwrite(vk::raii::DescriptorSet &set);
 
 private:
-  DescriptorSetLayout &m_ds_layout;
-  DescriptorPool &m_ds_pool;
+  VulkanDescriptorSetLayout &m_ds_layout;
+  VulkanDescriptorPool &m_ds_pool;
   std::vector<vk::WriteDescriptorSet> m_writes;
 };
 

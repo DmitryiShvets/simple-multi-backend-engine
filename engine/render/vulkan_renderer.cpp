@@ -112,7 +112,7 @@ VulkanRenderer::VulkanRenderer(Platform *platform)
   m_rhi_device = std::make_unique<ssme::vulkan::VulkanRenderDevice>(
       *m_device, m_resource_manager, m_pl_registry);
   m_imgui_descriptor_pool =
-      ssme::vulkan::DescriptorPool::Builder(*m_device)
+      ssme::vulkan::VulkanDescriptorPool::Builder(*m_device)
           .addPoolSize(
               vk::DescriptorType::eCombinedImageSampler,
               100) // ImGui mainly needs this type for fonts and textures
@@ -233,7 +233,7 @@ void VulkanRenderer::renderFrame(const SceneView &view,
       // Get vertex count from geometry buffer
       // Use vertex stride from buffer descriptor if available
       auto *geom_buffer =
-          m_resource_manager.get_ptr<ssme::vulkan::VulkanDataBuffer>(
+          m_resource_manager.get_ptr<ssme::vulkan::VulkanBuffer>(
               renderable.geometry_id);
       if (!geom_buffer) {
         continue; // Skip if buffer not found

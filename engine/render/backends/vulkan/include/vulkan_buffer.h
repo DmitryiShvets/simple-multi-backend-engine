@@ -4,17 +4,17 @@
 
 namespace ssme::vulkan {
 
-class VulkanDataBuffer {
+class VulkanBuffer {
 public:
-  VulkanDataBuffer(VulkanDevice &device, vk::DeviceSize instanceSize,
+  VulkanBuffer(VulkanDevice &device, vk::DeviceSize instanceSize,
                    uint32_t stride, uint32_t instanceCount,
                    vk::BufferUsageFlags usageFlags,
                    vk::MemoryPropertyFlags memoryPropertyFlags,
                    vk::DeviceSize minOffsetAlignment = 1);
-  ~VulkanDataBuffer();
+  ~VulkanBuffer();
 
-  VulkanDataBuffer(const VulkanDataBuffer &) = delete;
-  VulkanDataBuffer &operator=(const VulkanDataBuffer &) = delete;
+  VulkanBuffer(const VulkanBuffer &) = delete;
+  VulkanBuffer &operator=(const VulkanBuffer &) = delete;
 
   void map(vk::DeviceSize size = vk::WholeSize, vk::DeviceSize offset = 0);
   void unmap();
