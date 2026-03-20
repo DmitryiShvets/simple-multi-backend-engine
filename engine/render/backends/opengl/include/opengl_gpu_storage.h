@@ -8,13 +8,14 @@
 #include <string>
 #include <unordered_map>
 
-// Full type definitions required for ResourceOwner<T> (uses unique_ptr internally)
+// Full type definitions required for ResourceOwner<T> (uses unique_ptr
+// internally)
 #include "opengl_buffer_objects.h"
-#include "opengl_shader_program.h"
 #include "opengl_descriptor_set.h"
+#include "opengl_shader_program.h"
 
 namespace ssme {
-class Material;  // Forward declare from parent namespace
+class Material; // Forward declare from parent namespace
 }
 
 // Forward declarations for remaining OpenGL resources (not yet used)
@@ -25,7 +26,7 @@ class OpenGLSampler;
 
 namespace ssme::opengl {
 
-template <typename T> struct GpuStorageHelper;
+template <typename T> struct GpuResourceTraits;
 
 // ============================================================================
 // OpenGLGpuStorage - Main storage class
@@ -65,7 +66,7 @@ public:
    */
   template <typename T> void store(RID rid, std::unique_ptr<T> resource) {
     LockGuard lock;
-    GpuStorageHelper<T>::get(*this).insert(rid, std::move(resource));
+    getOwner<T>().insert(rid, std::move(resource));
   }
 
   /**
@@ -73,7 +74,7 @@ public:
    */
   template <typename T> T *get(RID rid) {
     LockGuard lock;
-    return GpuStorageHelper<T>::get(*this).get(rid);
+    return getOwner<T>().get(rid);
   }
 
   /**
@@ -81,7 +82,7 @@ public:
    */
   template <typename T> const T *get(RID rid) const {
     LockGuard lock;
-    return GpuStorageHelper<T>::get(*this).get(rid);
+    return getOwner<T>().get(rid);
   }
 
   /**
@@ -89,7 +90,7 @@ public:
    */
   template <typename T> bool remove(RID rid) {
     LockGuard lock;
-    auto resource = GpuStorageHelper<T>::get(*this).remove(rid);
+    auto resource = getOwner<T>().remove(rid);
     return resource != nullptr;
   }
 
@@ -98,7 +99,7 @@ public:
    */
   template <typename T> bool has(RID rid) {
     LockGuard lock;
-    return GpuStorageHelper<T>::get(*this).get(rid) != nullptr;
+    return getOwner<T>().get(rid) != nullptr;
   }
 
   /**
@@ -200,72 +201,35 @@ private:
 #endif
   };
 
+  template <typename T> auto &getOwner() {
+    constexpr auto ptr = GpuResourceTraits<T>::template member<THREAD_SAFE>;
+    return (this->*ptr);
+  }
+
+  template <typename T> const auto &getOwner() const {
+    constexpr auto ptr = GpuResourceTraits<T>::template member<THREAD_SAFE>;
+    return (this->*ptr);
+  }
+
   // Friend helper structs to access private members
-  template <typename T> friend struct GpuStorageHelper;
+  template <typename T> friend struct GpuResourceTraits;
 };
 
 // ============================================================================
 // Helper struct for type-to-member mapping (with specializations)
 // ============================================================================
 
-// Specializations for each supported type
-template <> struct GpuStorageHelper<VAO> {
-  using OwnerType = ResourceOwner<VAO>;
-  static OwnerType &get(class OpenGLGpuStorage<> &storage) {
-    return storage.m_buffers;
+#define REGISTER_GL_GPU_RESOURCE(Type, MemberName)                                \
+  template <> struct GpuResourceTraits<Type> {                                 \
+    template <bool TS>                                                         \
+    static constexpr auto member = &OpenGLGpuStorage<TS>::MemberName;          \
   }
-  static const OwnerType &get(const class OpenGLGpuStorage<> &storage) {
-    return storage.m_buffers;
-  }
-};
 
-template <> struct GpuStorageHelper<ShaderProgram> {
-  using OwnerType = ResourceOwner<ShaderProgram>;
-  static OwnerType &get(class OpenGLGpuStorage<> &storage) {
-    return storage.m_shader_programs;
-  }
-  static const OwnerType &get(const class OpenGLGpuStorage<> &storage) {
-    return storage.m_shader_programs;
-  }
-};
+REGISTER_GL_GPU_RESOURCE(ShaderProgram, m_shader_programs);
+REGISTER_GL_GPU_RESOURCE(VAO, m_buffers);
+REGISTER_GL_GPU_RESOURCE(UniformBuffer, m_uniform_buffers);
+REGISTER_GL_GPU_RESOURCE(OpenGLDescriptorSet, m_descriptor_sets);
+REGISTER_GL_GPU_RESOURCE(OpenGLDescriptorSetLayout, m_descriptor_set_layouts);
+REGISTER_GL_GPU_RESOURCE(ssme::Material, m_materials);
 
-template <> struct GpuStorageHelper<UniformBuffer> {
-  using OwnerType = ResourceOwner<UniformBuffer>;
-  static OwnerType &get(class OpenGLGpuStorage<> &storage) {
-    return storage.m_uniform_buffers;
-  }
-  static const OwnerType &get(const class OpenGLGpuStorage<> &storage) {
-    return storage.m_uniform_buffers;
-  }
-};
-
-template <> struct GpuStorageHelper<OpenGLDescriptorSet> {
-  using OwnerType = ResourceOwner<OpenGLDescriptorSet>;
-  static OwnerType &get(class OpenGLGpuStorage<> &storage) {
-    return storage.m_descriptor_sets;
-  }
-  static const OwnerType &get(const class OpenGLGpuStorage<> &storage) {
-    return storage.m_descriptor_sets;
-  }
-};
-
-template <> struct GpuStorageHelper<OpenGLDescriptorSetLayout> {
-  using OwnerType = ResourceOwner<OpenGLDescriptorSetLayout>;
-  static OwnerType &get(class OpenGLGpuStorage<> &storage) {
-    return storage.m_descriptor_set_layouts;
-  }
-  static const OwnerType &get(const class OpenGLGpuStorage<> &storage) {
-    return storage.m_descriptor_set_layouts;
-  }
-};
-
-template <> struct GpuStorageHelper<ssme::Material> {
-  using OwnerType = ResourceOwner<ssme::Material>;
-  static OwnerType &get(class OpenGLGpuStorage<> &storage) {
-    return storage.m_materials;
-  }
-  static const OwnerType &get(const class OpenGLGpuStorage<> &storage) {
-    return storage.m_materials;
-  }
-};
 } // namespace ssme::opengl

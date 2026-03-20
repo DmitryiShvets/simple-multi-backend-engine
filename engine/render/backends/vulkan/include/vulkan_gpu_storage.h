@@ -8,12 +8,13 @@
 #include <string>
 #include <unordered_map>
 
-// Full type definitions required for ResourceOwner< T> (uses unique_ptr internally)
+// Full type definitions required for ResourceOwner< T> (uses unique_ptr
+// internally)
 #include "vulkan_buffer.h"
-#include "vulkan_texture.h"
+#include "vulkan_descriptor_set.h"
 #include "vulkan_pipeline.h"
 #include "vulkan_pipeline_layout.h"
-#include "vulkan_descriptor_set.h"
+#include "vulkan_texture.h"
 
 // Forward declarations for remaining Vulkan resources
 namespace ssme::vulkan {
@@ -33,7 +34,7 @@ class Material;
 
 namespace ssme::vulkan {
 
-template <typename T> struct GpuStorageHelper;
+template <typename T> struct GpuResourceTraits;
 
 // ============================================================================
 // VulkanGpuStorage - Main storage class
@@ -73,7 +74,7 @@ public:
    */
   template <typename T> void store(RID rid, std::unique_ptr<T> resource) {
     LockGuard lock;
-    GpuStorageHelper<T>::get(*this).insert(rid, std::move(resource));
+    getOwner<T>().insert(rid, std::move(resource));
   }
 
   /**
@@ -81,7 +82,7 @@ public:
    */
   template <typename T> T *get(RID rid) {
     LockGuard lock;
-    return GpuStorageHelper<T>::get(*this).get(rid);
+    return getOwner<T>().get(rid);
   }
 
   /**
@@ -89,7 +90,7 @@ public:
    */
   template <typename T> const T *get(RID rid) const {
     LockGuard lock;
-    return GpuStorageHelper<T>::get(*this).get(rid);
+    return getOwner<T>().get(rid);
   }
 
   /**
@@ -97,7 +98,7 @@ public:
    */
   template <typename T> bool remove(RID rid) {
     LockGuard lock;
-    auto resource = GpuStorageHelper<T>::get(*this).remove(rid);
+    auto resource = getOwner<T>().remove(rid);
     return resource != nullptr;
   }
 
@@ -106,7 +107,7 @@ public:
    */
   template <typename T> bool has(RID rid) {
     LockGuard lock;
-    return GpuStorageHelper<T>::get(*this).get(rid) != nullptr;
+    return getOwner<T>().get(rid) != nullptr;
   }
 
   /**
@@ -211,102 +212,37 @@ private:
 #endif
   };
 
+  template <typename T> auto &getOwner() {
+    constexpr auto ptr = GpuResourceTraits<T>::template member<THREAD_SAFE>;
+    return (this->*ptr);
+  }
+
+  template <typename T> const auto &getOwner() const {
+    constexpr auto ptr = GpuResourceTraits<T>::template member<THREAD_SAFE>;
+    return (this->*ptr);
+  }
   // Friend helper structs to access private members
-  template <typename T> friend struct GpuStorageHelper;
+  template <typename T> friend struct GpuResourceTraits;
 };
 
 // ============================================================================
 // Helper struct for type-to-member mapping (with specializations)
 // ============================================================================
 
-// Specializations for each supported type
-template <> struct GpuStorageHelper<VulkanBuffer> {
-  using OwnerType = ResourceOwner<VulkanBuffer>;
-  static OwnerType &get(class VulkanGpuStorage<> &storage) {
-    return storage.m_buffers;
+#define REGISTER_VK_GPU_RESOURCE(Type, MemberName)                                \
+  template <> struct GpuResourceTraits<Type> {                                 \
+    template <bool TS>                                                         \
+    static constexpr auto member = &VulkanGpuStorage<TS>::MemberName;          \
   }
-  static const OwnerType &get(const class VulkanGpuStorage<> &storage) {
-    return storage.m_buffers;
-  }
-};
 
-template <> struct GpuStorageHelper<VulkanTexture> {
-  using OwnerType = ResourceOwner<VulkanTexture>;
-  static OwnerType &get(class VulkanGpuStorage<> &storage) {
-    return storage.m_textures;
-  }
-  static const OwnerType &get(const class VulkanGpuStorage<> &storage) {
-    return storage.m_textures;
-  }
-};
+REGISTER_VK_GPU_RESOURCE(VulkanSwapChain, m_swap_chains);
+REGISTER_VK_GPU_RESOURCE(VulkanBuffer, m_buffers);
+REGISTER_VK_GPU_RESOURCE(VulkanTexture, m_textures);
+REGISTER_VK_GPU_RESOURCE(VulkanPipeLine, m_pipelines);
+REGISTER_VK_GPU_RESOURCE(VulkanDescriptorSetLayout, m_ds_layouts);
+REGISTER_VK_GPU_RESOURCE(VulkanDescriptorPool, m_descriptor_pools);
+REGISTER_VK_GPU_RESOURCE(VulkanDescriptorSet, m_descriptor_sets);
+REGISTER_VK_GPU_RESOURCE(VulkanPipelineLayout, m_pipeline_layouts);
+REGISTER_VK_GPU_RESOURCE(ssme::Material, m_materials);
 
-template <> struct GpuStorageHelper<VulkanPipeLine> {
-  using OwnerType = ResourceOwner<VulkanPipeLine>;
-  static OwnerType &get(class VulkanGpuStorage<> &storage) {
-    return storage.m_pipelines;
-  }
-  static const OwnerType &get(const class VulkanGpuStorage<> &storage) {
-    return storage.m_pipelines;
-  }
-};
-
-template <> struct GpuStorageHelper<VulkanPipelineLayout> {
-  using OwnerType = ResourceOwner<VulkanPipelineLayout>;
-  static OwnerType &get(class VulkanGpuStorage<> &storage) {
-    return storage.m_pipeline_layouts;
-  }
-  static const OwnerType &get(const class VulkanGpuStorage<> &storage) {
-    return storage.m_pipeline_layouts;
-  }
-};
-
-template <> struct GpuStorageHelper<VulkanDescriptorSetLayout> {
-  using OwnerType = ResourceOwner<VulkanDescriptorSetLayout>;
-  static OwnerType &get(class VulkanGpuStorage<> &storage) {
-    return storage.m_ds_layouts;
-  }
-  static const OwnerType &get(const class VulkanGpuStorage<> &storage) {
-    return storage.m_ds_layouts;
-  }
-};
-
-template <> struct GpuStorageHelper<VulkanDescriptorSet> {
-  using OwnerType = ResourceOwner<VulkanDescriptorSet>;
-  static OwnerType &get(class VulkanGpuStorage<> &storage) {
-    return storage.m_descriptor_sets;
-  }
-  static const OwnerType &get(const class VulkanGpuStorage<> &storage) {
-    return storage.m_descriptor_sets;
-  }
-};
-
-template <> struct GpuStorageHelper<VulkanDescriptorPool> {
-  using OwnerType = ResourceOwner<VulkanDescriptorPool>;
-  static OwnerType &get(class VulkanGpuStorage<> &storage) {
-    return storage.m_descriptor_pools;
-  }
-  static const OwnerType &get(const class VulkanGpuStorage<> &storage) {
-    return storage.m_descriptor_pools;
-  }
-};
-
-template <> struct GpuStorageHelper<VulkanSwapChain> {
-  using OwnerType = ResourceOwner<VulkanSwapChain>;
-  static OwnerType &get(class VulkanGpuStorage<> &storage) {
-    return storage.m_swap_chains;
-  }
-  static const OwnerType &get(const class VulkanGpuStorage<> &storage) {
-    return storage.m_swap_chains;
-  }
-};
-
-template <> struct GpuStorageHelper<ssme::Material> {
-  using OwnerType = ResourceOwner<ssme::Material>;
-  static OwnerType &get(class VulkanGpuStorage<> &storage) {
-    return storage.m_materials;
-  }
-  static const OwnerType &get(const class VulkanGpuStorage<> &storage) {
-    return storage.m_materials;
-  }
-};
 } // namespace ssme::vulkan
