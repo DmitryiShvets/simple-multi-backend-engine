@@ -4,13 +4,13 @@
 #include "pipeline_config_registry.h"
 #include "render_device.h"
 #include "utils/logger.h"
+#include "vulkan_gpu_storage.h"
 // #include "core/uniforms.h"
 #include "vulkan_buffer.h"
 #include "vulkan_descriptor_set.h"
 #include "vulkan_helpers.h"
 #include "vulkan_pipeline.h"
 #include "vulkan_pipeline_layout.h"
-#include "vulkan_resource_manager.h"
 #include <cassert>
 #include <memory>
 #include <stdexcept>
@@ -19,10 +19,9 @@
 namespace ssme::vulkan {
 
 VulkanRenderDevice::VulkanRenderDevice(VulkanDevice &device,
-                                       VulkanResourceManager &resource_manager,
+                                       VulkanGpuStorageMT &storage,
                                        PipelineConfigRegistry &pl_registry)
-    : m_device(device), m_resource_manager(resource_manager),
-      m_pl_registry(pl_registry) {}
+    : m_device(device), m_storage(storage), m_pl_registry(pl_registry) {}
 
 VulkanRenderDevice::~VulkanRenderDevice() {}
 
@@ -51,7 +50,7 @@ RID VulkanRenderDevice::createBuffer(const BufferDesc &desc) {
     buffer->writeToBuffer(desc.initial_data);
     buffer->unmap();
   }
-  RID rid = m_resource_manager.add<VulkanBuffer>(std::move(buffer));
+  RID rid = m_storage.add<VulkanBuffer>(std::move(buffer));
   return rid;
 }
 RID VulkanRenderDevice::createTexture(const TextureDesc &desc) { return RID{}; }
@@ -65,14 +64,15 @@ RID VulkanRenderDevice::createDescriptorSetLayout(
                        toVkShaderStageFlags(binding.stages), binding.count);
   }
   auto layout = builder.build();
-  RID rid = m_resource_manager.add(std::move(layout));
+  RID rid = m_storage.add(std::move(layout));
   return rid;
 }
 
 RID VulkanRenderDevice::createDescriptorSet(
     RID layout_rid, const std::vector<RID> &buffer_rids) {
   // Get layout
-  auto layout = m_resource_manager.get_ptr<VulkanDescriptorSetLayout>(layout_rid);
+  auto layout =
+      m_storage.get<VulkanDescriptorSetLayout>(layout_rid);
   if (!layout) {
     throw std::runtime_error("Invalid descriptor set layout RID");
   }
@@ -96,7 +96,7 @@ RID VulkanRenderDevice::createDescriptorSet(
 
   // Add binding for each buffer
   for (size_t i = 0; i < buffer_rids.size(); ++i) {
-    auto *buffer = m_resource_manager.get_ptr<VulkanBuffer>(buffer_rids[i]);
+    auto *buffer = m_storage.get<VulkanBuffer>(buffer_rids[i]);
     if (!buffer) {
       throw std::runtime_error("Invalid buffer RID in createDescriptorSet");
     }
@@ -121,8 +121,8 @@ RID VulkanRenderDevice::createDescriptorSet(
   auto ds_set = writer.build();
   // Store pool and set in resource manager
   // Pool must be stored to keep descriptor set alive
-  RID pool_rid = m_resource_manager.add(std::move(pool));
-  RID set_rid = m_resource_manager.add<VulkanDescriptorSet>(std::move(ds_set));
+  RID pool_rid = m_storage.add(std::move(pool));
+  RID set_rid = m_storage.add<VulkanDescriptorSet>(std::move(ds_set));
 
   return set_rid;
 }
@@ -131,7 +131,7 @@ RID VulkanRenderDevice::createPipelineLayout(const PipelineLayoutDesc &desc) {
   std::vector<vk::DescriptorSetLayout> vk_ds_layouts;
   vk_ds_layouts.reserve(desc.descriptor_set_layouts.size());
   for (auto rid : desc.descriptor_set_layouts) {
-    auto ds_layout = m_resource_manager.get_ptr<VulkanDescriptorSetLayout>(rid);
+    auto ds_layout = m_storage.get<VulkanDescriptorSetLayout>(rid);
     if (ds_layout) {
       vk_ds_layouts.push_back(ds_layout->getDescriptorSetLayout());
     } else {
@@ -164,13 +164,13 @@ RID VulkanRenderDevice::createPipelineLayout(const PipelineLayoutDesc &desc) {
   auto layout_wrapper = std::move(std::make_unique<VulkanPipelineLayout>(
       m_device, std::move(vk_pipeline_layout)));
 
-  return m_resource_manager.add(std::move(layout_wrapper));
+  return m_storage.add(std::move(layout_wrapper));
 }
 
 RID VulkanRenderDevice::createGraphicsPipeline(
     const GraphicsPipelineDesc &desc) {
   // 1. Check if a PSO with this name already exists
-  RID existing_rid = m_resource_manager.findPSO(desc.name);
+  RID existing_rid = m_storage.findPSO(desc.name);
   if (existing_rid) {
     return existing_rid;
   }
@@ -179,7 +179,7 @@ RID VulkanRenderDevice::createGraphicsPipeline(
 
   // 2. Get the pre-created pipeline layout from the resource manager
   auto pipeline_layout_wrapper =
-      m_resource_manager.get_ptr<VulkanPipelineLayout>(
+      m_storage.get<VulkanPipelineLayout>(
           desc.pipeline_layout_rid);
   if (!pipeline_layout_wrapper) {
     throw std::runtime_error("Invalid pipeline layout RID in createPipeline");
@@ -241,8 +241,8 @@ RID VulkanRenderDevice::createGraphicsPipeline(
                                                    vert_path, frag_path);
 
   // 6. Store it in the resource manager and register its name
-  RID new_rid = m_resource_manager.add(std::move(pipeline));
-  m_resource_manager.registerPSO(desc.name, new_rid);
+  RID new_rid = m_storage.add(std::move(pipeline));
+  m_storage.registerPSO(desc.name, new_rid);
 
   return new_rid;
 }
@@ -255,10 +255,10 @@ RID VulkanRenderDevice::createPipeline(const PipelineDesc &desc) {
 RID VulkanRenderDevice::createMaterial(const std::string &material_name,
                                        const UniformSet &material_uniforms) {
   // 1. Check if a material with this name already exists
-  RID material_rid = m_resource_manager.findMaterial(material_name);
+  RID material_rid = m_storage.findMaterial(material_name);
   if (material_rid) {
     // Material exists, just update uniforms
-    auto *mat = m_resource_manager.get_ptr<Material>(material_rid);
+    auto *mat = m_storage.get<Material>(material_rid);
     if (mat && mat->render_data.uniforms_buf) {
       // Get layout from registry
       auto *config = m_pl_registry.getByName(material_name);
@@ -319,7 +319,7 @@ RID VulkanRenderDevice::createMaterial(const std::string &material_name,
   }
 
   // 10. Create material template
-  material_rid = m_resource_manager.add(std::make_unique<Material>(
+  material_rid = m_storage.add(std::make_unique<Material>(
       Material{.name = material_name,
                .render_data = {.pipeline = pipeline_rid,
                                .uniforms_buf = mat_uniform_buffer,
@@ -335,13 +335,13 @@ VulkanRenderDevice::getPipelineConfig(const std::string &material_name) const {
 }
 
 Material *VulkanRenderDevice::getMaterial(RID material_rid) {
-  return m_resource_manager.get_ptr<Material>(material_rid);
+  return m_storage.get<Material>(material_rid);
 }
 
 void VulkanRenderDevice::updateBufferRaw(RID rid, size_t offset, size_t size,
                                          const void *data) {
   // Get buffer from resource manager
-  auto *buffer = m_resource_manager.get_ptr<VulkanBuffer>(rid);
+  auto *buffer = m_storage.get<VulkanBuffer>(rid);
   if (!buffer) {
     return; // Invalid RID
   }
@@ -351,6 +351,6 @@ void VulkanRenderDevice::updateBufferRaw(RID rid, size_t offset, size_t size,
   buffer->unmap();
 }
 
-void VulkanRenderDevice::free(RID rid) { m_resource_manager.free(rid); }
+void VulkanRenderDevice::free(RID rid) { }
 
 } // namespace ssme::vulkan

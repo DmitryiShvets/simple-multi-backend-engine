@@ -2,13 +2,11 @@
 #include "opengl_command_list.h"
 #include "render_data.h"
 #include "utils/logger.h"
-
 #include "core/resource_types.h"
 #include "core/scene_view.h"
 #include "core/uniforms.h"
 #include "opengl_buffer_objects.h"
 #include "opengl_device.h"
-#include "opengl_resource_manager.h"
 #include "opengl_shader_program.h"
 #include "pipeline_config_registry.h"
 #include "render_device.h"
@@ -68,9 +66,9 @@ OpenGLRenderer::OpenGLRenderer(Platform *platform)
       m_pl_registry(PipelineConfigRegistry(m_backend_type)) {
   /* -------------INIT STATE-------------- */
   m_rhi_device = std::make_unique<ssme::opengl::OpenGLDevice>(
-      m_resource_manager, m_pl_registry);
+      m_storage, m_pl_registry);
   m_command_list =
-      std::make_unique<ssme::opengl::OpenGLCommandList>(m_resource_manager);
+      std::make_unique<ssme::opengl::OpenGLCommandList>(m_storage);
   // m_scene_renderer = std::make_unique<SceneRenderer>();
   // m_executor = std::make_unique<RenderGraphExecutor>(m_rhi_device.get());
   /* -------------SETUP 3D-------------- */
@@ -90,7 +88,6 @@ OpenGLRenderer::OpenGLRenderer(Platform *platform)
 
 void OpenGLRenderer::init(ImGuiContext *ctx) {
   /* -------------INIT STATE-------------- */
-  m_resource_manager.initialize();
   m_pl_registry.init();
   m_imgui_context = ctx;
   /* -------------INIT UI-------------- */
@@ -102,7 +99,6 @@ void OpenGLRenderer::init(ImGuiContext *ctx) {
 // Explicit destructor in .cpp file allows unique_ptr to see full type
 // definitions
 OpenGLRenderer::~OpenGLRenderer() {
-  m_resource_manager.destroy();
   destroy();
 };
 
@@ -137,7 +133,7 @@ void OpenGLRenderer::renderFrame(const SceneView &view,
 
   for (const auto &obj : render_objects) {
     // Get material template to access pipeline (shader program)
-    auto *material_tpl = m_resource_manager.get_ptr<Material>(obj.material_id);
+    auto *material_tpl = m_storage.get<Material>(obj.material_id);
     if (!material_tpl) {
       Logger::error_log("Opengl Render: not found material");
       continue;
@@ -149,7 +145,7 @@ void OpenGLRenderer::renderFrame(const SceneView &view,
     //   continue;
     // }
     // Get VAO vertex count
-    auto vao = m_resource_manager.get_ptr<ssme::opengl::VAO>(obj.geometry_id);
+    auto vao = m_storage.get<ssme::opengl::VAO>(obj.geometry_id);
     uint32_t vertex_count = vao ? vao->count() : 0;
 
     // Setup DrawingData

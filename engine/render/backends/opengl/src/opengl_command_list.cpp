@@ -1,17 +1,18 @@
 #include "opengl_command_list.h"
-#include "opengl_shader_program.h"
-#include "opengl_descriptor_set.h"
 #include "opengl_buffer_objects.h"
+#include "opengl_descriptor_set.h"
+#include "opengl_gpu_storage.h"
+#include "opengl_shader_program.h"
 
 namespace ssme::opengl {
 
-OpenGLCommandList::OpenGLCommandList(OpenglResourceManager &resource_manager)
-    : m_resource_manager(resource_manager) {}
+OpenGLCommandList::OpenGLCommandList(OpenGLGpuStorageMT &storage)
+    : m_storage(storage) {}
 
 // --- Pipeline State ---
 void OpenGLCommandList::setGraphicsPipeline(RID pipeline_rid) {
   // Bind shader program immediately
-  auto *program = m_resource_manager.get_ptr<ShaderProgram>(pipeline_rid);
+  auto *program = m_storage.get<ShaderProgram>(pipeline_rid);
   if (program) {
     program->use();
   }
@@ -43,12 +44,13 @@ void OpenGLCommandList::setDepthBias(float constant_factor,
 // --- Resource Binding ---
 void OpenGLCommandList::setVertexBuffer(uint32_t first_binding, RID buffer_rid,
                                         uint64_t offset) {
-  // In OpenGL, we bind the VAO which contains the VBO and vertex attribute state
+  // In OpenGL, we bind the VAO which contains the VBO and vertex attribute
+  // state
   (void)first_binding;
   (void)offset;
 
   // Only bind if it's a VAO (vertex buffer), not a UniformBuffer
-  auto* vao = m_resource_manager.get_ptr<VAO>(buffer_rid);
+  auto *vao = m_storage.get<VAO>(buffer_rid);
   if (vao) {
     vao->bind();
   }
@@ -67,9 +69,9 @@ void OpenGLCommandList::setDescriptorSet(uint32_t set_index, RID set_rid,
   (void)pipeline_rid;
 
   // Get DescriptorSet and bind all resources
-  auto* desc_set = m_resource_manager.get_ptr<OpenGLDescriptorSet>(set_rid);
+  auto *desc_set = m_storage.get<OpenGLDescriptorSet>(set_rid);
   if (desc_set) {
-    desc_set->bind();  // Calls glBindBufferBase for each binding
+    desc_set->bind(); // Calls glBindBufferBase for each binding
   }
 }
 
@@ -77,7 +79,7 @@ void OpenGLCommandList::setPushConstant(RID pipeline_rid,
                                         const UniformValue &value,
                                         ShaderStageFlags stages,
                                         uint32_t offset) {
-  auto *program = m_resource_manager.get_ptr<ShaderProgram>(pipeline_rid);
+  auto *program = m_storage.get<ShaderProgram>(pipeline_rid);
   if (!program)
     return;
   program->setUniform(value);

@@ -1,155 +1,271 @@
 #pragma once
 
+#include "core/resource_owner.h"
 #include "core/rid.h"
+#include "core/rid_allocator.h"
 #include <memory>
-#include <unordered_map>
 #include <mutex>
-#include <any>
+#include <string>
+#include <unordered_map>
 
-// Forward declarations for OpenGL resources
+// Full type definitions required for ResourceOwner<T> (uses unique_ptr internally)
+#include "opengl_buffer_objects.h"
+#include "opengl_shader_program.h"
+#include "opengl_descriptor_set.h"
+
+namespace ssme {
+class Material;  // Forward declare from parent namespace
+}
+
+// Forward declarations for remaining OpenGL resources (not yet used)
 namespace ssme::opengl {
-class OpenGLBuffer;
-class OpenGLTexture;
-class OpenGLShaderProgram;
-class OpenGLVertexArray;
-class OpenGLFramebuffer;
 class OpenGLRenderbuffer;
 class OpenGLSampler;
-class OpenGLUniformBuffer;
-class OpenGLDescriptorSet;
-class OpenGLDescriptorSetLayout;
 } // namespace ssme::opengl
 
 namespace ssme::opengl {
 
+template <typename T> struct GpuStorageHelper;
+
+// ============================================================================
+// OpenGLGpuStorage - Main storage class
+// ============================================================================
+
 /**
- * @brief Storage for OpenGL GPU resources keyed by external RID
- * 
- * Does NOT generate RIDs - accepts them from central ResourceManager.
- * Stores per-backend OpenGL resources (GLuint buffers, textures, etc.)
- * 
+ * @brief Storage for OpenGL GPU resources keyed by RID
+ *
+ * Uses ResourceOwner<T> for each resource type (type-safe, no std::any).
+ * Supports both internal resources (auto-generated RID) and external
+ * resources (RID from central ResourceManager).
+ *
  * @tparam THREAD_SAFE Enable mutex protection (default: true)
- * 
- * Usage:
- *   OpenGLGpuStorage storage;
- *   RID rid = externalAllocator.allocate();  // From ResourceManager
- *   storage.store(rid, std::make_unique<OpenGLBuffer>(...));
- *   auto* buffer = storage.get<OpenGLBuffer>(rid);
  */
-template<bool THREAD_SAFE = true>
-class OpenGLGpuStorage {
+template <bool THREAD_SAFE = true> class OpenGLGpuStorage {
 public:
-    OpenGLGpuStorage() = default;
-    ~OpenGLGpuStorage() = default;
-    
-    // Non-copyable, non-movable
-    OpenGLGpuStorage(const OpenGLGpuStorage&) = delete;
-    OpenGLGpuStorage& operator=(const OpenGLGpuStorage&) = delete;
-    OpenGLGpuStorage(OpenGLGpuStorage&&) = delete;
-    OpenGLGpuStorage& operator=(OpenGLGpuStorage&&) = delete;
+  OpenGLGpuStorage() = default;
+  ~OpenGLGpuStorage() = default;
 
-    /**
-     * @brief Store an OpenGL resource with external RID
-     * @tparam T Resource type (OpenGLBuffer, OpenGLTexture, etc.)
-     * @param rid Resource ID (from central ResourceManager)
-     * @param resource Resource to store (takes ownership)
-     */
-    template<typename T>
-    void store(RID rid, std::unique_ptr<T> resource) {
-        LockGuard lock;
-        m_resources[rid.id] = std::move(resource);
-    }
+  // Non-copyable, non-movable
+  OpenGLGpuStorage(const OpenGLGpuStorage &) = delete;
+  OpenGLGpuStorage &operator=(const OpenGLGpuStorage &) = delete;
+  OpenGLGpuStorage(OpenGLGpuStorage &&) = delete;
+  OpenGLGpuStorage &operator=(OpenGLGpuStorage &&) = delete;
 
-    /**
-     * @brief Get an OpenGL resource by RID
-     * @tparam T Resource type
-     * @param rid Resource ID
-     * @return Pointer to resource, or nullptr if not found
-     */
-    template<typename T>
-    T* get(RID rid) const {
-        LockGuard lock;
-        
-        auto it = m_resources.find(rid.id);
-        if (it == m_resources.end()) {
-            return nullptr;
-        }
-        
-        try {
-            return std::any_cast<T*>(it->second);
-        } catch (const std::bad_any_cast&) {
-            return nullptr;  // Wrong type
-        }
-    }
+  /**
+   * @brief Add an internal OpenGL resource (generates RID automatically)
+   */
+  template <typename T> RID add(std::unique_ptr<T> resource) {
+    RID rid = m_rid_allocator.allocate();
+    store<T>(rid, std::move(resource));
+    return rid;
+  }
 
-    /**
-     * @brief Remove a resource by RID
-     * @param rid Resource ID to remove
-     * @return true if removed, false if not found
-     */
-    bool remove(RID rid) {
-        LockGuard lock;
-        return m_resources.erase(rid.id) > 0;
-    }
+  /**
+   * @brief Store an OpenGL resource with external RID
+   */
+  template <typename T> void store(RID rid, std::unique_ptr<T> resource) {
+    LockGuard lock;
+    GpuStorageHelper<T>::get(*this).insert(rid, std::move(resource));
+  }
 
-    /**
-     * @brief Check if a resource exists
-     * @param rid Resource ID
-     * @return true if exists
-     */
-    bool has(RID rid) const {
-        LockGuard lock;
-        return m_resources.contains(rid.id);
-    }
+  /**
+   * @brief Get an OpenGL resource by RID
+   */
+  template <typename T> T *get(RID rid) {
+    LockGuard lock;
+    return GpuStorageHelper<T>::get(*this).get(rid);
+  }
 
-    /**
-     * @brief Get count of stored resources
-     */
-    size_t count() const {
-        LockGuard lock;
-        return m_resources.size();
-    }
+  /**
+   * @brief Get an OpenGL resource by RID (const version)
+   */
+  template <typename T> const T *get(RID rid) const {
+    LockGuard lock;
+    return GpuStorageHelper<T>::get(*this).get(rid);
+  }
 
-    /**
-     * @brief Clear all resources
-     */
-    void clear() {
-        LockGuard lock;
-        m_resources.clear();
-    }
+  /**
+   * @brief Remove a resource by RID
+   */
+  template <typename T> bool remove(RID rid) {
+    LockGuard lock;
+    auto resource = GpuStorageHelper<T>::get(*this).remove(rid);
+    return resource != nullptr;
+  }
 
-    /**
-     * @brief Reserve capacity (optimization)
-     * @param expected_max Expected maximum number of resources
-     */
-    void reserve(size_t expected_max) {
-        LockGuard lock;
-        m_resources.reserve(expected_max);
+  /**
+   * @brief Check if a resource exists
+   */
+  template <typename T> bool has(RID rid) {
+    LockGuard lock;
+    return GpuStorageHelper<T>::get(*this).get(rid) != nullptr;
+  }
+
+  /**
+   * @brief Clear all resources of a specific type
+   */
+  template <typename T> void clear() {
+    // ResourceOwner doesn't have clear()
+  }
+
+  /**
+   * @brief Clear all resources (all types)
+   */
+  void clearAll() {
+    // ResourceOwners will be destroyed automatically
+  }
+
+  /**
+   * @brief Find PSO (Pipeline) by name
+   */
+  RID findPSO(const std::string &name) {
+    LockGuard lock;
+    auto it = m_pso_map.find(name);
+    if (it != m_pso_map.end()) {
+      return it->second;
     }
+    return RID::INVALID;
+  }
+
+  /**
+   * @brief Register PSO (Pipeline) with a name
+   */
+  void registerPSO(const std::string &name, RID rid) {
+    LockGuard lock;
+    m_pso_map[name] = rid;
+  }
+
+  /**
+   * @brief Find Material by name
+   */
+  RID findMaterial(const std::string &name) {
+    LockGuard lock;
+    auto it = m_material_map.find(name);
+    if (it != m_material_map.end()) {
+      return it->second;
+    }
+    return RID::INVALID;
+  }
+
+  /**
+   * @brief Register Material with a name
+   */
+  void registerMaterial(const std::string &name, RID rid) {
+    LockGuard lock;
+    m_material_map[name] = rid;
+  }
 
 private:
-    /// RID.id → typed resource pointer (stored as std::any)
-    std::unordered_map<uint64_t, std::any> m_resources;
+  // ========================================================================
+  // Per-type ResourceOwner (type-safe storage)
+  // ========================================================================
 
-    /// Mutex for thread safety (only used if THREAD_SAFE=true)
-    mutable std::mutex m_mutex;
+  ResourceOwner<ShaderProgram> m_shader_programs;
+  ResourceOwner<VAO> m_buffers;
+  ResourceOwner<ssme::Material> m_materials;
+  ResourceOwner<UniformBuffer> m_uniform_buffers;
+  ResourceOwner<OpenGLDescriptorSet> m_descriptor_sets;
+  ResourceOwner<OpenGLDescriptorSetLayout> m_descriptor_set_layouts;
 
-    /// Lock guard helper (empty if THREAD_SAFE=false)
-    struct LockGuard {
+  // ========================================================================
+  // RID Allocator for internal resources
+  // ========================================================================
+
+  /// Internal RID allocator (range: 1 to 1 trillion for backend-internal
+  /// resources)
+  RIDAllocator m_rid_allocator{RIDRange::INTERNAL_START,
+                               RIDRange::INTERNAL_END};
+
+  // ========================================================================
+  // Name-to-RID maps for PSO and Materials
+  // ========================================================================
+
+  std::unordered_map<std::string, RID> m_pso_map;
+  std::unordered_map<std::string, RID> m_material_map;
+
+  // ========================================================================
+  // Thread Safety
+  // ========================================================================
+
+  /// Mutex for thread safety (only used if THREAD_SAFE=true)
+  mutable std::mutex m_mutex;
+
+  /// Lock guard helper (empty if THREAD_SAFE=false)
+  struct LockGuard {
 #ifdef THREAD_SAFE
-        LockGuard() : lock_(m_mutex) {}
-        mutable std::lock_guard<std::mutex> lock_;
+    LockGuard() : lock_(m_mutex) {}
+    mutable std::lock_guard<std::mutex> lock_;
 #else
-        LockGuard() {}
+    LockGuard() {}
 #endif
-    };
+  };
+
+  // Friend helper structs to access private members
+  template <typename T> friend struct GpuStorageHelper;
 };
 
 // ============================================================================
-// Convenience typedefs
+// Helper struct for type-to-member mapping (with specializations)
 // ============================================================================
 
-using OpenGLGpuStorageMT = OpenGLGpuStorage<true>;   // Thread-safe (default)
-using OpenGLGpuStorageST = OpenGLGpuStorage<false>;  // Single-threaded (faster)
+// Specializations for each supported type
+template <> struct GpuStorageHelper<VAO> {
+  using OwnerType = ResourceOwner<VAO>;
+  static OwnerType &get(class OpenGLGpuStorage<> &storage) {
+    return storage.m_buffers;
+  }
+  static const OwnerType &get(const class OpenGLGpuStorage<> &storage) {
+    return storage.m_buffers;
+  }
+};
 
+template <> struct GpuStorageHelper<ShaderProgram> {
+  using OwnerType = ResourceOwner<ShaderProgram>;
+  static OwnerType &get(class OpenGLGpuStorage<> &storage) {
+    return storage.m_shader_programs;
+  }
+  static const OwnerType &get(const class OpenGLGpuStorage<> &storage) {
+    return storage.m_shader_programs;
+  }
+};
+
+template <> struct GpuStorageHelper<UniformBuffer> {
+  using OwnerType = ResourceOwner<UniformBuffer>;
+  static OwnerType &get(class OpenGLGpuStorage<> &storage) {
+    return storage.m_uniform_buffers;
+  }
+  static const OwnerType &get(const class OpenGLGpuStorage<> &storage) {
+    return storage.m_uniform_buffers;
+  }
+};
+
+template <> struct GpuStorageHelper<OpenGLDescriptorSet> {
+  using OwnerType = ResourceOwner<OpenGLDescriptorSet>;
+  static OwnerType &get(class OpenGLGpuStorage<> &storage) {
+    return storage.m_descriptor_sets;
+  }
+  static const OwnerType &get(const class OpenGLGpuStorage<> &storage) {
+    return storage.m_descriptor_sets;
+  }
+};
+
+template <> struct GpuStorageHelper<OpenGLDescriptorSetLayout> {
+  using OwnerType = ResourceOwner<OpenGLDescriptorSetLayout>;
+  static OwnerType &get(class OpenGLGpuStorage<> &storage) {
+    return storage.m_descriptor_set_layouts;
+  }
+  static const OwnerType &get(const class OpenGLGpuStorage<> &storage) {
+    return storage.m_descriptor_set_layouts;
+  }
+};
+
+template <> struct GpuStorageHelper<ssme::Material> {
+  using OwnerType = ResourceOwner<ssme::Material>;
+  static OwnerType &get(class OpenGLGpuStorage<> &storage) {
+    return storage.m_materials;
+  }
+  static const OwnerType &get(const class OpenGLGpuStorage<> &storage) {
+    return storage.m_materials;
+  }
+};
 } // namespace ssme::opengl

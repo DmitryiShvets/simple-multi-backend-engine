@@ -4,17 +4,17 @@
 #include "vulkan_buffer.h"
 #include "vulkan_descriptor_set.h"
 #include "vulkan_device.h"
+#include "vulkan_gpu_storage.h"
 #include "vulkan_helpers.h"
 #include "vulkan_pipeline.h"
-#include "vulkan_resource_manager.h"
 #include "vulkan_texture.h"
 #include <cassert>
 
 namespace ssme::vulkan {
 
 VulkanCommandList::VulkanCommandList(VulkanDevice &vkDevice,
-                                     VulkanResourceManager &vkResourceManager)
-    : m_device(vkDevice), m_resource_manager(vkResourceManager) {
+                                     VulkanGpuStorageMT &storage)
+    : m_device(vkDevice), m_storage(storage) {
   m_command_buffer = m_device.createCommandBuffer();
 }
 
@@ -24,10 +24,10 @@ void VulkanCommandList::begin() { m_command_buffer.begin({}); }
 void VulkanCommandList::end() { m_command_buffer.end(); }
 
 void VulkanCommandList::setGraphicsPipeline(RID pipeline_rid) {
-  auto pipeline = m_resource_manager.get_ptr<VulkanPipeLine>(pipeline_rid);
+  auto pipeline = m_storage.get<VulkanPipeLine>(pipeline_rid);
   if (pipeline) {
     m_command_buffer.bindPipeline(vk::PipelineBindPoint::eGraphics,
-                                   pipeline->getHandle());
+                                  pipeline->getHandle());
   }
 }
 void VulkanCommandList::setComputePipeline(RID pipeline_rid) {}
@@ -56,7 +56,7 @@ void VulkanCommandList::setDepthBias(float constant_factor,
                                      float slope_factor) {}
 void VulkanCommandList::setVertexBuffer(uint32_t first_binding, RID buffer_rid,
                                         uint64_t offset) {
-  auto buffer = m_resource_manager.get_ptr<VulkanBuffer>(buffer_rid);
+  auto buffer = m_storage.get<VulkanBuffer>(buffer_rid);
   if (buffer) {
     vk::Buffer vk_buffer = buffer->getBuffer();
     m_command_buffer.bindVertexBuffers(first_binding, vk_buffer, offset);
@@ -67,19 +67,19 @@ void VulkanCommandList::setIndexBuffer(RID buffer_rid, uint64_t offset,
 void VulkanCommandList::setDescriptorSet(uint32_t set_index, RID set_rid,
                                          RID pipeline_rid) {
   auto descriptor_set =
-      m_resource_manager.get_ptr<VulkanDescriptorSet>(set_rid);
-  auto pipeline = m_resource_manager.get_ptr<VulkanPipeLine>(pipeline_rid);
+      m_storage.get<VulkanDescriptorSet>(set_rid);
+  auto pipeline = m_storage.get<VulkanPipeLine>(pipeline_rid);
   if (descriptor_set && pipeline) {
     m_command_buffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics,
-                                         pipeline->getLayoutHandle(), set_index,
-                                         descriptor_set->getHandle(), nullptr);
+                                        pipeline->getLayoutHandle(), set_index,
+                                        descriptor_set->getHandle(), nullptr);
   }
 }
 void VulkanCommandList::setPushConstant(RID pipeline_rid,
                                         const UniformValue &value,
                                         ShaderStageFlags stages,
                                         uint32_t offset) {
-  auto pipeline = m_resource_manager.get_ptr<VulkanPipeLine>(pipeline_rid);
+  auto pipeline = m_storage.get<VulkanPipeLine>(pipeline_rid);
   auto *data = static_cast<const uint8_t *>(value.data());
   m_command_buffer.pushConstants<uint8_t>(
       pipeline->getLayoutHandle(), toVkShaderStageFlags(stages), offset,
@@ -88,7 +88,7 @@ void VulkanCommandList::setPushConstant(RID pipeline_rid,
 void VulkanCommandList::draw(uint32_t vertex_count, uint32_t instance_count,
                              uint32_t first_vertex, uint32_t first_instance) {
   m_command_buffer.draw(vertex_count, instance_count, first_vertex,
-                         first_instance);
+                        first_instance);
 }
 void VulkanCommandList::drawIndexed(uint32_t index_count,
                                     uint32_t instance_count,
@@ -103,7 +103,7 @@ void VulkanCommandList::dispatch(uint32_t group_count_x, uint32_t group_count_y,
 void VulkanCommandList::pipelineBarrier(const BarrierInfo &barrier) {
   for (const auto &img_barrier_desc : barrier.image_barriers) {
     auto texture =
-        m_resource_manager.get_ptr<VulkanTexture>(img_barrier_desc.image);
+        m_storage.get<VulkanTexture>(img_barrier_desc.image);
     if (!texture) {
       assert(false && "Texture is not found");
       continue;
@@ -123,7 +123,7 @@ void VulkanCommandList::beginRendering(const RenderingInfo &info) {
   std::vector<vk::RenderingAttachmentInfo> color_attachments;
   for (const auto &attachment_info : info.color_attachments) {
     auto back_buffer_texture =
-        m_resource_manager.get_ptr<VulkanTexture>(attachment_info.texture);
+        m_storage.get<VulkanTexture>(attachment_info.texture);
     vk::RenderingAttachmentInfo vk_attachment_info{
         .imageView = back_buffer_texture->getImageView(),
         .imageLayout = vk::ImageLayout::eColorAttachmentOptimal,
@@ -139,7 +139,7 @@ void VulkanCommandList::beginRendering(const RenderingInfo &info) {
   }
 
   auto back_depth_buffer_texture =
-      m_resource_manager.get_ptr<VulkanTexture>(info.depth_attachment.texture);
+      m_storage.get<VulkanTexture>(info.depth_attachment.texture);
   vk::RenderingAttachmentInfo depth_attachment{
       .imageView = back_depth_buffer_texture->getImageView(),
       .imageLayout = vk::ImageLayout::eDepthAttachmentOptimal,
@@ -161,9 +161,7 @@ void VulkanCommandList::beginRendering(const RenderingInfo &info) {
   };
   m_command_buffer.beginRendering(rendering_info);
 }
-void VulkanCommandList::endRendering() {
-  m_command_buffer.endRendering();
-}
+void VulkanCommandList::endRendering() { m_command_buffer.endRendering(); }
 void VulkanCommandList::copyBuffer(RID src, RID dst, const BufferCopy &region) {
 }
 void VulkanCommandList::copyBufferToImage(RID src_buffer, RID dst_image,

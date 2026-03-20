@@ -1,10 +1,10 @@
 #pragma once
 
 #include "core/gpu_types.h"
+#include "opengl_gpu_storage.h"
 #include "renderer.h"
 
 #include "opengl_command_list.h"
-#include "opengl_resource_manager.h"
 #include "pipeline_config_registry.h"
 #include <memory>
 
@@ -54,7 +54,7 @@ private:
 
   // Shared, API-agnostic systems
   ImGuiContext *m_imgui_context = nullptr;
-  ssme::opengl::OpenglResourceManager m_resource_manager;
+  opengl::OpenGLGpuStorageMT m_storage;
   PipelineConfigRegistry m_pl_registry;
 
   // OpenGL command list for drawing

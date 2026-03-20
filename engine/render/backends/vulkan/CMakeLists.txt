@@ -2,7 +2,6 @@
 set(VULKAN_RENDER_SOURCES
     src/vulkan_device.cpp
     src/vulkan_render_device.cpp
-    src/vulkan_resource_manager.cpp
     src/vulkan_swap_chain.cpp
     src/vulkan_types.cpp
     src/vulkan_command_list.cpp

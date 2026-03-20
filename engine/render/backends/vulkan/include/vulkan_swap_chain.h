@@ -1,7 +1,7 @@
 #pragma once
 
-#include "vulkan_resource_manager.h"
-#include "vulkan_device.h"
+#include "core/rid.h"
+#include "vulkan_gpu_storage_fwd.h"
 
 #include <memory>
 #include <vector>
@@ -9,6 +9,8 @@
 #include <vulkan/vulkan_raii.hpp>
 
 namespace ssme::vulkan {
+
+class VulkanDevice;
 
 // Maximum number of frames that can be processed concurrently
 // This is independent of the number of swap chain images
@@ -36,7 +38,7 @@ public:
    * @param windowExtent The width and height of the window.
    */
   VulkanSwapChain(VulkanDevice &deviceRef, vk::Extent2D windowExtent,
-                  VulkanResourceManager &resourceManager);
+                  VulkanGpuStorageMT &resourceManager);
   /**
    * @brief Re-creates a swap chain, linking it to a previous one (e.g., after a
    * window resize). This allows for faster recreation and resource sharing.
@@ -47,7 +49,7 @@ public:
    */
   VulkanSwapChain(VulkanDevice &deviceRef, vk::Extent2D windowExtent,
                   std::shared_ptr<VulkanSwapChain> previous,
-                  VulkanResourceManager &resourceManager);
+                  VulkanGpuStorageMT &resourceManager);
   ~VulkanSwapChain();
 
   // Disable copy and assignment to prevent accidental duplication of this
@@ -82,8 +84,8 @@ public:
    * to be rendered into.
    * @param imageIndex A pointer to a uint32_t that will be filled with the
    * acquired image index.
-   * @return A vk::Result indicating success, or if the swap chain is out of date
-   * and needs recreation.
+   * @return A vk::Result indicating success, or if the swap chain is out of
+   * date and needs recreation.
    */
   vk::Result acquireNextImage(
       uint32_t *imageIndex); // wait for fences and retrives new image
@@ -94,10 +96,11 @@ public:
    * @param buffers A pointer to an array of command buffers to be submitted.
    * @param imageIndex A pointer to the index of the image that was just
    * rendered into.
-   * @return A vk::Result indicating success or if the swap chain is out of date.
+   * @return A vk::Result indicating success or if the swap chain is out of
+   * date.
    */
   vk::Result submitCommandBuffers(const vk::CommandBuffer *buffers,
-                                uint32_t *imageIndex);
+                                  uint32_t *imageIndex);
 
 private:
   /** @brief Main initialization function that calls all the creation helpers.
@@ -156,7 +159,7 @@ private:
       m_render_finished_semaphores;                // swapChainImages.size()
   std::vector<vk::raii::Fence> m_in_flight_fences; // MAX_FRAMES_IN_FLIGHT
   //  --- Resource Objects ---
-  VulkanResourceManager &m_resource_manager;
+  VulkanGpuStorageMT &m_storage;
 };
 
 } // namespace ssme::vulkan

@@ -6,7 +6,7 @@
 #include "vulkan_device.h"
 #include "vulkan_render_device.h"
 #include "vulkan_swap_chain.h"
-
+#include "vulkan_descriptor_set.h"
 #include "core/scene_view.h"
 #include "core/uniforms.h"
 #include "graph/render_graph.h"
@@ -110,7 +110,7 @@ VulkanRenderer::VulkanRenderer(Platform *platform)
   /* -------------INIT STATE-------------- */
   createSwapChain();
   m_rhi_device = std::make_unique<ssme::vulkan::VulkanRenderDevice>(
-      *m_device, m_resource_manager, m_pl_registry);
+      *m_device, m_storage, m_pl_registry);
   m_imgui_descriptor_pool =
       ssme::vulkan::VulkanDescriptorPool::Builder(*m_device)
           .addPoolSize(
@@ -225,7 +225,7 @@ void VulkanRenderer::renderFrame(const SceneView &view,
     for (const auto &renderable : view.opaque_objects) {
       // Get pipeline from material template
       auto *material_tpl =
-          m_resource_manager.get_ptr<Material>(renderable.material_id);
+          m_storage.get<Material>(renderable.material_id);
       if (!material_tpl) {
         continue; // Skip if material template not found
       }
@@ -233,7 +233,7 @@ void VulkanRenderer::renderFrame(const SceneView &view,
       // Get vertex count from geometry buffer
       // Use vertex stride from buffer descriptor if available
       auto *geom_buffer =
-          m_resource_manager.get_ptr<ssme::vulkan::VulkanBuffer>(
+          m_storage.get<ssme::vulkan::VulkanBuffer>(
               renderable.geometry_id);
       if (!geom_buffer) {
         continue; // Skip if buffer not found
@@ -304,13 +304,13 @@ void VulkanRenderer::destroy() {
 
 void VulkanRenderer::createSwapChain() {
   m_swap_chain = std::make_unique<ssme::vulkan::VulkanSwapChain>(
-      *m_device, vk::Extent2D{800, 400}, m_resource_manager);
+      *m_device, vk::Extent2D{800, 400}, m_storage);
 
   m_command_lists.clear();
   m_command_lists.reserve(ssme::vulkan::MAX_FRAMES_IN_FLIGHT);
   for (size_t i = 0; i < ssme::vulkan::MAX_FRAMES_IN_FLIGHT; i++) {
     m_command_lists.push_back(std::make_unique<ssme::vulkan::VulkanCommandList>(
-        *m_device, m_resource_manager));
+        *m_device, m_storage));
   }
 }
 

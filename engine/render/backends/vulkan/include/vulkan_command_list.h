@@ -1,16 +1,17 @@
 #pragma once
 
 #include "command_list.h"
+#include "vulkan_gpu_storage_fwd.h"
+
 #include <vulkan/vulkan_raii.hpp>
 
 namespace ssme::vulkan {
 
 class VulkanDevice;
-class VulkanResourceManager;
 
 class VulkanCommandList final : public CommandList {
 public:
-  VulkanCommandList(VulkanDevice &device, VulkanResourceManager &resource_manager);
+  VulkanCommandList(VulkanDevice &device, VulkanGpuStorageMT &resource_manager);
   ~VulkanCommandList() override;
 
   // --- CommandList Interface Implementation ---
@@ -50,7 +51,7 @@ public:
 
 private:
   VulkanDevice &m_device;
-  VulkanResourceManager &m_resource_manager;
+  VulkanGpuStorageMT &m_storage;
   vk::raii::CommandBuffer m_command_buffer = nullptr;
 };
 

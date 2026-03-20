@@ -1,6 +1,7 @@
 #pragma once
 
 #include "render_device.h"
+#include "vulkan_gpu_storage_fwd.h"
 #include <string>
 
 namespace ssme {
@@ -10,11 +11,10 @@ class PipelineConfigRegistry;
 namespace ssme::vulkan {
 
 class VulkanDevice;
-class VulkanResourceManager;
 
 class VulkanRenderDevice final : public RenderDevice {
 public:
-  VulkanRenderDevice(VulkanDevice &device, VulkanResourceManager &resource_manager,
+  VulkanRenderDevice(VulkanDevice &device, VulkanGpuStorageMT &storage,
                   PipelineConfigRegistry &pl_registry);
   virtual ~VulkanRenderDevice() override;
 
@@ -39,8 +39,8 @@ public:
 
 private:
   VulkanDevice &m_device;
+  VulkanGpuStorageMT &m_storage;
   PipelineConfigRegistry &m_pl_registry;
-  VulkanResourceManager &m_resource_manager;
 };
 
 } // namespace ssme::vulkan

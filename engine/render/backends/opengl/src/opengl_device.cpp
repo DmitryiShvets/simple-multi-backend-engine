@@ -1,7 +1,7 @@
 #include "opengl_device.h"
 #include "opengl_buffer_objects.h" // For VAO, VBO, VBOLayout
 #include "opengl_descriptor_set.h" // For UniformBuffer, OpenGLDescriptorSet
-#include "opengl_resource_manager.h"
+#include "opengl_gpu_storage.h"
 #include "opengl_shader_program.h" // Needed for ShaderProgram
 #include "pipeline_config_registry.h"
 #include "utils/common_utils.h"
@@ -14,9 +14,9 @@
 #include <stdexcept>
 namespace ssme::opengl {
 
-OpenGLDevice::OpenGLDevice(OpenglResourceManager &resource_manager,
+OpenGLDevice::OpenGLDevice(OpenGLGpuStorageMT &storage,
                            PipelineConfigRegistry &pl_registry)
-    : m_resource_manager(resource_manager), m_pl_registry(pl_registry) {}
+    : m_storage(storage), m_pl_registry(pl_registry) {}
 OpenGLDevice::~OpenGLDevice() {}
 
 RID OpenGLDevice::createBuffer(const BufferDesc &desc) {
@@ -36,7 +36,7 @@ RID OpenGLDevice::createBuffer(const BufferDesc &desc) {
       initial_data = zero_data.data();
     }
     auto ubo = std::make_unique<UniformBuffer>(desc.size, initial_data);
-    return m_resource_manager.add(std::move(ubo));
+    return m_storage.add(std::move(ubo));
   } else if (desc.usage & static_cast<uint32_t>(BufferUsage::VERTEX_BUFFER)) {
     const auto stride = desc.layout.getStride();
     if (stride == 0) {
@@ -55,7 +55,7 @@ RID OpenGLDevice::createBuffer(const BufferDesc &desc) {
     vbo->unbind();
     vao->unbind();
 
-    return m_resource_manager.add(std::move(vao));
+    return m_storage.add(std::move(vao));
   } else {
     Logger::error_log("Unsupported buffer type");
     return RID::INVALID;
@@ -73,14 +73,14 @@ RID OpenGLDevice::createDescriptorSetLayout(
                        binding.stages, binding.count);
   }
 
-  return m_resource_manager.add(std::move(layout));
+  return m_storage.add(std::move(layout));
 }
 
 RID OpenGLDevice::createDescriptorSet(RID layout_rid,
                                       const std::vector<RID> &buffer_rids) {
   // Get layout (for validation, optional)
   auto layout =
-      m_resource_manager.get_ptr<OpenGLDescriptorSetLayout>(layout_rid);
+      m_storage.get<OpenGLDescriptorSetLayout>(layout_rid);
   if (!layout) {
     throw std::runtime_error("Invalid descriptor set layout RID in OpenGL");
   }
@@ -90,7 +90,7 @@ RID OpenGLDevice::createDescriptorSet(RID layout_rid,
 
   // Add binding for each buffer
   for (size_t i = 0; i < buffer_rids.size(); ++i) {
-    auto *ubo = m_resource_manager.get_ptr<UniformBuffer>(buffer_rids[i]);
+    auto *ubo = m_storage.get<UniformBuffer>(buffer_rids[i]);
     if (!ubo) {
       throw std::runtime_error("Invalid buffer RID in createDescriptorSet");
     }
@@ -104,14 +104,14 @@ RID OpenGLDevice::createDescriptorSet(RID layout_rid,
     desc_set->addBinding(binding_point, ubo->getHandle());
   }
 
-  return m_resource_manager.add(std::move(desc_set));
+  return m_storage.add(std::move(desc_set));
 }
 RID OpenGLDevice::createPipelineLayout(const PipelineLayoutDesc &desc) {
   return {};
 }
 RID OpenGLDevice::createGraphicsPipeline(const GraphicsPipelineDesc &desc) {
   // 1. Check if a PSO with this name already exists
-  RID existing_rid = m_resource_manager.findPSO(desc.name);
+  RID existing_rid = m_storage.findPSO(desc.name);
   if (existing_rid) {
     return existing_rid;
   }
@@ -133,8 +133,8 @@ RID OpenGLDevice::createGraphicsPipeline(const GraphicsPipelineDesc &desc) {
   auto shader_program = std::make_unique<ShaderProgram>(
       CUtils::readFile(vert_path), CUtils::readFile(frag_path));
 
-  RID new_rid = m_resource_manager.add(std::move(shader_program));
-  m_resource_manager.registerPSO(desc.name, new_rid);
+  RID new_rid = m_storage.add(std::move(shader_program));
+  m_storage.registerPSO(desc.name, new_rid);
 
   return new_rid;
 }
@@ -147,10 +147,10 @@ RID OpenGLDevice::createPipeline(const PipelineDesc &desc) {
 RID OpenGLDevice::createMaterial(const std::string &material_name,
                                  const UniformSet &material_uniforms) {
   // 1. Check if a material with this name already exists
-  RID material_rid = m_resource_manager.findMaterial(material_name);
+  RID material_rid = m_storage.findMaterial(material_name);
   if (material_rid) {
     // Material exists, just update uniforms
-    auto *mat = m_resource_manager.get_ptr<Material>(material_rid);
+    auto *mat = m_storage.get<Material>(material_rid);
     if (mat && mat->render_data.uniforms_buf) {
       // Get layout from registry
       auto *config = m_pl_registry.getByName(material_name);
@@ -203,7 +203,7 @@ RID OpenGLDevice::createMaterial(const std::string &material_name,
   }
 
   // 8. Create material template
-  material_rid = m_resource_manager.add(std::make_unique<Material>(
+  material_rid = m_storage.add(std::make_unique<Material>(
       Material{.name = material_name,
                .render_data = {
                    .pipeline = pipeline_rid,
@@ -220,7 +220,7 @@ OpenGLDevice::getPipelineConfig(const std::string &material_name) const {
 }
 
 Material *OpenGLDevice::getMaterial(RID material_rid) {
-  return m_resource_manager.get_ptr<Material>(material_rid);
+  return m_storage.get<Material>(material_rid);
 }
 
 void OpenGLDevice::free(RID rid) {}
@@ -228,7 +228,7 @@ void OpenGLDevice::free(RID rid) {}
 void OpenGLDevice::updateBufferRaw(RID rid, size_t offset, size_t size,
                                    const void *data) {
   // OpenGL buffers are always host-visible, so we can update them directly
-  auto *ubo = m_resource_manager.get_ptr<UniformBuffer>(rid);
+  auto *ubo = m_storage.get<UniformBuffer>(rid);
   if (!ubo) {
     throw std::runtime_error("Invalid buffer RID in updateBufferRaw");
   }

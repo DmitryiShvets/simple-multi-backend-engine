@@ -1,6 +1,7 @@
 #pragma once
 
 #include "render_device.h"
+#include "opengl_gpu_storage_fwd.h"
 
 namespace ssme {
     class PipelineConfigRegistry;
@@ -8,12 +9,10 @@ namespace ssme {
 
 namespace ssme::opengl {
 
-class OpenglResourceManager; // Forward-declaration
-
 // This is the concrete OpenGL implementation of the pure RenderDevice interface.
 class OpenGLDevice final : public RenderDevice {
 public:
-    OpenGLDevice(OpenglResourceManager& resource_manager, PipelineConfigRegistry& pl_registry);
+    OpenGLDevice(OpenGLGpuStorageMT& storage, PipelineConfigRegistry& pl_registry);
     virtual ~OpenGLDevice() override;
 
     // --- RenderDevice Interface Implementation ---
@@ -36,8 +35,8 @@ public:
     void free(RID rid) override;
 
 private:
+    OpenGLGpuStorageMT& m_storage;
     PipelineConfigRegistry& m_pl_registry;
-    OpenglResourceManager& m_resource_manager;
 };
 
 } // namespace ssme::opengl

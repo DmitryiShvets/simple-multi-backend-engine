@@ -1,7 +1,9 @@
 #include "vulkan_swap_chain.h"
+#include "vulkan_device.h"
+#include "vulkan_gpu_storage.h"
+#include "vulkan_gpu_storage_fwd.h"
 #include "vulkan_texture.h"
 #include "vulkan_types.h"
-
 #include <algorithm>
 #include <cassert>
 #include <cstdlib>
@@ -11,9 +13,8 @@
 namespace ssme::vulkan {
 
 VulkanSwapChain::VulkanSwapChain(VulkanDevice &deviceRef, vk::Extent2D extent,
-                                 VulkanResourceManager &resourceManager)
-    : m_device{deviceRef}, m_window_extent{extent},
-      m_resource_manager(resourceManager) {
+                                 VulkanGpuStorage<> &storage)
+    : m_device{deviceRef}, m_window_extent{extent}, m_storage(storage) {
   init();
 }
 
@@ -21,9 +22,9 @@ VulkanSwapChain::VulkanSwapChain(VulkanDevice &deviceRef, vk::Extent2D extent,
 VulkanSwapChain::VulkanSwapChain(VulkanDevice &deviceRef,
                                  vk::Extent2D windowExtent,
                                  std::shared_ptr<VulkanSwapChain> previous,
-                                 VulkanResourceManager &resourceManager)
+                                 VulkanGpuStorage<> &storage)
     : m_device{deviceRef}, m_window_extent{windowExtent},
-      m_old_swapchain{previous}, m_resource_manager(resourceManager) {
+      m_old_swapchain{previous}, m_storage(storage) {
   init();
   // The old swapchain is no longer needed after its resources are reused.
   m_old_swapchain = nullptr;
@@ -99,8 +100,8 @@ VulkanSwapChain::submitCommandBuffers(const vk::CommandBuffer *buffers,
 }
 
 void VulkanSwapChain::createSwapChain() {
-  // This commented-out block contains the logic for creating the vk::SwapchainKHR
-  // object.
+  // This commented-out block contains the logic for creating the
+  // vk::SwapchainKHR object.
 
   // 1. Get all the details about what the physical device and surface support.
   SwapChainSupportDetails swap_chain_support = m_device.getSwapChainSupport();
@@ -173,9 +174,9 @@ void VulkanSwapChain::createSwapChain() {
 }
 
 void VulkanSwapChain::createTextureWrappers() {
-  // This commented-out block creates a vk::ImageView for each vk::Image in the swap
-  // chain. An image view is needed to tell Vulkan how to interpret the image
-  // data (e.g., as a 2D color texture).
+  // This commented-out block creates a vk::ImageView for each vk::Image in the
+  // swap chain. An image view is needed to tell Vulkan how to interpret the
+  // image data (e.g., as a 2D color texture).
   auto FRAMES_IN_FLIGHT = getImageCount();
   m_swap_chain_texture_rids.resize(FRAMES_IN_FLIGHT); // Resize rids vector too
   m_swap_chain_depth_texture_rids.resize(FRAMES_IN_FLIGHT);
@@ -184,9 +185,9 @@ void VulkanSwapChain::createTextureWrappers() {
         m_device, m_swap_chain_images[i], m_swap_chain_image_format);
     auto depth_texture = std::make_unique<VulkanTexture>(
         m_device, m_swap_chain_extent, findDepthFormat());
-    m_swap_chain_texture_rids[i] = m_resource_manager.add(std::move(texture));
+    m_swap_chain_texture_rids[i] = m_storage.add(std::move(texture));
     m_swap_chain_depth_texture_rids[i] =
-        m_resource_manager.add(std::move(depth_texture));
+        m_storage.add(std::move(depth_texture));
   }
 }
 

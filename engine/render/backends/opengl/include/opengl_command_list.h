@@ -1,7 +1,7 @@
 #pragma once
 
 #include "command_list.h"
-#include "opengl_resource_manager.h"
+#include "opengl_gpu_storage_fwd.h"
 
 // Use glad for OpenGL functions (not system GL/gl.h)
 #include "glad/gl.h"
@@ -12,7 +12,7 @@ namespace ssme::opengl {
 // Most commands execute immediately, state is managed by OpenGL itself
 class OpenGLCommandList final : public CommandList {
 public:
-  OpenGLCommandList(OpenglResourceManager& resource_manager);
+  OpenGLCommandList(OpenGLGpuStorageMT& storage);
   ~OpenGLCommandList() override = default;
 
   // --- Lifecycle ---
@@ -54,7 +54,7 @@ public:
   void clearColorImage(RID image, const float color[4]) override;
 
 private:
-  OpenglResourceManager& m_resource_manager;
+  OpenGLGpuStorageMT& m_storage;
 };
 
 } // namespace ssme::opengl

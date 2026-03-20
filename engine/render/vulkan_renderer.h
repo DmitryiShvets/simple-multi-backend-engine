@@ -3,9 +3,9 @@
 #include "core/gpu_types.h"
 #include "pipeline_config_registry.h"
 #include "renderer.h"
+#include "vulkan_gpu_storage.h"
 #include "vulkan_render_device.h"
-#include "vulkan_resource_manager.h"
-
+#include <vulkan/vulkan.hpp> // todo remove it with  vk::DescriptorSet descriptor_set
 #include <memory>
 #include <vector>
 
@@ -49,7 +49,7 @@ private:
   ssme::Platform * m_platform;
   std::unique_ptr<ssme::vulkan::VulkanDevice> m_device;
   std::unique_ptr<ssme::vulkan::VulkanRenderDevice> m_rhi_device;
-  ssme::vulkan::VulkanResourceManager m_resource_manager;
+  vulkan::VulkanGpuStorageMT m_storage;
   PipelineConfigRegistry m_pl_registry;
   std::unique_ptr<ssme::vulkan::VulkanDescriptorPool> m_imgui_descriptor_pool{};
   RID m_per_frame_ds_layout;
