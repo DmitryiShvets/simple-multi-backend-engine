@@ -336,7 +336,7 @@ private:
   // === RID Management ===
 
   /// ✅ Central RID allocator (one RID per resource for all backends)
-  RIDAllocator m_rid_allocator;
+  RIDAllocator m_rid_allocator{RIDRange::USER_START, RIDRange::USER_END};
 
   /// RID → (ResourceType, UUID) mapping for GPU-level access
   std::unordered_map<uint64_t, std::pair<ResourceId, std::string>>

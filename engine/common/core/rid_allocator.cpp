@@ -1,6 +1,14 @@
 #include "rid_allocator.h"
+#include <limits>
 
 namespace ssme {
+
+RIDAllocator::RIDAllocator(uint64_t range_start, uint64_t range_end)
+    : m_range_start(range_start)
+    , m_range_end(range_end == 0 ? std::numeric_limits<uint64_t>::max() : range_end)
+    , m_next_id(0)
+{
+}
 
 RID RIDAllocator::allocate() {
   // Try to reuse a freed RID first (fast path with lock)
@@ -14,14 +22,25 @@ RID RIDAllocator::allocate() {
   }
 
   // ✅ No freed RIDs available, allocate new sequential ID
-  // Start from 1 because RID 0 = invalid
-  uint64_t id = m_next_id.fetch_add(1, std::memory_order_relaxed) + 1;
+  uint64_t next = m_next_id.fetch_add(1, std::memory_order_relaxed);
+  uint64_t id = m_range_start + next + 1;  // +1 because RID 0 = invalid
+
+  // Check range limit
+  if (id >= m_range_end) {
+    return RID::INVALID;  // Range exhausted
+  }
+
   return RID{id};
 }
 
 void RIDAllocator::free(RID rid) {
   if (!rid.isValid()) {
-    return; // Ignore invalid RIDs
+    return;  // Ignore invalid RIDs
+  }
+
+  // Optional: verify RID is within our range
+  if (rid.id < m_range_start || rid.id >= m_range_end) {
+    return;  // Wrong range, ignore
   }
 
   std::lock_guard<std::mutex> lock(m_mutex);

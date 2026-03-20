@@ -9,6 +9,23 @@
 namespace ssme {
 
 /**
+ * @brief RID ranges for different subsystems
+ *
+ * Layout:
+ * - Internal:   1 - 1,000,000,000,000 (1 trillion, for backend internal
+ * resources)
+ * - User:       1,000,000,000,001 - UINT64_MAX (for user resources via
+ * ResourceManager)
+ */
+struct RIDRange {
+  static constexpr uint64_t INTERNAL_START = 1ULL;
+  static constexpr uint64_t INTERNAL_END = 1000000000000ULL; // 1 trillion
+
+  static constexpr uint64_t USER_START = 1000000000001ULL;
+  static constexpr uint64_t USER_END = 0ULL; // 0 means UINT64_MAX
+};
+
+/**
  * @brief RID allocator with free-list reuse
  *
  * Generates unique RIDs for GPU resources and reuses freed RIDs
@@ -21,7 +38,12 @@ namespace ssme {
  */
 class RIDAllocator {
 public:
-  RIDAllocator() = default;
+  /**
+   * @brief Construct allocator with range
+   * @param range_start Start of range (inclusive), default 0
+   * @param range_end End of range (exclusive), 0 = UINT64_MAX
+   */
+  explicit RIDAllocator(uint64_t range_start = 0, uint64_t range_end = 0);
   ~RIDAllocator() = default;
 
   // Non-copyable, non-movable (singleton-like semantics)
@@ -96,7 +118,23 @@ public:
    */
   void reset();
 
+  /**
+   * @brief Get range start
+   */
+  uint64_t rangeStart() const { return m_range_start; }
+
+  /**
+   * @brief Get range end
+   */
+  uint64_t rangeEnd() const { return m_range_end; }
+
 private:
+  /// Start of allocation range
+  uint64_t m_range_start = 0;
+
+  /// End of allocation range (0 = UINT64_MAX)
+  uint64_t m_range_end = 0;
+
   /// Next ID to allocate when free-list is empty (atomic for thread safety)
   std::atomic<uint64_t> m_next_id{0};
 
