@@ -7,6 +7,7 @@ add_subdirectory(common)
 add_subdirectory(platform)
 add_subdirectory(ui)
 add_subdirectory(render/rhi)
+add_subdirectory(resource_manager)
 add_subdirectory(render/backends/opengl)
 add_subdirectory(render/backends/vulkan)
 add_subdirectory(render)
@@ -30,6 +31,7 @@ target_include_directories(ssme_engine
 target_link_libraries(ssme_engine
     PUBLIC
         ssme::common
+        ssme::resources
     PRIVATE
         ssme::rhi
         ssme::platform

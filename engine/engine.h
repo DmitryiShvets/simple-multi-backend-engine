@@ -74,11 +74,13 @@ public:
    */
   bool removeEntity(const std::string &name);
 
+  // onfy for tests
+  std::unique_ptr<ResourceManager> m_resource_manager;
+
 private:
   std::unique_ptr<Platform> m_platform;
   std::unique_ptr<UIManager> m_ui_manager;
   std::unique_ptr<RenderSystem> m_render_system;
-  std::unique_ptr<ResourceManager> m_resource_manager;
 
   std::vector<std::unique_ptr<Entity>> m_entities;
   // Active camera

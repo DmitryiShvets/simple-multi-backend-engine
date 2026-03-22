@@ -126,15 +126,6 @@ struct GraphicsPipelineDesc {
 
 // --- Command Structs ---
 
-struct Viewport {
-  float x, y, width, height, minDepth, maxDepth;
-};
-
-struct Rect {
-  int32_t x, y;
-  uint32_t width, height;
-};
-
 struct ColorAttachmentInfo {
   RID texture;
   LoadOp load_op = LoadOp::DONT_CARE;

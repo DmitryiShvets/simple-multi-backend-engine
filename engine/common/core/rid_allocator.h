@@ -61,6 +61,7 @@ public:
    * @return New RID (never returns RID 0)
    */
   RID allocate();
+  std::vector<RID> allocate(uint32_t count);
 
   /**
    * @brief Free a previously allocated RID (returns it to free-list)
@@ -72,6 +73,7 @@ public:
    * @warning Do not use RID after freeing (undefined behavior)
    */
   void free(RID rid);
+  void free(std::vector<RID> rids);
 
   /**
    * @brief Check if a RID is currently allocated (not freed)

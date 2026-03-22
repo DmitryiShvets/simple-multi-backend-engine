@@ -19,8 +19,10 @@ public:
   virtual ~VulkanRenderDevice() override;
 
   // --- Resource Management ---
-  RID createBuffer(const BufferDesc &desc) override;
+  RID createBuffer(const BufferDesc &desc, RID id = RID::INVALID) override;
+  void destroyBuffer(RID rid) override;
   RID createTexture(const TextureDesc &desc) override;
+  void destroyTexture(RID rid) override;
   RID createSampler(const SamplerDesc &desc) override;
   RID createDescriptorSetLayout(const DescriptorSetLayoutDesc &desc) override;
   RID createDescriptorSet(RID layout_rid, const std::vector<RID>& buffer_rids) override;

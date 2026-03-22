@@ -17,8 +17,10 @@ public:
   virtual ~RenderDevice() = default;
 
   // --- Resource Management ---
-  virtual RID createBuffer(const BufferDesc &desc) = 0;
+  virtual RID createBuffer(const BufferDesc &desc, RID id = RID::INVALID) = 0;
+  virtual void destroyBuffer(RID rid) = 0;
   virtual RID createTexture(const TextureDesc &desc) = 0;
+  virtual void destroyTexture(RID rid) = 0;
   virtual RID createSampler(const SamplerDesc &desc) = 0;
   virtual RID
   createDescriptorSetLayout(const DescriptorSetLayoutDesc &desc) = 0;

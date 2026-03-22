@@ -76,4 +76,14 @@ enum class Format {
   R32G32_SFLOAT,
   // Add other formats as needed
 };
+
+
+struct Viewport {
+  float x, y, width, height, minDepth, maxDepth;
+};
+
+struct Rect {
+  int32_t x, y;
+  uint32_t width, height;
+};
 } // namespace ssme

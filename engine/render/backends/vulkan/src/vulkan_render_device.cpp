@@ -6,6 +6,7 @@
 #include "utils/logger.h"
 #include "vulkan_gpu_storage.h"
 // #include "core/uniforms.h"
+#include "utils/debug_assert.h"
 #include "vulkan_buffer.h"
 #include "vulkan_descriptor_set.h"
 #include "vulkan_helpers.h"
@@ -25,35 +26,61 @@ VulkanRenderDevice::VulkanRenderDevice(VulkanDevice &device,
 
 VulkanRenderDevice::~VulkanRenderDevice() {}
 
-// --- Resource Management ---
-RID VulkanRenderDevice::createBuffer(const BufferDesc &desc) {
-  // Determine usage flags based on buffer usage type
+RID VulkanRenderDevice::createBuffer(const BufferDesc &desc, RID id ) {
+  debug_assert(desc.size > 0, "Buffer size cannot be zero");
+
   vk::BufferUsageFlags usage_flags = toVkBufferUsageFlags(desc.usage);
-  // TODO: TEST, MAKE DESSIGIN fallback or error;
-  // Default to vertex buffer if no usage specified
-  if (!usage_flags) {
-    usage_flags = vk::BufferUsageFlagBits::eVertexBuffer;
-    Logger::error_log("Unsupported buffer type");
-    return RID::INVALID;
-  }
+  debug_assert(usage_flags != vk::BufferUsageFlags{}, "Invalid or empty buffer usage");
+
   const auto stride = desc.layout.getStride();
-  if (usage_flags == vk::BufferUsageFlagBits::eVertexBuffer && stride == 0) {
-    Logger::error_log("Cannot create buffer with zero stride");
-    return RID::INVALID;
+  if (usage_flags & vk::BufferUsageFlagBits::eVertexBuffer) {
+    debug_assert(stride > 0, "Vertex Buffer must have a non-zero stride");
   }
+
   auto buffer = std::make_unique<VulkanBuffer>(
       m_device, desc.size, stride, 1, usage_flags,
       vk::MemoryPropertyFlagBits::eHostVisible |
           vk::MemoryPropertyFlagBits::eHostCoherent);
+
+  debug_assert(buffer != nullptr, "Failed to allocate VulkanBuffer (Out of memory?)");
+
   if (desc.initial_data) {
     buffer->map();
     buffer->writeToBuffer(desc.initial_data);
     buffer->unmap();
   }
-  RID rid = m_storage.add<VulkanBuffer>(std::move(buffer));
-  return rid;
+
+  if(id.isNull()) {
+      id = m_storage.add(std::move(buffer));
+  }
+  else {
+      m_storage.store(id, std::move(buffer));
+  }
+  debug_assert(id != RID::INVALID,
+               "GpuStorage failed to assign a valid RID");
+  return id;
 }
+
+void VulkanRenderDevice::destroyBuffer(RID rid) {
+  if (rid.isNull()) return;
+
+  // Get buffer from storage
+  auto* buffer = m_storage.get<VulkanBuffer>(rid);
+  if (buffer) {
+    // Remove from storage (this will call VulkanBuffer destructor)
+    m_storage.remove<VulkanBuffer>(rid);
+  }
+}
+
 RID VulkanRenderDevice::createTexture(const TextureDesc &desc) { return RID{}; }
+
+void VulkanRenderDevice::destroyTexture(RID rid) {
+  if (rid.isNull()) return;
+  auto* texture = m_storage.get<VulkanTexture>(rid);
+  if (texture) {
+    m_storage.remove<VulkanTexture>(rid);
+  }
+}
 RID VulkanRenderDevice::createSampler(const SamplerDesc &desc) { return RID{}; }
 
 RID VulkanRenderDevice::createDescriptorSetLayout(
@@ -71,8 +98,7 @@ RID VulkanRenderDevice::createDescriptorSetLayout(
 RID VulkanRenderDevice::createDescriptorSet(
     RID layout_rid, const std::vector<RID> &buffer_rids) {
   // Get layout
-  auto layout =
-      m_storage.get<VulkanDescriptorSetLayout>(layout_rid);
+  auto layout = m_storage.get<VulkanDescriptorSetLayout>(layout_rid);
   if (!layout) {
     throw std::runtime_error("Invalid descriptor set layout RID");
   }
@@ -179,8 +205,7 @@ RID VulkanRenderDevice::createGraphicsPipeline(
 
   // 2. Get the pre-created pipeline layout from the resource manager
   auto pipeline_layout_wrapper =
-      m_storage.get<VulkanPipelineLayout>(
-          desc.pipeline_layout_rid);
+      m_storage.get<VulkanPipelineLayout>(desc.pipeline_layout_rid);
   if (!pipeline_layout_wrapper) {
     throw std::runtime_error("Invalid pipeline layout RID in createPipeline");
   }
@@ -351,6 +376,6 @@ void VulkanRenderDevice::updateBufferRaw(RID rid, size_t offset, size_t size,
   buffer->unmap();
 }
 
-void VulkanRenderDevice::free(RID rid) { }
+void VulkanRenderDevice::free(RID rid) {}
 
 } // namespace ssme::vulkan

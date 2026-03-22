@@ -36,6 +36,7 @@ target_link_libraries(ssme_vulkan
         ssme::common
         ssme::rhi
         ssme::platform
+        ssme::resources
 )
 
 

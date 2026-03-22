@@ -25,6 +25,7 @@ target_link_libraries(ssme_opengl
         external::imgui
         ssme::common
         ssme::rhi
+        ssme::resources
 )
 
 # POST BUILD

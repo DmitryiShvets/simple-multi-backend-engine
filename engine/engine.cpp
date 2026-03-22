@@ -5,7 +5,7 @@
 #include "hello_widget.h"
 #include "platform.h"
 #include "render/render_system.h"
-#include "resources/resource_manager.h"
+#include "resource_manager.h"
 #include "ui_manager.h"
 
 namespace ssme {
@@ -66,6 +66,8 @@ bool Engine::initialize(int width, int height) {
   m_render_system->addBackend(GpuBackend::Vulkan);
   m_render_system->init(ui_contexts);
 
+  m_resource_manager = std::make_unique<ResourceManager>();
+
   m_initialized = true;
   return true;
 }
@@ -81,6 +83,11 @@ void Engine::cleanup() {
     {
       // std::unique_lock<std::shared_mutex> lk(entitiesMutex);
       m_entities.clear();
+    }
+
+    // Clean up resources
+    if (m_resource_manager) {
+      m_resource_manager->clear();
     }
 
     // Clean up subsystems in reverse order of creation

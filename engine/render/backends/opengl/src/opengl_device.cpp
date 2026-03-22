@@ -5,6 +5,7 @@
 #include "opengl_shader_program.h" // Needed for ShaderProgram
 #include "pipeline_config_registry.h"
 #include "utils/common_utils.h"
+#include "utils/debug_assert.h"
 #include "utils/logger.h"
 
 #include "core/render_types.h" // Needed for GraphicsPipelineDesc
@@ -19,11 +20,8 @@ OpenGLDevice::OpenGLDevice(OpenGLGpuStorageMT &storage,
     : m_storage(storage), m_pl_registry(pl_registry) {}
 OpenGLDevice::~OpenGLDevice() {}
 
-RID OpenGLDevice::createBuffer(const BufferDesc &desc) {
-  if (desc.size == 0) {
-    Logger::error_log("Cannot create buffer with zero size");
-    return RID::INVALID;
-  }
+RID OpenGLDevice::createBuffer(const BufferDesc &desc, RID id) {
+  debug_assert(desc.size > 0, "Buffer size cannot be zero");
 
   // Create different buffer types based on usage
   if (desc.usage & static_cast<uint32_t>(BufferUsage::UNIFORM_BUFFER)) {
@@ -36,33 +34,67 @@ RID OpenGLDevice::createBuffer(const BufferDesc &desc) {
       initial_data = zero_data.data();
     }
     auto ubo = std::make_unique<UniformBuffer>(desc.size, initial_data);
-    return m_storage.add(std::move(ubo));
+
+    if(id.isNull()) {
+        id = m_storage.add(std::move(ubo));
+    }
+    else {
+        m_storage.store(id, std::move(ubo));
+    }
+
+    debug_assert(id != RID::INVALID,
+                 "GpuStorage failed to assign a valid RID");
+    return id;
   } else if (desc.usage & static_cast<uint32_t>(BufferUsage::VERTEX_BUFFER)) {
     const auto stride = desc.layout.getStride();
-    if (stride == 0) {
-      Logger::error_log("Cannot create buffer with zero stride");
-      return RID::INVALID;
-    }
+    debug_assert(stride > 0, "Vertex Buffer must have a non-zero stride");
+
     // Create Vertex Buffer Object (VBO) with VAO
     uint64_t vertex_count = desc.size / stride;
 
     // 1. Create and initialize VBO
     auto vao = std::make_unique<VAO>();
+    debug_assert(vao != nullptr, "Failed to allocate VAO");
     auto vbo = std::make_unique<VBO>();
+    debug_assert(vbo != nullptr, "Failed to allocate VBO");
+
     vao->bind();
     vbo->init(desc.initial_data, desc.size);
     vao->addBuffer(*vbo, desc.layout, vertex_count);
     vbo->unbind();
     vao->unbind();
 
-    return m_storage.add(std::move(vao));
+    if(id.isNull()) {
+        id = m_storage.add(std::move(vao));
+    }
+    else {
+        m_storage.store(id, std::move(vao));
+    }
+    debug_assert(id != RID::INVALID,
+                 "GpuStorage failed to assign a valid RID");
+    return id;
   } else {
-    Logger::error_log("Unsupported buffer type");
+    debug_assert(false, "Unsupported buffer type");
     return RID::INVALID;
   }
 }
 
+void OpenGLDevice::destroyBuffer(RID rid) {
+  if (rid.isNull()) return;
+
+  // Try to remove as VAO first (vertex buffer)
+  if (m_storage.remove<VAO>(rid)) return;
+
+  // Try to remove as UniformBuffer
+  if (m_storage.remove<UniformBuffer>(rid)) return;
+}
+
 RID OpenGLDevice::createTexture(const TextureDesc &desc) { return {}; }
+
+void OpenGLDevice::destroyTexture(RID rid) {
+  if (rid.isNull()) return;
+  // TODO: Implement when textures are added
+}
 RID OpenGLDevice::createSampler(const SamplerDesc &desc) { return {}; }
 RID OpenGLDevice::createDescriptorSetLayout(
     const DescriptorSetLayoutDesc &desc) {
@@ -79,8 +111,7 @@ RID OpenGLDevice::createDescriptorSetLayout(
 RID OpenGLDevice::createDescriptorSet(RID layout_rid,
                                       const std::vector<RID> &buffer_rids) {
   // Get layout (for validation, optional)
-  auto layout =
-      m_storage.get<OpenGLDescriptorSetLayout>(layout_rid);
+  auto layout = m_storage.get<OpenGLDescriptorSetLayout>(layout_rid);
   if (!layout) {
     throw std::runtime_error("Invalid descriptor set layout RID in OpenGL");
   }
