@@ -7,10 +7,9 @@ namespace ssme::vulkan {
 class VulkanBuffer {
 public:
   VulkanBuffer(VulkanDevice &device, vk::DeviceSize instanceSize,
-                   uint32_t stride, uint32_t instanceCount,
-                   vk::BufferUsageFlags usageFlags,
-                   vk::MemoryPropertyFlags memoryPropertyFlags,
-                   vk::DeviceSize minOffsetAlignment = 1);
+               uint64_t instanceCount, vk::BufferUsageFlags usageFlags,
+               vk::MemoryPropertyFlags memoryPropertyFlags,
+               vk::DeviceSize minOffsetAlignment = 1);
   ~VulkanBuffer();
 
   VulkanBuffer(const VulkanBuffer &) = delete;
@@ -23,7 +22,7 @@ public:
   void flush(vk::DeviceSize size = vk::WholeSize, vk::DeviceSize offset = 0);
   void invalidate(vk::DeviceSize size = vk::WholeSize,
                   vk::DeviceSize offset = 0);
-  uint32_t count() const { return m_buffer_size / m_stride; }
+  uint32_t count() const { return m_instance_count; }
   void writeToIndex(void *data, int index);
   void flushIndex(int index);
   void invalidateIndex(int index);
@@ -53,11 +52,10 @@ private:
   vk::raii::Buffer m_buffer = nullptr;
   vk::raii::DeviceMemory m_memory = nullptr;
 
-  vk::DeviceSize m_buffer_size;
-  vk::DeviceSize m_instance_size;
+  vk::DeviceSize m_buffer_size;   // total = alignment_size * instance_count
+  vk::DeviceSize m_instance_size; // stride
   vk::DeviceSize m_alignment_size;
-  uint32_t m_instance_count;
-  uint32_t m_stride;
+  uint64_t m_instance_count;
   vk::BufferUsageFlags m_usage_flags;
   vk::MemoryPropertyFlags m_memory_property_flags;
 };

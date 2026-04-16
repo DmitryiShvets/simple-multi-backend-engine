@@ -7,8 +7,8 @@ struct SphereGeometry {
   std::vector<glm::vec3> positions;
   std::vector<glm::vec3> normals;
   std::vector<glm::vec2> text_coords;
-  std::vector<int> indices;
-  std::vector<int> line_indices;
+  std::vector<uint32_t> indices;
+  std::vector<uint32_t> line_indices;
 };
 
 SphereGeometry getSphere3D(float radius, uint64_t sector_count, uint64_t stack_count);

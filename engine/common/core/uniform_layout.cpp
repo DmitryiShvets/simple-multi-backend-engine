@@ -22,7 +22,7 @@ size_t UniformLayout::getStd140Alignment(UniformValue::Type type) {
   // - scalar (float, int, bool): 4 bytes
   // - vec2: 8 bytes
   // - vec3, vec4: 16 bytes
-  // - mat2: 8 bytes (2 floats)
+  // - mat2: 16 bytes (2 floats)
   // - mat3: 16 bytes (like vec4)
   // - mat4: 16 bytes (4 vec4s)
 
@@ -218,7 +218,30 @@ void UniformLayout::packTo(const UniformSet &uniform_set,
       continue;
     }
     // Copy data
-    std::memcpy(buffer + var.offset, value->data(), value->size());
+    const uint8_t *src = static_cast<const uint8_t *>(value->data());
+    uint8_t *dest = buffer + var.offset;
+
+    switch (var.type) {
+    case UniformValue::Type::Mat4:
+      std::memcpy(dest, src, 64);
+      break;
+    case UniformValue::Type::Mat3:
+      for (int i = 0; i < 3; ++i)
+        std::memcpy(dest + (i * 16), src + (i * 12), 12);
+      break;
+    case UniformValue::Type::Mat2:
+      for (int i = 0; i < 2; ++i)
+        std::memcpy(dest + (i * 16), src + (i * 8), 8);
+      break;
+    case UniformValue::Type::Bool: {
+      uint32_t b = *reinterpret_cast<const bool *>(src) ? 1 : 0;
+      std::memcpy(dest, &b, 4);
+      break;
+    }
+    default:
+      std::memcpy(dest, src, value->size());
+      break;
+    }
   }
 }
 

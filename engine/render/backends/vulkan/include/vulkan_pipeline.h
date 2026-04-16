@@ -1,5 +1,6 @@
 #pragma once
 #include "vulkan_device.h"
+#include "vulkan_shader_module.h"
 
 #include <memory>
 #include <string>
@@ -59,8 +60,8 @@ class VulkanPipeLine {
 public:
   // Main constructor now takes the config object
   VulkanPipeLine(VulkanDevice &device, const PipelineConfigInfo &config,
-                 const std::string &vert_shader_filepath,
-                 const std::string &frag_shader_filepath);
+                 const VulkanShaderModule &vert_shader,
+                 const VulkanShaderModule &frag_shader);
 
   ~VulkanPipeLine();
 
@@ -70,12 +71,9 @@ public:
   VulkanPipeLine &operator=(const VulkanPipeLine &) = delete;
 
 private:
-  void createGraphicsPipeline(const std::string &vert_shader_filepath,
-                                const std::string &frag_shader_filepath,
-                                const PipelineConfigInfo &config);
-  [[nodiscard]]
-  vk::raii::ShaderModule createShaderModule(const std::vector<char> &code);
-
+  void createGraphicsPipeline(const VulkanShaderModule &vert_shader,
+                              const VulkanShaderModule &frag_shader,
+                              const PipelineConfigInfo &config);
   vk::raii::Pipeline m_graphics_pipeline = nullptr;
   vk::PipelineLayout m_pipeline_layout;
   VulkanDevice &m_device;

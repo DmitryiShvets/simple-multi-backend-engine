@@ -1,42 +1,43 @@
 #pragma once
 
+#include "core/render_types.h"
 #include <glad/gl.h>
 #include <vector>
 #include <cstdint>
 
 namespace ssme::opengl {
 
-// Descriptor binding - связка UBO/текстуры с binding point
+// Descriptor binding - links UBO/texture to binding point
 struct DescriptorBinding {
-    GLuint handle;        // Handle ресурса (UBO, texture и т.д.)
-    uint32_t binding;     // Binding point (должен совпадать с шейдером!)
+    GLuint handle;        // Resource handle (UBO, texture, etc.)
+    uint32_t binding;     // Binding point (must match shader!)
 };
 
-// OpenGL DescriptorSet - эмуляция Vulkan DescriptorSet
-// Хранит коллекцию биндингов и биндит их на OpenGL context
+// OpenGL DescriptorSet - emulates Vulkan DescriptorSet
+// Stores collection of bindings and binds them to OpenGL context
 class OpenGLDescriptorSet {
 public:
     OpenGLDescriptorSet() = default;
     ~OpenGLDescriptorSet() = default;
 
-    // Добавить binding
+    // Add binding
     void addBinding(uint32_t binding, GLuint handle);
 
-    // Забиндить все ресурсы в OpenGL context
-    void bind() const;
+    // Bind all resources to OpenGL context
+    void bind(uint32_t bind_point) const;
 
-    // Получить количество биндингов
+    // Get binding count
     size_t getBindingCount() const { return m_bindings.size(); }
 
-    // Получить binding по индексу
+    // Get binding by index
     const DescriptorBinding& getBinding(size_t index) const { return m_bindings[index]; }
 
 private:
     std::vector<DescriptorBinding> m_bindings;
 };
 
-// Descriptor Set Layout для OpenGL
-// Хранит метаданные о структуре DescriptorSet (для валидации)
+// Descriptor Set Layout for OpenGL
+// Stores metadata about DescriptorSet structure (for validation)
 class OpenGLDescriptorSetLayout {
 public:
     struct BindingDesc {
@@ -48,13 +49,13 @@ public:
 
     OpenGLDescriptorSetLayout() = default;
 
-    // Добавить описание binding'а
+    // Add binding description
     void addBinding(uint32_t binding, uint32_t type, uint32_t stages, uint32_t count = 1);
 
-    // Получить количество binding'ов
+    // Get binding count
     size_t getBindingCount() const { return m_bindings.size(); }
 
-    // Получить binding по индексу
+    // Get binding by index
     const BindingDesc& getBinding(size_t index) const { return m_bindings[index]; }
 
 private:

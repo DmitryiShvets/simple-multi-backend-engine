@@ -1,7 +1,6 @@
 #include "buffer.h"
 #include "render_device.h"
 #include "utils/debug_assert.h"
-#include <imgui/imgui.h>
 
 namespace ssme {
 
@@ -9,6 +8,11 @@ Buffer::Buffer(std::string id, const VecRefRD &devices, const BufferDesc &desc)
     : Resource(id, devices) {}
 
 Buffer::~Buffer() {}
+
+
+uint32_t Buffer::doPrepare() {
+    return COMPONENTS;
+}
 
 void Buffer::doSetup(const VecRID &rids) {
   debug_assert(rids.size() == COMPONENTS,

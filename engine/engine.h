@@ -8,6 +8,8 @@
 // ssme = Simple Study Multi-backend Engine
 namespace ssme {
 
+class Scene;
+class System;
 class Platform;
 class UIManager;
 class RenderSystem;
@@ -39,6 +41,12 @@ public:
    * @brief Clean up engine resources.
    */
   void cleanup();
+
+  Entity createSphere(const std::string &name, float radius, int stacks,
+                      int sectors, const glm::vec3 &pos,
+                      const std::string &mat_name = "ads");
+  Entity createTriangle(const std::string &name, const glm::vec3 &pos,
+                        const std::string &mat_name = "default");
   /**
    * @brief Create a new entity.
    * @param name The name of the entity.
@@ -75,18 +83,19 @@ public:
   bool removeEntity(const std::string &name);
 
   // onfy for tests
-  std::unique_ptr<ResourceManager> m_resource_manager;
 
 private:
   std::unique_ptr<Platform> m_platform;
+  std::unique_ptr<ResourceManager> m_resource_manager;
   std::unique_ptr<UIManager> m_ui_manager;
   std::unique_ptr<RenderSystem> m_render_system;
+  std::unique_ptr<Scene> m_scene;
 
   std::vector<std::unique_ptr<Entity>> m_entities;
   // Active camera
   CameraComponent *m_active_camera = nullptr;
 
-  HelloWidget m_test_widget;   // this is templrary
+  HelloWidget m_test_widget; // this is templrary
 
   // Engine state
   bool m_initialized = false;

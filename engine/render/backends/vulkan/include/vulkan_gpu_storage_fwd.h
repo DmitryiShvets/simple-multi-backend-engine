@@ -4,7 +4,7 @@ namespace ssme::vulkan {
 
 template <bool THREAD_SAFE> class VulkanGpuStorage;
 
-// Typedefs для удобства
+// Typedefs for convenience
 using VulkanGpuStorageMT = VulkanGpuStorage<true>;
 using VulkanGpuStorageST = VulkanGpuStorage<false>;
 

@@ -9,6 +9,7 @@ namespace ssme {
 
 class Buffer : public Resource {
 public:
+  using ParamsType = BufferDesc;
   static constexpr ResourceId ID = ResourceId::MESH;
   static constexpr uint32_t COMPONENTS = 1;
 
@@ -16,7 +17,8 @@ public:
                   const BufferDesc &desc);
   ~Buffer() override;
 
-  void doSetup(const VecRID& rids) override;
+  uint32_t doPrepare() override;
+  void doSetup(const VecRID &rids) override;
   bool doLoad() override;
   bool doUnload() override;
 

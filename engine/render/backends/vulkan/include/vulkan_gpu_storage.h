@@ -3,6 +3,7 @@
 #include "core/resource_owner.h"
 #include "core/rid.h"
 #include "core/rid_allocator.h"
+#include <cstddef>
 #include <memory>
 #include <mutex>
 #include <string>
@@ -15,6 +16,7 @@
 #include "vulkan_pipeline.h"
 #include "vulkan_pipeline_layout.h"
 #include "vulkan_texture.h"
+#include "vulkan_shader_module.h"
 
 // Forward declarations for remaining Vulkan resources
 namespace ssme::vulkan {
@@ -22,7 +24,7 @@ class VulkanImage;
 class VulkanImageView;
 class VulkanSampler;
 class VulkanDescriptorPool;
-class VulkanShaderModule;
+// class VulkanShaderModule;
 class VulkanSwapChain;
 class VulkanRenderPass;
 class VulkanFramebuffer;
@@ -127,9 +129,9 @@ public:
   /**
    * @brief Find PSO (Pipeline) by name
    */
-  RID findPSO(const std::string &name) {
+  RID findPSO(std::size_t hash) {
     LockGuard lock;
-    auto it = m_pso_map.find(name);
+    auto it = m_pso_map.find(hash);
     if (it != m_pso_map.end()) {
       return it->second;
     }
@@ -139,18 +141,18 @@ public:
   /**
    * @brief Register PSO (Pipeline) with a name
    */
-  void registerPSO(const std::string &name, RID rid) {
+  void registerPSO(std::size_t name, RID rid) {
     LockGuard lock;
     m_pso_map[name] = rid;
   }
 
   /**
-   * @brief Find Material by name
+   * @brief Find Pipeline layout by hash
    */
-  RID findMaterial(const std::string &name) {
+  RID findPSOLayout(std::size_t hash) {
     LockGuard lock;
-    auto it = m_material_map.find(name);
-    if (it != m_material_map.end()) {
+    auto it = m_pso_layout_map.find(hash);
+    if (it != m_pso_layout_map.end()) {
       return it->second;
     }
     return RID::INVALID;
@@ -159,9 +161,9 @@ public:
   /**
    * @brief Register Material with a name
    */
-  void registerMaterial(const std::string &name, RID rid) {
+  void registerPSOLayout(std::size_t hash, RID rid) {
     LockGuard lock;
-    m_material_map[name] = rid;
+    m_pso_layout_map[hash] = rid;
   }
 
 private:
@@ -177,7 +179,7 @@ private:
   ResourceOwner<VulkanDescriptorPool> m_descriptor_pools;
   ResourceOwner<VulkanDescriptorSet> m_descriptor_sets;
   ResourceOwner<VulkanPipelineLayout> m_pipeline_layouts;
-  ResourceOwner<ssme::Material> m_materials;
+  ResourceOwner<VulkanShaderModule> m_shader_modules;
 
   // ========================================================================
   // RID Allocator for internal resources
@@ -192,8 +194,8 @@ private:
   // Name-to-RID maps for PSO and Materials
   // ========================================================================
 
-  std::unordered_map<std::string, RID> m_pso_map;
-  std::unordered_map<std::string, RID> m_material_map;
+  std::unordered_map<std::size_t, RID> m_pso_map;
+  std::unordered_map<std::size_t, RID> m_pso_layout_map;
 
   // ========================================================================
   // Thread Safety
@@ -243,6 +245,6 @@ REGISTER_VK_GPU_RESOURCE(VulkanDescriptorSetLayout, m_ds_layouts);
 REGISTER_VK_GPU_RESOURCE(VulkanDescriptorPool, m_descriptor_pools);
 REGISTER_VK_GPU_RESOURCE(VulkanDescriptorSet, m_descriptor_sets);
 REGISTER_VK_GPU_RESOURCE(VulkanPipelineLayout, m_pipeline_layouts);
-REGISTER_VK_GPU_RESOURCE(ssme::Material, m_materials);
+REGISTER_VK_GPU_RESOURCE(VulkanShaderModule, m_shader_modules);
 
 } // namespace ssme::vulkan

@@ -266,7 +266,18 @@ public:
      */
     size_t size() const {
         return std::visit([](const auto& v) -> size_t {
-            return sizeof(v);
+            using T = std::decay_t<decltype(v)>;
+            if constexpr (std::is_same_v<T, std::vector<float>>) {
+                return v.size() * sizeof(typename T::value_type);
+            } else if constexpr (std::is_same_v<T, std::vector<glm::vec2>>) {
+                return v.size()* sizeof(typename T::value_type);
+            } else if constexpr (std::is_same_v<T, std::vector<glm::vec3>>) {
+                return v.size()* sizeof(typename T::value_type);
+            } else if constexpr (std::is_same_v<T, std::vector<glm::vec4>>) {
+                return v.size()* sizeof(typename T::value_type);
+            } else {
+               return sizeof(v);  // Non-array types
+            }
         }, value_);
     }
 
@@ -321,6 +332,21 @@ public:
         return !label_.empty();
     }
 
+    static UniformValue createDefault(Type type) {
+        switch (type) {
+            case Type::Float:  return UniformValue(0.0f);
+            case Type::Int:    return UniformValue(static_cast<int32_t>(0));
+            case Type::Uint:   return UniformValue(static_cast<uint32_t>(0));
+            case Type::Bool:   return UniformValue(false);
+            case Type::Vec2:   return UniformValue(glm::vec2(0.0f));
+            case Type::Vec3:   return UniformValue(glm::vec3(0.0f));
+            case Type::Vec4:   return UniformValue(glm::vec4(0.0f));
+            case Type::Mat4:   return UniformValue(glm::mat4(1.0f)); // Identity matrix is better
+            case Type::Texture: return UniformValue(RID()); // Empty RID
+            // Add other types following this pattern...
+            default: return UniformValue();
+        }
+    }
 private:
     // Helper to map C++ types to Type enum
     static Type getTypeImpl(const auto& v) {

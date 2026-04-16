@@ -1,10 +1,6 @@
 # Platform sources
 set(RHI_SOURCES
-    # pipeline
-    pipelines/default_pipeline.cpp
-    pipelines/ads_pipeline.cpp
-    # common
-    pipeline_config_registry.cpp
+    dummy.cpp
 )
 
 # Create platform library

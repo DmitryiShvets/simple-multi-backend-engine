@@ -79,4 +79,15 @@ vk::BufferUsageFlags toVkBufferUsageFlags(BufferUsageFlags usage) {
   }
   return usage_flags;
 }
+
+vk::IndexType toVkIndexType(IndexType type) {
+  switch (type) {
+  case IndexType::UINT16:
+    return vk::IndexType::eUint16;
+  case IndexType::UINT32:
+    return vk::IndexType::eUint32;
+  default:
+    return vk::IndexType::eUint32;
+  }
+}
 } // namespace ssme::vulkan

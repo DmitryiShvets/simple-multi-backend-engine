@@ -10,7 +10,7 @@ class ImDrawData;
 namespace ssme {
 
 /**
- * @brief Конфигурация UI-бекенда
+ * @brief UI backend configuration
  */
 struct UIBackendConfig {
   std::string name;
@@ -20,7 +20,7 @@ struct UIBackendConfig {
 };
 
 /**
- * @brief Базовый класс RAII-обертки для ImGui-бекенда
+ * @brief Base RAII wrapper class for ImGui backend
  */
 class ImGuiBackend {
 public:
@@ -45,7 +45,7 @@ protected:
 };
 
 /**
- * @brief RAII-обертка для OpenGL ImGui-бекенда
+ * @brief RAII wrapper for OpenGL ImGui backend
  */
 class ImGuiOpenGLBackend : public ImGuiBackend {
 public:
@@ -55,7 +55,7 @@ public:
 };
 
 /**
- * @brief RAII-обертка для Vulkan ImGui-бекенда
+ * @brief RAII wrapper for Vulkan ImGui backend
  */
 class ImGuiVulkanBackend : public ImGuiBackend {
 public:

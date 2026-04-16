@@ -72,17 +72,4 @@ private:
   }
 };
 
-// Usage example
-// AsyncResourceManager asyncResourceManager;
-
-// asyncResourceManager.LoadAsync<Texture>(
-//     "large_texture", [](ResourceHandle<Texture> texture) {
-//       // This callback will be called when the texture is loaded
-//       if (texture) {
-//         std::cout << "Texture loaded successfully!" << std::endl;
-//       } else {
-//         std::cout << "Failed to load texture." << std::endl;
-//       }
-//     });
-
 } // namespace ssme

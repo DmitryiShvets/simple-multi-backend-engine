@@ -4,6 +4,7 @@
 #include "vulkan_gpu_storage_fwd.h"
 #include "vulkan_texture.h"
 #include "vulkan_types.h"
+#include "core/gpu_types.h"
 #include <algorithm>
 #include <cassert>
 #include <cstdlib>

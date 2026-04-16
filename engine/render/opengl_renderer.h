@@ -1,11 +1,11 @@
 #pragma once
 
 #include "core/gpu_types.h"
+#include "core/resource_types.h"
 #include "opengl_gpu_storage.h"
 #include "renderer.h"
 
 #include "opengl_command_list.h"
-#include "pipeline_config_registry.h"
 #include <memory>
 
 // Forward-declarations
@@ -16,8 +16,9 @@ class OpenGLCommandList;
 namespace ssme {
 
 class RenderDevice;
-class SceneView;
 class Platform;
+class ResourceManager;
+class SceneView;
 
 // Per-frame resources for OpenGL (analogous to Vulkan)
 struct OpenGLPerFrameResources {
@@ -25,16 +26,18 @@ struct OpenGLPerFrameResources {
   RID descriptor_set_rid; // Descriptor set for Set 0 binding
 };
 
+
+
 // This is the concrete, API-dependent implementation of the IRenderer interface
 // for OpenGL.
 class OpenGLRenderer final : public IRenderer {
 public:
-  OpenGLRenderer(Platform *platform);
+  OpenGLRenderer(Platform *platform, ResourceManager* rm );
   ~OpenGLRenderer();
 
   void init(ImGuiContext *ctx) override;
 
-  void renderFrame(const SceneView &view, ImDrawData *ui_draw_data) override;
+  void renderFrame(SceneView &view, ImDrawData *ui_draw_data) override;
 
   void destroy() override;
 
@@ -44,25 +47,26 @@ public:
 
   GpuBackend getGpuBackend() override;
 
+  void setFrameResources(std::shared_ptr<FrameData> data) override;
+
 private:
   void createPerFrameResources();
   void updatePerFrameResources(const SceneView &view);
 
   GpuBackend m_backend_type = GpuBackend::OpenGL;
   Platform *m_platform;
+  ResourceManager* m_rm;
+
   std::unique_ptr<RenderDevice> m_rhi_device;
 
   // Shared, API-agnostic systems
   ImGuiContext *m_imgui_context = nullptr;
   opengl::OpenGLGpuStorageMT m_storage;
-  PipelineConfigRegistry m_pl_registry;
 
   // OpenGL command list for drawing
   std::unique_ptr<ssme::opengl::OpenGLCommandList> m_command_list;
 
-  // Per-frame resources (Set 0: camera/projection)
-  RID m_per_frame_ds_layout;
-  std::vector<OpenGLPerFrameResources> m_per_frame_resources;
+  std::shared_ptr<FrameData> m_frame_data = nullptr;
 };
 
 } // namespace ssme

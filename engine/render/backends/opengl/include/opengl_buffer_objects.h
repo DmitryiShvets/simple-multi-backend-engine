@@ -6,16 +6,16 @@
 
 namespace ssme::opengl {
 
-// Uniform Buffer Object - для хранения uniform данных в GPU памяти
+// Uniform Buffer Object - stores uniform data in GPU memory
 class UniformBuffer {
 public:
     UniformBuffer(size_t size, const void* data);
     ~UniformBuffer();
 
-    // Обновление данных в буфере
+    // Update data in buffer
     void update(size_t offset, size_t size, const void* data);
 
-    // Отображение буфера в память CPU для чтения/записи
+    // Map buffer to CPU memory for read/write
     void* map();
     void unmap();
 

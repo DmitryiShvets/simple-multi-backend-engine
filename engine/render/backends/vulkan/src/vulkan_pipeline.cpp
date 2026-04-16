@@ -1,5 +1,5 @@
 #include "vulkan_pipeline.h"
-#include "utils/common_utils.h"
+#include "vulkan_shader_module.h"
 #include <cassert>
 #include <memory>
 #include <utility>
@@ -156,46 +156,34 @@ PipelineConfigInfo::Builder::enableDepthWrite(bool enable) {
 
 VulkanPipeLine::VulkanPipeLine(VulkanDevice &device,
                                const PipelineConfigInfo &config,
-                               const std::string &vert_shader_filepath,
-                               const std::string &frag_shader_filepath)
+                               const VulkanShaderModule &vert_shader,
+                               const VulkanShaderModule &frag_shader)
     : m_device(device), m_pipeline_layout(config.pipeline_layout) {
-  createGraphicsPipeline(vert_shader_filepath, frag_shader_filepath, config);
+  createGraphicsPipeline(vert_shader, frag_shader, config);
 }
 
 VulkanPipeLine::~VulkanPipeLine() {}
 
-[[nodiscard]]
-vk::raii::ShaderModule
-VulkanPipeLine::createShaderModule(const std::vector<char> &code) {
-  vk::ShaderModuleCreateInfo create_info{
-      .codeSize = code.size() * sizeof(char),
-      .pCode = reinterpret_cast<const uint32_t *>(code.data())};
-
-  vk::raii::ShaderModule module{m_device.getHandle(), create_info};
-  return module;
-}
-
 void VulkanPipeLine::createGraphicsPipeline(
-    const std::string &vert_shader_filepath,
-    const std::string &frag_shader_filepath, const PipelineConfigInfo &config) {
+    const VulkanShaderModule &vert_shader,
+    const VulkanShaderModule &frag_shader, const PipelineConfigInfo &config) {
   assert(
       config.pipeline_layout != nullptr &&
       "cannot create graphics pipeline : no pipelineLayout provided in config");
 
-  auto vert_code = CUtils::readFileChar(vert_shader_filepath);
-  auto frag_code = CUtils::readFileChar(frag_shader_filepath);
-
-  auto vert_shader_module = createShaderModule(vert_code);
-  auto frag_shader_module = createShaderModule(frag_code);
+  // VulkanShaderModule vert_shader_module = VulkanShaderModule(m_device, vert_shader_filepath);
+  // VulkanShaderModule frag_shader_module = VulkanShaderModule(m_device, frag_shader_filepath);
 
   vk::PipelineShaderStageCreateInfo vert_shader_stages{
+
       .stage = vk::ShaderStageFlagBits::eVertex,
-      .module = vert_shader_module,
+      .module = vert_shader.getHandle(),
       .pName = "main"};
   vk::PipelineShaderStageCreateInfo frag_shader_stages{
       .stage = vk::ShaderStageFlagBits::eFragment,
-      .module = frag_shader_module,
+      .module = frag_shader.getHandle(),
       .pName = "main"};
+
   vk::PipelineShaderStageCreateInfo shader_stages[] = {vert_shader_stages,
                                                        frag_shader_stages};
 

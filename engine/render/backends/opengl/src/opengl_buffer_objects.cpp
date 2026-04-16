@@ -16,7 +16,7 @@ FormatInfo getFormatInfo(Format format) {
         case Format::R32G32B32_SFLOAT:
             return {GL_FLOAT, 3, 3 * sizeof(GLfloat)};
         case Format::R32G32_SFLOAT:
-            return {GL_FLOAT, 2, 3 * sizeof(GLfloat)};
+            return {GL_FLOAT, 2, 2 * sizeof(GLfloat)};
         case Format::UNDEFINED:
         default:
             assert(false && "Unsupported vertex format");

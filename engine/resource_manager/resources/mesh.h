@@ -2,49 +2,57 @@
 
 #include "core/resource_types.h"
 #include "core/rid.h"
+#include "core/vertex_layout.h"
 #include "resource.h"
+#include <glm/glm.hpp>
+
+/**
+ * @brief Mesh resource
+ *
+ * Goals and requirements:
+ * - Format universality: Class doesn't depend on specific vertex structure
+ *   (VertexP, VertexPN, etc.). It stores its own VertexLayout.
+ * - GPU resource encapsulation: All RIDs (vertex buffer, index buffer) are
+ *   created and stored internally. External world (ECS) sees only high-level object.
+ * - Indexing support: Mandatory use of Index Buffer for rendering optimization.
+ * - Geometric metadata: Stores AABB (Bounding Box) for frustum culling and physics.
+ * - ResourceManager integration: Inherits from Resource for automatic lifetime
+ *   management (GPU deletion when ECS reference count reaches zero).
+ * - Backend-agnostic: doLoad creates buffers for all registered backends
+ *   (Vulkan/OpenGL) via RenderDevice.
+ */
 
 namespace ssme {
 
 class Mesh : public Resource {
 public:
+  using ParamsType = MeshDesc;
   static constexpr ResourceId ID = ResourceId::MESH;
-  static constexpr uint32_t COMPONENTS = 2;
+  static constexpr uint32_t COMPONENTS = 2; // VB + IB
 
-  Mesh(std::string id, const VecRID &rids, const VecRefRD &devices)
-      : Resource(id, devices), m_vertex_buffer(rids[0]),
-        m_index_buffer(rids[1]) {}
+  Mesh(std::string id, const VecRefRD &devices, const MeshDesc &desc);
+  ~Mesh() override;
 
-  // Этим методом пользуется Игрок/Загрузчик
-  bool loadFromFile(const std::string &path) {
-    // 1. Грузим данные с диска (через tinyobjloader или assimp)
-    auto raw_data = GeometryLoader::load(path);
+  // Resource interface implementation
+  uint32_t doPrepare() override;
+  void doSetup(const VecRID &rids) override;
+  bool doLoad() override;
+  bool doUnload() override;
 
-    // 2. Просим RenderDevice создать GPU-буферы
-    // Мы получаем чистые RID, которые спрятаны внутри Mesh
-    m_vertex_buffer = g_render_device->createBuffer(
-        {.size = raw_data.vertices.size() * sizeof(Vertex),
-         .usage = BufferUsage::VertexBuffer,
-         .initial_data = raw_data.vertices.data()});
-
-    m_index_buffer = g_render_device->createBuffer(
-        {.size = raw_data.indices.size() * sizeof(uint32_t),
-         .usage = BufferUsage::IndexBuffer,
-         .initial_data = raw_data.indices.data()});
-
-    m_index_count = raw_data.indices.size();
-    return m_vertex_buffer.isValid() && m_index_buffer.isValid();
-  }
-
-  // Эти методы позовет Рендерер, когда придет время рисовать
-  RID getVertexBuffer() const { return m_vertex_buffer; }
-  RID getIndexBuffer() const { return m_index_buffer; }
+  // Getters for renderer
+  RID getVertexBuffer() const { return m_vb_id; }
+  RID getIndexBuffer() const { return m_ib_id; }
   uint32_t getIndexCount() const { return m_index_count; }
+  const VertexLayout &getVertexLayout() const { return m_layout; }
+  const AABB &getBounds() const { return m_bounds; }
 
 private:
-  RID m_vertex_buffer;
-  RID m_index_buffer;
+  MeshDesc m_desc;
+  RID m_vb_id = RID::INVALID;
+  RID m_ib_id = RID::INVALID;
   uint32_t m_index_count = 0;
+  VertexLayout m_layout;
+  AABB m_bounds;
 };
 
 } // namespace ssme

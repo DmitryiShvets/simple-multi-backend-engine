@@ -1,6 +1,7 @@
 set(OPENGL_RENDER_SOURCES
-    src/opengl_device.cpp
+    src/opengl_render_device.cpp
     src/opengl_shader_program.cpp
+    src/opengl_shader_module.cpp
     src/opengl_buffer_objects.cpp
     src/opengl_command_list.cpp
     src/opengl_descriptor_set.cpp

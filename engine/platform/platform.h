@@ -79,7 +79,7 @@ public:
    * @param height Pointer to store height.
    */
   virtual void getWindowSize(size_t index, int *width, int *height) const = 0;
-  // Доступ к окну по типу бекенда
+  // Get window by backend type
   virtual MainWindow &getWindow(size_t type) = 0;
   virtual const MainWindow &getWindow(size_t type) const = 0;
 

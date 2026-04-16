@@ -14,7 +14,6 @@ class VulkanDevice;
 
 // Maximum number of frames that can be processed concurrently
 // This is independent of the number of swap chain images
-constexpr size_t MAX_FRAMES_IN_FLIGHT = 2;
 
 /**
  * @class VulkanSwapChain
@@ -146,13 +145,11 @@ private:
   std::vector<RID> m_swap_chain_depth_texture_rids;
 
   // --- Synchronization Objects ---
-  // Семантика индексации:
-  // - m_image_available_semaphores[frameIndex]: ждём ПЕРЕД рендерингом кадра
-  // - m_render_finished_semaphores[imageIndex]: сигналим ПОСЛЕ рендеринга
-  // изображения
-  // - m_in_flight_fences[frameIndex]: fence для кадра (CPU vs GPU)
-  // - m_images_in_flight[imageIndex]: fence для изображения (какое изображение
-  // занято)
+  // Indexing semantics:
+  // - m_image_available_semaphores[frameIndex]: wait BEFORE rendering frame
+  // - m_render_finished_semaphores[imageIndex]: signal AFTER rendering image
+  // - m_in_flight_fences[frameIndex]: fence for frame (CPU vs GPU)
+  // - m_images_in_flight[imageIndex]: fence for image (which image is busy)
   std::vector<vk::raii::Semaphore>
       m_image_available_semaphores; // MAX_FRAMES_IN_FLIGHT
   std::vector<vk::raii::Semaphore>

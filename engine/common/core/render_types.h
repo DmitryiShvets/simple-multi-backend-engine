@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <string>
 
 namespace ssme {
 // ==================== Core Enums ====================
@@ -70,13 +71,29 @@ enum class FrontFace {
   CLOCKWISE,
 };
 
+enum class Filter {
+   LINEAR,
+};
+
+enum class Wrap {
+   REPEAT,
+};
+
 enum class Format {
   UNDEFINED,
+  R32G32B32A32_SFLOAT,
   R32G32B32_SFLOAT,
   R32G32_SFLOAT,
+  R32_SFLOAT,
+  R8G8B8A8_UNORM,
   // Add other formats as needed
 };
 
+struct VertexInputRequirement {
+  uint32_t location;
+  std::string name;
+  Format expected_format;
+};
 
 struct Viewport {
   float x, y, width, height, minDepth, maxDepth;

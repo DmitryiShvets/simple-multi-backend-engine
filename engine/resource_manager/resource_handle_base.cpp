@@ -3,6 +3,8 @@
 
 namespace ssme {
 
+constexpr bool DEBUG = false;
+
 ResourceHandleBase::ResourceHandleBase(const std::string &uuid, uint32_t index,
                                        uint32_t gen, ResourceManager *mgr)
     : m_uuid(uuid), m_slot_index(index), m_expected_gen(gen),
@@ -16,6 +18,10 @@ ResourceHandleBase::ResourceHandleBase(const ResourceHandleBase &other)
   // check if handle was constructed by default constructor
   // in this case it is not yet initialized
   if (m_resource_manager && !m_uuid.empty()) {
+#ifdef DEBUG
+    printf("[HANDLE] CCTOR: %s (ptr: %p, other: %p)\n", m_uuid.c_str(), this,
+           &other);
+#endif
     if (!m_resource_manager->increment_ref(m_slot_index, m_expected_gen)) {
       throw std::runtime_error(
           "Corrupted Resource Manager! Resource is not found in handle table.");
@@ -41,6 +47,10 @@ ResourceHandleBase::operator=(const ResourceHandleBase &other) {
     // check if handle was constructed by default constructor
     // in this case it is not yet initialized
     if (m_resource_manager && !m_uuid.empty()) {
+#ifdef DEBUG
+      printf("[HANDLE] COPY: %s (from %p to %p)\n", m_uuid.c_str(), &other,
+             this);
+#endif
       if (!m_resource_manager->increment_ref(m_slot_index, m_expected_gen)) {
         throw std::runtime_error("Corrupted Resource Manager! Resource is not "
                                  "found in handle table.");
@@ -58,6 +68,9 @@ ResourceHandleBase::ResourceHandleBase(ResourceHandleBase &&other) noexcept
   other.m_slot_index = INVALID_SLOT;  // Invalidate slot
   other.m_expected_gen = INVALID_GEN; // Invalidate gemeration
   other.m_resource_manager = nullptr; // Invalidate source
+#ifdef DEBUG
+  printf("[HANDLE] MCTOR: %s (from %p to %p)\n", m_uuid.c_str(), &other, this);
+#endif
 }
 
 ResourceHandleBase &
@@ -79,42 +92,27 @@ ResourceHandleBase::operator=(ResourceHandleBase &&other) noexcept {
     other.m_slot_index = INVALID_SLOT;  // Invalidate slot
     other.m_expected_gen = INVALID_GEN; // Invalidate gemeration
     other.m_resource_manager = nullptr; // Invalidate source
+#ifdef DEBUG
+    printf("[HANDLE] MOVE: %s (from %p to %p)\n", m_uuid.c_str(), &other, this);
+#endif
   }
   return *this;
 }
 
 ResourceHandleBase::~ResourceHandleBase() {
   if (m_resource_manager) {
-    // TODO:  проверить что менеджер ещё жив. handles сами должны быть
-    // уничтожены ДО этого!
-    //  Добавить что-то типо assert(!m_resource_manager->isDestroyed());
-    // или нужно использовть week_ptr<RecourceManager>::lock()
+    // TODO: check that manager is still alive. Handles must be
+    // destroyed BEFORE this!
+    // Add something like assert(!m_resource_manager->isDestroyed());
+    // or need to use weak_ptr<ResourceManager>::lock()
+#ifdef DEBUG
+    printf("[HANDLE] DTOR: %s (ptr: %p)\n", m_uuid.c_str(), this);
+#endif
     m_resource_manager->release(m_slot_index, m_expected_gen);
     m_slot_index = INVALID_SLOT;
     m_expected_gen = INVALID_GEN;
   }
 }
-
-// новый подход с поколением и кешированием указателя при первом look up
-// template <typename T> T *ResourceHandle<T>::get() const {
-//   // check if handle was constructed by default constructor
-//   // in this case it is not yet initialized
-//   if (m_resource_manager && !m_uuid.empty()) {
-//     auto resource = m_resource_manager->access(m_slot_index, m_expected_gen);
-//     debug_assert(resource != nullptr,
-//                  "Corrupted Resource Manager! Resource is not "
-//                  "found in handle table.");
-//     return static_cast<T *>(resource);
-//   } else {
-//     return nullptr;
-//   }
-// }
-
-// template <typename T> bool ResourceHandle<T>::isValid() const {
-//   if (!m_resource_manager || m_uuid.empty())
-//     return false;
-//   return m_resource_manager->has<T>(m_slot_index, m_expected_gen);
-// }
 
 Resource *ResourceHandleBase::fetch() const {
   if (!m_resource_manager || m_slot_index == INVALID_SLOT)

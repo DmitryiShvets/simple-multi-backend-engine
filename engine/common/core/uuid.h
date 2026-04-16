@@ -16,7 +16,7 @@ inline std::string genUuidV4() {
     if (c == 'x') {
       c = chars[gen() % 16];
     } else if (c == 'y') {
-      c = chars[(gen() % 4) + 8]; // Вариант должен быть 8, 9, a или b
+      c = chars[(gen() % 4) + 8]; // Variant must be 8, 9, a or b
     }
   }
   return uuid;

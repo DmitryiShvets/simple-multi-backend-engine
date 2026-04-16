@@ -11,6 +11,7 @@ set(VULKAN_RENDER_SOURCES
     src/vulkan_buffer.cpp
     src/vulkan_texture.cpp
     src/vulkan_helpers.cpp
+    src/vulkan_shader_module.cpp
 )
 
 add_library(ssme_vulkan STATIC ${VULKAN_RENDER_SOURCES})
@@ -58,7 +59,7 @@ target_precompile_headers(ssme_vulkan PRIVATE
 # 1. Find the glslc compiler
 find_program(GLSLC_EXECUTABLE glslc)
 if(NOT GLSLC_EXECUTABLE)
-    message(FATAL_ERROR "glslc not found. Please install the Vulkan SDK and make sure glslc is in your PATH.")
+  message(FATAL_ERROR "glslc not found. Please install the Vulkan SDK and make sure glslc is in your PATH.")
 endif()
 
 # 2. Find all shader source files
@@ -104,13 +105,18 @@ foreach(SHADER_SOURCE IN ITEMS ${SHADER_SOURCES})
   else()
     message(FATAL_ERROR "Unknown shader stage for file: ${SHADER_NAME}")
   endif()
+  set(DEP_FILE "${SPIRV_OUTPUT}.d")
 
   # Create output directory if it doesn't exist
   add_custom_command(
     OUTPUT  ${SPIRV_OUTPUT}
     COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_CURRENT_BINARY_DIR}/res/shaders"
-    COMMAND ${GLSLC_EXECUTABLE} -fshader-stage=${SHADER_STAGE} -o ${SPIRV_OUTPUT} ${SHADER_SOURCE}
+    COMMAND ${GLSLC_EXECUTABLE} -fshader-stage=${SHADER_STAGE}
+            -I "${CMAKE_CURRENT_SOURCE_DIR}/res/shaders"
+            -MD -MF ${DEP_FILE}
+            -o ${SPIRV_OUTPUT} ${SHADER_SOURCE}
     DEPENDS ${SHADER_SOURCE}
+    DEPFILE ${DEP_FILE}
     COMMENT "Compiling ${SHADER_NAME} to SPIR-V (${SHADER_STAGE})"
     VERBATIM)
 endforeach()
@@ -139,3 +145,10 @@ foreach(SHADER_SOURCE IN ITEMS ${SHADER_SOURCES})
 endforeach()
 
 add_custom_target(copy_shaders_to_bin ALL DEPENDS ${SHADER_BIN_OUTPUTS})
+
+add_custom_target(force_recompile_shaders
+    COMMAND ${CMAKE_COMMAND} -E echo "🧹 Cleaning compiled shaders..."
+    COMMAND ${CMAKE_COMMAND} -E remove_directory "${CMAKE_CURRENT_BINARY_DIR}/res/shaders"
+    COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_CURRENT_BINARY_DIR}/res/shaders"
+    COMMENT "✅ Shader cache cleared. Run build again to recompile."
+)

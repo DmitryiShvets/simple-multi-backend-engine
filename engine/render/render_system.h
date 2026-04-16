@@ -12,14 +12,14 @@ struct ImDrawData;
 namespace ssme {
 class SceneView;
 class Platform;
-
+class ResourceManager;
 /**
  * @brief Facade over multiple-backend renderers
  *
  */
 class RenderSystem {
 public:
-  RenderSystem(Platform *platform) : m_platform(platform) {}
+  RenderSystem(Platform *platform, ResourceManager* rm ) : m_platform(platform), m_rm(rm) {}
   RenderSystem(const RenderSystem &) = delete;
   RenderSystem &operator=(const RenderSystem &) = delete;
 
@@ -31,7 +31,7 @@ public:
   /**
    * @brief Rendering a frame to all renderers
    */
-  void render(const std::vector<SceneView> &scenes,
+  void render(std::vector<SceneView> &scenes,
               const std::vector<ImDrawData *> &ui_draw_data);
 
   /**
@@ -51,6 +51,7 @@ public:
   IRenderer &getRenderer(size_t type);
   const IRenderer &getRenderer(GpuBackend type) const;
   void addBackend(GpuBackend type);
+  void createPerFrameResources();
 
   /**
    * @brief Get RenderDevice
@@ -63,7 +64,9 @@ public:
 
 private:
   Platform *m_platform;
+  ResourceManager *m_rm;
   std::vector<std::unique_ptr<IRenderer>> m_renderers;
+  std::shared_ptr<FrameData> m_frame_data = nullptr;
 };
 
 } // namespace ssme

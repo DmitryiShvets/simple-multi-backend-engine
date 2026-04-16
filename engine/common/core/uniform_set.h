@@ -9,14 +9,14 @@
 namespace ssme {
 
 /**
- * @brief UniformSet — адаптер для работы с uniform данными материала
+ * @brief UniformSet — adapter for working with material uniform data
  *
- * Обёртка над UniformMap с дополнительными удобствами:
- * - Итерация для упаковки в binary
- * - Проверка наличия свойств
- * - Convenience методы для частых типов
+ * Wrapper over UniformMap with additional conveniences:
+ * - Iteration for binary packing
+ * - Property presence checking
+ * - Convenience methods for frequent types
  *
- * Используется при создании/редактировании материалов (не каждый кадр!)
+ * Used during material creation/editing (not per-frame!)
  */
 class UniformSet {
 public:
@@ -26,11 +26,11 @@ public:
 
     UniformSet() = default;
 
-    // Из initializer list для удобства
+    // From initializer list for convenience
     UniformSet(std::initializer_list<std::pair<const std::string, UniformValue>> init)
         : m_values(init) {}
 
-    // Из UniformMap (для совместимости)
+    // From UniformMap (for compatibility)
     explicit UniformSet(UniformMap&& map) : m_values(std::move(map)) {}
     explicit UniformSet(const UniformMap& map) : m_values(map) {}
 
@@ -41,8 +41,9 @@ public:
     /**
      * @brief Set uniform value by name
      */
-    void set(const std::string& name, UniformValue value) {
+    UniformSet& set(const std::string& name, UniformValue value) {
         m_values[name] = std::move(value);
+        return *this;
     }
 
     /**

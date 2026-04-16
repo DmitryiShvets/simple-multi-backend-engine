@@ -1,16 +1,15 @@
 #include "vulkan_renderer.h"
 #include "core/resource_types.h"
-#include "pipeline_config_registry.h"
+#include "core/uniforms.h"
+#include "graph/render_graph.h"
+#include "resource_manager.h"
+#include "scene_view.h"
 #include "vulkan_buffer.h"
 #include "vulkan_command_list.h"
+#include "vulkan_descriptor_set.h"
 #include "vulkan_device.h"
 #include "vulkan_render_device.h"
 #include "vulkan_swap_chain.h"
-#include "vulkan_descriptor_set.h"
-#include "core/scene_view.h"
-#include "core/uniforms.h"
-#include "graph/render_graph.h"
-#include "render_data.h"
 #include <cassert>
 #include <glm/gtc/constants.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -22,49 +21,6 @@
 
 namespace ssme {
 
-//================================================================
-// THIS IS LEGACY. WE NEED TO GET RIG OF IT
-// по сути это задача экнкодинга команд. она должна выполняться конкретным render pass
-// в данном сслучае функция renderVK. это имплементация SimpleRenderPass
-void renderVK(CommandList &cmd, const DrawingData &data) {
-  // Validate required data
-  assert(data.pipeline.isValid() && "DrawingData: pipeline is not valid");
-  assert(data.vertex_buffer.isValid() &&
-         "DrawingData: vertex_buffer is not valid");
-  assert(data.vertex_count > 0 && "DrawingData: vertex_count must be > 0");
-  assert(data.getDescriptorSet(0).isValid() &&
-         "DrawingData: per-frame descriptor set (0) is required");
-  assert(data.getDescriptorSet(1).isValid() &&
-         "DrawingData: material descriptor set (1) is required");
-  assert(data.getDescriptorSet(2).isValid() &&
-         "DrawingData: object descriptor set (2) is required");
-  assert(data.hasPushConstants() &&
-         "DrawingData: push_constants (model_mat) is required");
-
-  // 0. Bind pipeline
-  cmd.setGraphicsPipeline(data.pipeline);
-
-  // 1. Bind vertex buffer
-  cmd.setVertexBuffer(0, data.vertex_buffer, 0);
-
-  // 2. Bind descriptor sets
-  // Set 0: Per-Frame (camera matrices, projection)
-  cmd.setDescriptorSet(0, data.getDescriptorSet(0), data.pipeline);
-  // Set 1: Per-Material (material color)
-  cmd.setDescriptorSet(1, data.getDescriptorSet(1), data.pipeline);
-  // Set 2: Per-Object (normal matrix)
-  cmd.setDescriptorSet(2, data.getDescriptorSet(2), data.pipeline);
-
-  // 3. Set push constants (model matrix)
-  auto it = data.push_constants.find("model_mat");
-  assert(it != data.push_constants.end() &&
-         "DrawingData: model_mat push constant is required");
-  cmd.setPushConstant(data.pipeline, it->second,
-                      static_cast<uint32_t>(ShaderStage::VERTEX));
-
-  // 4. Draw (non-indexed)
-  cmd.draw(data.vertex_count, data.instance_count, data.first_vertex, 0);
-}
 void execute(RenderGraph &graph, RID back_buffer, RID depth_buffer,
              CommandList &cmd, const Rect &render_area) {
   graph.compile();
@@ -102,15 +58,14 @@ void execute(RenderGraph &graph, RID back_buffer, RID depth_buffer,
 //================================================================
 
 // Constructor now takes ownership of the low-level device
-VulkanRenderer::VulkanRenderer(Platform *platform)
-    : m_platform(platform),
-      m_pl_registry(PipelineConfigRegistry(m_backend_type)) {
+VulkanRenderer::VulkanRenderer(Platform *platform, ResourceManager *rm)
+    : m_platform(platform), m_rm(rm) {
   m_device = std::make_unique<ssme::vulkan::VulkanDevice>(platform);
 
   /* -------------INIT STATE-------------- */
   createSwapChain();
-  m_rhi_device = std::make_unique<ssme::vulkan::VulkanRenderDevice>(
-      *m_device, m_storage, m_pl_registry);
+  m_rhi_device =
+      std::make_unique<ssme::vulkan::VulkanRenderDevice>(*m_device, m_storage);
   m_imgui_descriptor_pool =
       ssme::vulkan::VulkanDescriptorPool::Builder(*m_device)
           .addPoolSize(
@@ -119,7 +74,7 @@ VulkanRenderer::VulkanRenderer(Platform *platform)
           .setPoolFlags(vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet)
           .setMaxSets(100) // More than enough for ImGui
           .build();
-  createPerFrameResources();
+  // createPerFrameResources();
   /* -------------INIT 3D-------------- */
   /* -------------INIT MISC-------------- */
 }
@@ -127,8 +82,6 @@ VulkanRenderer::VulkanRenderer(Platform *platform)
 void VulkanRenderer::init(ImGuiContext *ctx) {
   /* -------------INIT STATE-------------- */
   m_imgui_context = ctx;
-  /* -------------INIT DRAWING POLICIES-------------- */
-  m_pl_registry.init();
   /* -------------INIT UI-------------- */
   ImGui_ImplVulkan_InitInfo init_info = {};
   init_info.ApiVersion = VK_API_VERSION_1_4;
@@ -165,12 +118,9 @@ void VulkanRenderer::init(ImGuiContext *ctx) {
   ImGui_ImplVulkan_Init(&init_info);
 }
 
-VulkanRenderer::~VulkanRenderer() {
-    destroy();
-}
+VulkanRenderer::~VulkanRenderer() { destroy(); }
 
-void VulkanRenderer::renderFrame(const SceneView &view,
-                                 ImDrawData *ui_draw_data) {
+void VulkanRenderer::renderFrame(SceneView &view, ImDrawData *ui_draw_data) {
   acquireNextImage(); // wait for fences and retrives new image
 
   // Update per-frame uniforms (camera, projection)
@@ -206,8 +156,9 @@ void VulkanRenderer::renderFrame(const SceneView &view,
 
   // Get per-frame descriptor set RID
   auto frame_index = m_swap_chain->getCurrentFrameIndex();
-  auto &frame_resources = m_per_frame_resources[frame_index];
-  RID per_frame_ds_rid = frame_resources.descriptor_set_rid;
+  auto &frame_resources = m_frame_data;
+  RID per_frame_ds_rid =
+      m_frame_data->uniform_ds[frame_index]->getDescriptorSetId();
 
   // The actual drawing logic is now in this callback
   pass.setExecuteCallback([&](CommandList &cmd) {
@@ -222,40 +173,9 @@ void VulkanRenderer::renderFrame(const SceneView &view,
     cmd.setScissor(rect);
 
     // Get DrawingPolicy registry
-    for (const auto &renderable : view.opaque_objects) {
-      // Get pipeline from material template
-      auto *material_tpl =
-          m_storage.get<Material>(renderable.material_id);
-      if (!material_tpl) {
-        continue; // Skip if material template not found
-      }
-
-      // Get vertex count from geometry buffer
-      // Use vertex stride from buffer descriptor if available
-      auto *geom_buffer =
-          m_storage.get<ssme::vulkan::VulkanBuffer>(
-              renderable.geometry_id);
-      if (!geom_buffer) {
-        continue; // Skip if buffer not found
-      }
-      uint32_t vertex_count = geom_buffer->count();
-      // Render using DrawingPolicy
-      DrawingData draw_data;
-      draw_data.vertex_buffer = renderable.geometry_id;
-      draw_data.pipeline = material_tpl->render_data.pipeline;
-      draw_data.vertex_count = vertex_count;
-
-      // Descriptor Set 0: Per-Frame (camera/projection)
-      draw_data.descriptor_sets[0] = per_frame_ds_rid;
-      // Descriptor Set 1: Per-Material (color)
-      draw_data.descriptor_sets[1] = material_tpl->render_data.uniforms_ds;
-      // Descriptor Set 2: Per-Object (model matrix)
-      draw_data.descriptor_sets[2] = renderable.obj_uniform_ds;
-      // Push Constants: model matrix (Vulkan uses push constants, not uniforms)
-      draw_data.push_constants.emplace("model_mat", renderable.model_matrix);
-
-      // заменить на render_pass.encode()
-      renderVK(cmd, draw_data);
+    for (auto &renderable : view.opaque_objects) {
+      renderable.setDescriptor(0, per_frame_ds_rid);
+      draw(cmd, renderable);
     }
 
     if (ui_draw_data) {
@@ -270,8 +190,8 @@ void VulkanRenderer::renderFrame(const SceneView &view,
   // if (ui_draw_data) {
   //   auto &ui_pass = graph.addPass("UI Pass");
   //   ui_pass.setExecuteCallback([&](CommandList &cmd) {
-  //     // Вызываем отрисовку ImGui внутри коллбека этого пасса
-  //     // Нам нужен конкретный VkCommandBuffer, поэтому делаем каст
+  //     // Call ImGui rendering inside this pass callback
+  //     // We need a specific VkCommandBuffer, so we cast it
   //     ImGui::SetCurrentContext(m_imgui_context);
   //     ImGui_ImplVulkan_RenderDrawData(
   //         ui_draw_data, static_cast<VulkanCommandList &>(cmd).getHandle());
@@ -307,58 +227,28 @@ void VulkanRenderer::createSwapChain() {
       *m_device, vk::Extent2D{800, 400}, m_storage);
 
   m_command_lists.clear();
-  m_command_lists.reserve(ssme::vulkan::MAX_FRAMES_IN_FLIGHT);
-  for (size_t i = 0; i < ssme::vulkan::MAX_FRAMES_IN_FLIGHT; i++) {
+  m_command_lists.reserve(MAX_FRAMES_IN_FLIGHT);
+  for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
     m_command_lists.push_back(std::make_unique<ssme::vulkan::VulkanCommandList>(
         *m_device, m_storage));
   }
 }
 
-void VulkanRenderer::createPerFrameResources() {
-  // Skip if already created
-  if (m_per_frame_ds_layout) {
-    return;
-  }
-  // Create descriptor set layout for per-frame uniforms (Set 0)
-  // Binding 0: GlobalUBO (projectionViewMatrix)
-  DescriptorSetLayoutDesc ds_layout_desc;
-  ds_layout_desc.bindings.push_back(
-      {.binding = 0,
-       .type = DescriptorType::UNIFORM_BUFFER,
-       .stages = static_cast<uint32_t>(ShaderStage::VERTEX),
-       .count = 1});
-  m_per_frame_ds_layout =
-      m_rhi_device->createDescriptorSetLayout(ds_layout_desc);
-  // Create per-frame resources
-  auto frame_count = ssme::vulkan::MAX_FRAMES_IN_FLIGHT;
-  m_per_frame_resources.resize(frame_count);
-  for (uint32_t i = 0; i < frame_count; i++) {
-    // Create uniform buffer for FrameUniforms
-    RID frame_uniform_buffer = m_rhi_device->createBuffer(
-        BufferDesc{.size = sizeof(Uniforms::FrameUniformsStd140),
-                   .usage = static_cast<uint32_t>(BufferUsage::UNIFORM_BUFFER),
-                   .is_host_visible = true,
-                   .initial_data = nullptr});
-    // Create descriptor set
-    RID per_frame_ds = m_rhi_device->createDescriptorSet(
-        m_per_frame_ds_layout, {frame_uniform_buffer});
-
-    m_per_frame_resources[i].uniform_buffer = frame_uniform_buffer;
-    m_per_frame_resources[i].descriptor_set_rid = per_frame_ds;
-  }
+void VulkanRenderer::setFrameResources(std::shared_ptr<FrameData> data) {
+  m_frame_data = data;
 }
 
 void VulkanRenderer::updatePerFrameResources(const SceneView &view) {
   // Get uniform buffer
   auto frame_index = m_swap_chain->getCurrentFrameIndex();
-  auto &frame = m_per_frame_resources[frame_index];
+  auto &ubo = m_frame_data->uniform_buffer[frame_index];
   // Calculate view-projection matrix
   // Camera at (0, 0, 5) looking at (0, 0, 0), up is +Y
-  glm::mat4 view_mat =
-      glm::lookAt(glm::vec3(0.0f, 0.0f, 5.0f + view.z), // Camera position
-                  glm::vec3(0.0f, 0.0f, 0.0f),          // Look at target
-                  glm::vec3(0.0f, 1.0f, 0.0f)           // Up direction
-      );
+  glm::mat4 view_mat = glm::lookAt(
+      glm::vec3(0.0f + view.x, 0.0f, 5.0f + view.z), // Camera position
+      glm::vec3(0.0f, 0.0f, 0.0f),                   // Look at target
+      glm::vec3(0.0f, 1.0f, 0.0f)                    // Up direction
+  );
   // Vulkan uses Y-down clip space, so we need to flip Y axis
   glm::mat4 proj_mat = glm::perspective(
       glm::radians(45.0f), m_swap_chain->extentAspectRatio(), 0.1f, 100.0f);
@@ -372,9 +262,7 @@ void VulkanRenderer::updatePerFrameResources(const SceneView &view) {
   uniforms.Ld = glm::vec3(1.0f, 1.0f, 1.0f); // Light intensity (white light)
   uniforms.camera_position = glm::vec3(0.0f, 5.0f, 5.0f);
   auto packed = Uniforms::FrameUniformsStd140::from(uniforms);
-  // Update buffer
-  m_rhi_device->updateBufferRaw(frame.uniform_buffer, 0, sizeof(packed),
-                                &packed);
+  ubo->update(&packed, sizeof(packed));
 }
 
 void VulkanRenderer::present() {
@@ -412,8 +300,6 @@ void VulkanRenderer::submitCommands() {
 
 void VulkanRenderer::waitIdle() const { m_device->getHandle().waitIdle(); }
 
-GpuBackend VulkanRenderer::getGpuBackend() {
-    return m_backend_type;
-}
+GpuBackend VulkanRenderer::getGpuBackend() { return m_backend_type; }
 
 } // namespace ssme

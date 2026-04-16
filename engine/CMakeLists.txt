@@ -12,6 +12,7 @@ add_subdirectory(render/backends/opengl)
 add_subdirectory(render/backends/vulkan)
 add_subdirectory(render)
 add_subdirectory(world)
+add_subdirectory(scene)
 
 # Engine sources
 set(ENGINE_SOURCES
@@ -32,10 +33,11 @@ target_link_libraries(ssme_engine
     PUBLIC
         ssme::common
         ssme::resources
+        ssme::world
     PRIVATE
         ssme::rhi
         ssme::platform
         ssme::ui
         ssme::render
-        ssme::world
+        ssme::scene
 )

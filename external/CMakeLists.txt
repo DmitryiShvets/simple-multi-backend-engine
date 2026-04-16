@@ -18,6 +18,7 @@ set(GLFW_INSTALL ON CACHE BOOL "" FORCE)  # <-- Важно для установ
 add_subdirectory(flecs)
 add_subdirectory(glfw)
 add_subdirectory(glm)
+add_subdirectory(json)
 
 # Glad - needs special handling
 add_subdirectory(glad)
@@ -70,4 +71,10 @@ install(DIRECTORY ${IMGUI_SOURCE_DIR}/
     FILES_MATCHING PATTERN "*.h"
     PATTERN "backends/*"
     PATTERN "misc/*"
+)
+# ------------------------------------------------------------------------------
+# JSON (nlohmann/json) - Header only installation
+# ------------------------------------------------------------------------------
+install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/json/single_include/nlohmann
+    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
 )

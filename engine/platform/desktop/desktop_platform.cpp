@@ -101,43 +101,13 @@ bool DesktopPlatform::hasWindowResized(size_t index) const {
   return m_windowResized[index];
 }
 
-// GlfwVulkanSurfaceCreator::GlfwVulkanSurfaceCreator(void *native_window) {
-//   m_window = static_cast<GLFWwindow *>(native_window);
-// }
-
-// std::vector<const char *>
-// GlfwVulkanSurfaceCreator::getRequiredInstanceExtensions() const {
-//   uint32_t glfwExtensionCount = 0;
-//   const char **glfwExtensions;
-//   glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
-
-//   std::vector extensions(glfwExtensions, glfwExtensions +
-//   glfwExtensionCount); return extensions;
-// }
-
-// VkSurfaceKHR
-// GlfwVulkanSurfaceCreator::createWindowSurface(vk::Instance vkInstance) const
-// {
-//   VkSurfaceKHR surface;
-//   uint32_t version;
-//   vkEnumerateInstanceVersion(&version);
-//   // 3 macros to extract version info
-//   uint32_t major = VK_VERSION_MAJOR(version);
-//   uint32_t minor = VK_VERSION_MINOR(version);
-//   uint32_t patch = VK_VERSION_PATCH(version);
-//   Logger::info_log("Initialized Vulkan version " + std::to_string(major) +
-//   "." +
-//                    std::to_string(minor));
-//   glfwCreateWindowSurface(vkInstance, m_window, nullptr, &surface);
-//   return surface;
-// }
 void *DesktopPlatform::createVulkanSurface(void *instance) {
   auto vk_window =
       std::find_if(m_windows.cbegin(), m_windows.cend(), [](const auto &e) {
         return e->getGpuBackend() == GpuBackend::Vulkan;
       });
   if (vk_window == m_windows.end()) {
-    // Нашли Vulkan окно
+    // Found Vulkan window
     throw std::runtime_error("Failed to create window surface! Failed to find "
                              "suitable Vulkan-context window.");
   }
@@ -283,7 +253,7 @@ void DesktopPlatform::swapOpenGLBuffers() {
         return e->getGpuBackend() == GpuBackend::OpenGL;
       });
   if (gl_window == m_windows.end()) {
-    // Нашли Vulkan окно
+    // Found OpenGL window
     throw std::runtime_error("Failed to swap buffers! Failed to find "
                              "suitable Opengl-context window.");
   }

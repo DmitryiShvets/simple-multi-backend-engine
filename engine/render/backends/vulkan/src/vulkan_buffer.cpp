@@ -6,14 +6,12 @@
 
 namespace ssme::vulkan {
 
-VulkanBuffer::VulkanBuffer(VulkanDevice &device,
-                                   vk::DeviceSize instanceSize,
-                                   uint32_t stride,
-                                   uint32_t instanceCount,
-                                   vk::BufferUsageFlags usageFlags,
-                                   vk::MemoryPropertyFlags memoryPropertyFlags,
-                                   vk::DeviceSize minOffsetAlignment)
-    : m_device(device), m_instance_size(instanceSize), m_stride(stride),
+VulkanBuffer::VulkanBuffer(VulkanDevice &device, vk::DeviceSize instanceSize,
+                           uint64_t instanceCount,
+                           vk::BufferUsageFlags usageFlags,
+                           vk::MemoryPropertyFlags memoryPropertyFlags,
+                           vk::DeviceSize minOffsetAlignment)
+    : m_device(device), m_instance_size(instanceSize),
       m_instance_count(instanceCount), m_usage_flags(usageFlags),
       m_memory_property_flags(memoryPropertyFlags) {
   m_alignment_size = getAlignment(instanceSize, minOffsetAlignment);
@@ -40,9 +38,8 @@ VulkanBuffer::~VulkanBuffer() {
  *
  * @return VkResult of the buffer mapping call
  */
-vk::DeviceSize
-VulkanBuffer::getAlignment(vk::DeviceSize instanceSize,
-                               vk::DeviceSize minOffsetAlignment) {
+vk::DeviceSize VulkanBuffer::getAlignment(vk::DeviceSize instanceSize,
+                                          vk::DeviceSize minOffsetAlignment) {
   if (minOffsetAlignment > 0) {
     return (instanceSize + minOffsetAlignment - 1) & ~(minOffsetAlignment - 1);
   }
@@ -74,7 +71,7 @@ void VulkanBuffer::unmap() {
   assert(m_mapped != nullptr && "Called unmap on unmapped buffer");
 
   if (m_mapped == nullptr) {
-    return; // защита в релизе
+    return; // Protection in release build
   }
 
   m_memory.unmapMemory();
@@ -92,7 +89,7 @@ void VulkanBuffer::unmap() {
  *
  */
 void VulkanBuffer::writeToBuffer(void *data, vk::DeviceSize size,
-                                     vk::DeviceSize offset) {
+                                 vk::DeviceSize offset) {
   assert(m_mapped && "Cannot copy to unmapped buffer");
 
   if (size == vk::WholeSize) {
@@ -147,8 +144,7 @@ void VulkanBuffer::invalidate(vk::DeviceSize size, vk::DeviceSize offset) {
  * @return VkDescriptorBufferInfo of specified offset and range
  */
 vk::DescriptorBufferInfo
-VulkanBuffer::getDescriptorInfo(vk::DeviceSize size,
-                                    vk::DeviceSize offset) {
+VulkanBuffer::getDescriptorInfo(vk::DeviceSize size, vk::DeviceSize offset) {
   return vk::DescriptorBufferInfo{
       .buffer = m_buffer,
       .offset = offset,
@@ -186,8 +182,7 @@ void VulkanBuffer::flushIndex(int index) {
  *
  * @return VkDescriptorBufferInfo for instance at index
  */
-vk::DescriptorBufferInfo
-VulkanBuffer::getDescriptorInfoForIndex(int index) {
+vk::DescriptorBufferInfo VulkanBuffer::getDescriptorInfoForIndex(int index) {
   return getDescriptorInfo(m_alignment_size, index * m_alignment_size);
 }
 

@@ -16,14 +16,19 @@
 #include <utility>
 #include <vector>
 
+#include "core/resource_types.h"
+#include "resource_loader.h"
+
+#include <nlohmann/json.hpp>
+
 namespace ssme {
 
 class Resource;
 class RenderDevice;
 
 struct ResourceSlot {
-  std::unique_ptr<Resource> ptr = nullptr; // Владение памятью
-  uint32_t generation = 0;                 // Счетчик "жизней" этого слота
+  std::unique_ptr<Resource> ptr = nullptr;   // real memory
+  uint32_t generation = 0;                  // garbage wall
 };
 
 /**
@@ -56,6 +61,42 @@ public:
    * @param device Pointer to the render device
    */
   void registerDevice(GpuBackend type, RenderDevice *device);
+
+  template <typename T>
+  ResourceHandle<T> load(const std::string &path) {
+      static_assert(std::is_base_of<Resource, T>::value, "T must derive from Resource");
+
+      // Check cache first
+      {
+          std::shared_lock lock(m_map_mutex);
+          if (auto it = m_uuid_to_idx.find(path); it != m_uuid_to_idx.end()) {
+              uint32_t index = it->second;
+              std::lock_guard s_lock(get_stripe(index));
+              auto &slot = m_slots[index];
+              if (slot.ptr && slot.generation > 0) {
+                  slot.ptr->incrementUsersCount();
+                  return ResourceHandle<T>(path, index, slot.generation, this);
+              }
+          }
+      }
+
+      // Find loader for this resource type
+      auto it_loader = m_loaders.find(T::ID);
+      if (it_loader == m_loaders.end()) {
+          throw std::runtime_error("No loader registered for resource type ID: " + std::to_string((int)T::ID));
+      }
+
+      // Create params structure (T must have inner ParamsType, e.g. MaterialParams)
+      typename T::ParamsType params;
+
+      // Loader parses JSON and fills params with dependencies
+      if (!it_loader->second->load(path, *this, &params)) {
+          throw std::runtime_error("Loader failed to process file: " + path);
+      }
+
+      // Call creation logic with filled params
+      return load<T, const typename T::ParamsType&>(path, params);
+  }
 
   /**
    * @brief Create a new resource with unified RID
@@ -91,25 +132,27 @@ public:
       }
     }
 
-    // 2. Если нет — создаем новый слот (Exclusive lock)
+    // Create new slot with exclusive lock
     std::unique_lock lock(m_map_mutex);
     index = m_slots.size();
     m_slots.emplace_back();
     m_uuid_to_idx[uuid] = index;
 
     auto &slot = m_slots[index];
-    // Allocate unified RID for all backends
-    std::vector<RID> rids = m_rid_allocator.allocate(T::COMPONENTS);
 
     std::lock_guard s_lock(get_stripe(index));
 
     slot.ptr =
         std::make_unique<T>(uuid, m_device_refs, std::forward<Args>(args)...);
     auto &resource = slot.ptr;
-    slot.generation++; // Увеличиваем поколение при создании
+    slot.generation++;
     gen = slot.generation;
 
-    resource->incrementUsersCount();
+    uint32_t comp_required = resource->prepare();
+
+    // Allocate unified RID for all backends
+    std::vector<RID> rids = m_rid_allocator.allocate(comp_required);
+
     // Setup RIDs in the resource (if it has one)
     resource->setup(rids);
 
@@ -117,6 +160,8 @@ public:
       m_rid_allocator.free(rids); // Free RIDs on failure
       throw std::runtime_error("Failed to load resource: " + uuid);
     }
+
+    resource->incrementUsersCount();
 
     return ResourceHandle<T>(uuid, index, gen, this);
   }
@@ -127,11 +172,9 @@ public:
   }
 
   bool _unload(uint32_t index, uint32_t expected_gen) {
-    // Безопасность: проверяем валидность индкса
     auto slot = get_slot(index);
     debug_assert(slot != nullptr,
-                 "Invalide index of Resource or Corrupted Resource Manager!");
-    // Безопасность: проверяем, живой ли ресурс и то ли это поколение
+                 "Invalid index or corrupted Resource Manager!");
     if (!slot || !slot->ptr || slot->generation != expected_gen)
       return false;
     auto rids = slot->ptr->components();
@@ -167,13 +210,10 @@ public:
   }
 
   template <typename T> T *get(uint32_t index, uint32_t expected_gen) {
-    // Check if resource already exists by UUID
     std::lock_guard s_lock(get_stripe(index));
-    // Безопасность: проверяем валидность индкса
     auto slot = get_slot(index);
     debug_assert(slot != nullptr,
-                 "Invalide index of Resource or Corrupted Resource Manager!");
-    // Безопасность: проверяем, живой ли ресурс и то ли это поколение
+                 "Invalid index or corrupted Resource Manager!");
     if (!slot || !slot->ptr || slot->generation != expected_gen)
       return nullptr;
     return static_cast<T *>(slot->ptr.get());
@@ -201,21 +241,20 @@ public:
     std::mutex &m = get_stripe(index);
     std::lock_guard s_lock(m);
     auto slot = get_slot(index);
-    // Безопасность: проверяем, живой ли ресурс и то ли это поколение
+    // Safety: check if resource is alive and has expected generation
     if (slot && slot->ptr && slot->generation == expected_gen) {
       auto users = slot->ptr->decrementUsersCount();
-      if (users == 0) { // Был последний
+      if (users == 0) { // Was the last reference
         _unload(index, expected_gen);
       }
     }
   }
 
-  // Вспомогательный метод для хендла
+  // Helper method for handle
   Resource *access(uint32_t index, uint32_t gen) {
-    // Мы не блокируем тут мьютекс для скорости get()
-    // Но проверяем поколение. Если ресурс удалят в этот миг -
-    // это Race Condition, который решается Deferred Deletion (ниже).
-    // auto &slot = m_slots[index];
+    // We don't lock mutex here for speed of get()
+    // But check generation. If resource is deleted at this moment -
+    // this is a Race Condition, solved by Deferred Deletion (below).
     auto slot = get_slot(index);
     if (!slot)
       return nullptr;
@@ -227,7 +266,7 @@ public:
     std::lock_guard lock(get_stripe(index));
     auto slot = get_slot(index);
     debug_assert(slot != nullptr,
-                 "Invalide index of Resource or Corrupted Resource Manager!");
+                 "Invalid index or corrupted Resource Manager!");
     if (slot && slot->ptr && slot->generation == gen) {
       slot->ptr->incrementUsersCount();
       return true;
@@ -248,16 +287,21 @@ public:
    */
   void printStats() const;
 
+  // Registration (done once at engine startup)
+  void registerLoader(std::unique_ptr<IResourceLoader> loader);
+
 private:
   // === Resource Storage ===
   static constexpr size_t STRIPE_COUNT = 64;
-  std::mutex m_stripes[STRIPE_COUNT]; // Массив "полосок" блокировки
+  std::mutex m_stripes[STRIPE_COUNT]; // Lock striping array
+  // All available loaders
+  std::unordered_map<ResourceId, std::unique_ptr<IResourceLoader>> m_loaders;
 
-  // Таблица всех ресурсов в системе
+  // Table of all resources in the system
   std::vector<ResourceSlot> m_slots;
-  // Быстрый поиск индекса по имени (только при загрузке)
+  // Fast lookup by name (only during loading)
   std::unordered_map<std::string, uint32_t> m_uuid_to_idx;
-  // Для защиты самой мапы
+  // For protecting the map itself
   std::shared_mutex m_map_mutex;
 
   std::mutex &get_stripe(uint32_t index) {

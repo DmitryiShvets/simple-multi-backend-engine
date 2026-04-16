@@ -1,8 +1,8 @@
 #pragma once
 
 #include "core/resource_types.h"
-#include "core/uniform_set.h"
 
+#include <cstddef>
 #include <string>
 
 namespace ssme {
@@ -16,27 +16,31 @@ class RenderDevice {
 public:
   virtual ~RenderDevice() = default;
 
-  // --- Resource Management ---
+  // --- Buffer ---
   virtual RID createBuffer(const BufferDesc &desc, RID id = RID::INVALID) = 0;
-  virtual void destroyBuffer(RID rid) = 0;
-  virtual RID createTexture(const TextureDesc &desc) = 0;
-  virtual void destroyTexture(RID rid) = 0;
-  virtual RID createSampler(const SamplerDesc &desc) = 0;
-  virtual RID
-  createDescriptorSetLayout(const DescriptorSetLayoutDesc &desc) = 0;
-  virtual RID createDescriptorSet(RID layout_rid,
-                                  const std::vector<RID> &buffer_rids) = 0;
-  virtual RID createPipelineLayout(const PipelineLayoutDesc &desc) = 0;
-  virtual RID createGraphicsPipeline(const GraphicsPipelineDesc &desc) = 0;
-  // virtual RID createComputePipeline(const ComputePipelineDesc& desc) = 0;
-  virtual RID createPipeline(const PipelineDesc &desc) = 0;
-  virtual RID createMaterial(const std::string &mat_name,
-                             const UniformSet &material_uniforms) = 0;
-  virtual Material *getMaterial(RID material_rid) = 0;
-
-  // Get pipeline config by name (for accessing uniform layouts)
-  virtual const PipelineConfig *
-  getPipelineConfig(const std::string &material_name) const = 0;
+  virtual void destroyBuffer(RID id) = 0;
+  // --- Texture ---
+  virtual RID createTexture(const TextureDesc &desc, RID id = RID::INVALID) = 0;
+  virtual void destroyTexture(RID id) = 0;
+  // --- Sampler ---
+  virtual RID createSampler(const SamplerDesc &desc, RID id = RID::INVALID) = 0;
+  // --- Descriptor layout ---
+  virtual RID createDescriptorLayout(const DescriptorLayout &desc, RID id = RID::INVALID) = 0;
+  virtual void destroyDescriptorLayout(RID id) = 0;
+  // --- Descriptor ---
+  virtual RID createDescriptor(const DescriptorDesc &desc, RID id = RID::INVALID) = 0;
+  virtual void destroyDescriptor(RID id) = 0;
+  // --- Pipeline layout ---
+  virtual RID createPipelineLayout(const PipelineLayoutDesc &desc, RID id = RID::INVALID) = 0;
+  virtual void destroyPipelineLayout(RID id) = 0;
+  virtual RID containsPipelineLayout(std::size_t hash) = 0;
+  // --- Pipeline ---
+  virtual RID createGraphicsPipeline(const GraphicsPipelineDesc &desc, RID id = RID::INVALID) = 0;
+  virtual void destroyGraphicsPipeline(RID id) = 0;
+  virtual RID containsGraphicsPipeline(std::size_t hash) = 0;
+  // --- Shader ---
+  virtual RID createShaderModule(const ShaderModuleDesc &desc, RID id = RID::INVALID) = 0;
+  virtual void destroyShaderModule(RID id) = 0;
 
   // Update buffer data at runtime
   virtual void updateBufferRaw(RID rid, size_t offset, size_t size,
@@ -44,8 +48,6 @@ public:
 
   // Update uniform buffer data at runtime (full overwrite, type-safe)
   template <typename T> void updateBuffer(RID rid, const T &data);
-
-  virtual void free(RID rid) = 0;
 };
 
 template <typename T> void RenderDevice::updateBuffer(RID rid, const T &data) {

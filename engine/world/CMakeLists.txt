@@ -1,6 +1,8 @@
 set(ECS_SOURCES
-  ecs/entity.h
-  dummy.cpp
+  ecs/entity_base.cpp
+  ecs/world_base.cpp
+  objects/objects_utils.cpp
+  objects/objects_uniforms.cpp
 )
 
 add_library(ssme_world STATIC ${ECS_SOURCES})
@@ -15,4 +17,6 @@ target_include_directories(ssme_world
 target_link_libraries(ssme_world
     PRIVATE
         ssme::common
+        ssme::resources
+        external::flecs
 )

@@ -123,18 +123,17 @@ private:
 
 } // namespace ssme::vulkan
 
-// Справочник
+// Reference guide
 // |-----|---------|-------|
-// | `VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER` | Uniform Buffer (UBO) | Константы для
-// шейдера (матрицы, параметры) | | `VK_DESCRIPTOR_TYPE_STORAGE_BUFFER` |
-// Storage Buffer (SSBO) | Чтение/запись больших данных | |
-// `VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER` | Текстура + сэмплер |
-// Изображения для шейдера | | `VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE` | Только
-// текстура | Без сэмплера | | `VK_DESCRIPTOR_TYPE_SAMPLER` | Только сэмплер |
-// Параметры фильтрации | | `VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT` | Subpass
-// input | Для render pass | | `VK_DESCRIPTOR_TYPE_STORAGE_IMAGE` | Read/write
-// image | Для compute шейдеров | | `VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER` |
-// Uniform texel buffer | Структурированные данные | |
+// | `VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER` | Uniform Buffer (UBO) | Shader constants (matrices, parameters) | | `VK_DESCRIPTOR_TYPE_STORAGE_BUFFER` |
+// Storage Buffer (SSBO) | Read/write large data | |
+// `VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER` | Texture + sampler |
+// Images for shader | | `VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE` | Texture only
+// | Without sampler | | `VK_DESCRIPTOR_TYPE_SAMPLER` | Sampler only |
+// Filtering parameters | | `VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT` | Subpass
+// input | For render pass | | `VK_DESCRIPTOR_TYPE_STORAGE_IMAGE` | Read/write
+// image | For compute shaders | | `VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER` |
+// Uniform texel buffer | Structured data | |
 // `VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER` | Storage texel buffer | Read/write
-// структурированные данные |
+// structured data |
 // ---

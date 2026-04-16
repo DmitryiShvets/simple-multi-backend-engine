@@ -5,6 +5,7 @@ set(RENDER_SOURCES
     graph/render_graph.cpp
     graph/render_pass.cpp
 
+    renderer.cpp
     opengl_renderer.cpp
     vulkan_renderer.cpp
     render_system.cpp
@@ -25,6 +26,7 @@ target_link_libraries(ssme_render
         external::glm
         external::imgui
         ssme::common
+        ssme::resources
 )
 
 # OpenGL submodule

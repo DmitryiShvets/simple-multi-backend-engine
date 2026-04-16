@@ -10,7 +10,9 @@ namespace ssme {
 enum class GpuBackend : size_t {
   OpenGL = 0,
   Vulkan = 1,
-  Count // Для проверки границ
+  Count
 };
+
+constexpr size_t MAX_FRAMES_IN_FLIGHT = 2;
 
 } // namespace ssme

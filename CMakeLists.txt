@@ -11,23 +11,15 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 if (MSVC)
-    # Use the PDB server for concurrent access during parallel builds
-    add_compile_options("/FS")
-    add_compile_options(/Z7)
+  # Use the PDB server for concurrent access during parallel builds
+  add_compile_options("/FS")
+  add_compile_options(/Z7)
 endif()
 
 # EXTERNAL LIBS (Pre-built IN build/libs)
 include(external/FindExternalLibs.cmake)
 
 # INNER LIBS
-#add_subdirectory(core)
-#add_subdirectory(utils)
-#add_subdirectory(adapters)
-#add_subdirectory(render)
-#add_subdirectory(platform)
-#add_subdirectory(ui)
-#add_subdirectory(world)
-#add_subdirectory(app)
 add_subdirectory(engine)
 add_subdirectory(app_new)
 

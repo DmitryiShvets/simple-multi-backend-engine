@@ -22,12 +22,12 @@ void ResourceManager::registerDevice(GpuBackend type, RenderDevice *device) {
 }
 
 void ResourceManager::clear() {
-  printStats();
+  // printStats();
   // Force unload all resources (regardless of refcount)
   for (uint32_t index = 0 ; index < m_slots.size(); index++) {
       unload(index, m_slots[index].generation);
   }
-  printStats();
+  // printStats();
 }
 
 void ResourceManager::printStats() const {
@@ -42,5 +42,9 @@ void ResourceManager::printStats() const {
 
   Logger::info_log("Live resources: " + std::to_string(total_resources));
   Logger::info_log("Total refcount: " + std::to_string(total_refcount));
+}
+
+void ResourceManager::registerLoader(std::unique_ptr<IResourceLoader> loader) {
+    m_loaders[loader->getResourceId()] = std::move(loader);
 }
 } // namespace ssme

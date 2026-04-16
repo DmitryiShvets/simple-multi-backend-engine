@@ -15,7 +15,7 @@ class IMainWindow;
 namespace ssme {
 
 /**
- * @brief Фасад для управления несколькими UI-бекендами
+ * @brief Facade for managing multiple UI backends
  */
 class UIManager {
 public:
@@ -38,7 +38,7 @@ public:
 
   size_t getBackendCount() const;
 
-  // Доступ по типу бекенда
+  // Access by backend type
   ImGuiBackend &getBackend(GpuBackend type);
   const ImGuiBackend &getBackend(GpuBackend type) const;
 

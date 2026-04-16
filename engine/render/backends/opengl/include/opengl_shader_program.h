@@ -8,23 +8,14 @@ class UniformValue;
 }
 
 namespace ssme::opengl {
-class GLType {
 
-public:
-  GLuint type;
-
-  explicit GLType(GLuint thatType);
-
-  friend std::ostream &operator<<(std::ostream &lhs, const GLType e);
-};
+class OpenGLShaderModule;
 
 class ShaderProgram {
 
 public:
-  ShaderProgram(const char *vertexShader, const char *fragmentShader);
-
-  ShaderProgram(const std::string &vertexShader,
-                const std::string &fragmentShader);
+  ShaderProgram(const OpenGLShaderModule &vert_shader,
+                const OpenGLShaderModule &frag_shader);
 
   bool isCompiled() const;
 
@@ -33,7 +24,7 @@ public:
 
   GLuint &getUintProgram();
 
-  void setUniform(const UniformValue& value);
+  void setUniform(const UniformValue &value);
   void setUniform(const std::string &uniformName, const glm::mat4 &matrixValue);
   void setUniform(const std::string &uniformName, int value);
   void setUniform(const std::string &uniformName, float value);
@@ -54,4 +45,5 @@ private:
 
   GLuint hProgram = 0;
 };
+
 } // namespace ssme::opengl

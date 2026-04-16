@@ -3,6 +3,7 @@
 #include "core/resource_owner.h"
 #include "core/rid.h"
 #include "core/rid_allocator.h"
+#include <cstddef>
 #include <memory>
 #include <mutex>
 #include <string>
@@ -12,8 +13,8 @@
 // internally)
 #include "opengl_buffer_objects.h"
 #include "opengl_descriptor_set.h"
+#include "opengl_shader_module.h"
 #include "opengl_shader_program.h"
-
 namespace ssme {
 class Material; // Forward declare from parent namespace
 }
@@ -117,11 +118,11 @@ public:
   }
 
   /**
-   * @brief Find PSO (Pipeline) by name
+   * @brief Find PSO (Pipeline) by hash
    */
-  RID findPSO(const std::string &name) {
+  RID findPSO(std::size_t hash) {
     LockGuard lock;
-    auto it = m_pso_map.find(name);
+    auto it = m_pso_map.find(hash);
     if (it != m_pso_map.end()) {
       return it->second;
     }
@@ -131,18 +132,18 @@ public:
   /**
    * @brief Register PSO (Pipeline) with a name
    */
-  void registerPSO(const std::string &name, RID rid) {
+  void registerPSO(std::size_t hash, RID rid) {
     LockGuard lock;
-    m_pso_map[name] = rid;
+    m_pso_map[hash] = rid;
   }
 
   /**
-   * @brief Find Material by name
+   * @brief Find Pipeline layout by hash
    */
-  RID findMaterial(const std::string &name) {
+  RID findPSOLayout(std::size_t hash) {
     LockGuard lock;
-    auto it = m_material_map.find(name);
-    if (it != m_material_map.end()) {
+    auto it = m_pso_layout_map.find(hash);
+    if (it != m_pso_layout_map.end()) {
       return it->second;
     }
     return RID::INVALID;
@@ -151,9 +152,9 @@ public:
   /**
    * @brief Register Material with a name
    */
-  void registerMaterial(const std::string &name, RID rid) {
+  void registerPSOLayout(std::size_t hash, RID rid) {
     LockGuard lock;
-    m_material_map[name] = rid;
+    m_pso_layout_map[hash] = rid;
   }
 
 private:
@@ -163,10 +164,11 @@ private:
 
   ResourceOwner<ShaderProgram> m_shader_programs;
   ResourceOwner<VAO> m_buffers;
-  ResourceOwner<ssme::Material> m_materials;
+  ResourceOwner<EBO> m_index_buffers;
   ResourceOwner<UniformBuffer> m_uniform_buffers;
   ResourceOwner<OpenGLDescriptorSet> m_descriptor_sets;
   ResourceOwner<OpenGLDescriptorSetLayout> m_descriptor_set_layouts;
+  ResourceOwner<OpenGLShaderModule> m_shader_modules;
 
   // ========================================================================
   // RID Allocator for internal resources
@@ -181,8 +183,8 @@ private:
   // Name-to-RID maps for PSO and Materials
   // ========================================================================
 
-  std::unordered_map<std::string, RID> m_pso_map;
-  std::unordered_map<std::string, RID> m_material_map;
+  std::unordered_map<std::size_t, RID> m_pso_map;
+  std::unordered_map<std::size_t, RID> m_pso_layout_map;
 
   // ========================================================================
   // Thread Safety
@@ -219,7 +221,7 @@ private:
 // Helper struct for type-to-member mapping (with specializations)
 // ============================================================================
 
-#define REGISTER_GL_GPU_RESOURCE(Type, MemberName)                                \
+#define REGISTER_GL_GPU_RESOURCE(Type, MemberName)                             \
   template <> struct GpuResourceTraits<Type> {                                 \
     template <bool TS>                                                         \
     static constexpr auto member = &OpenGLGpuStorage<TS>::MemberName;          \
@@ -227,9 +229,10 @@ private:
 
 REGISTER_GL_GPU_RESOURCE(ShaderProgram, m_shader_programs);
 REGISTER_GL_GPU_RESOURCE(VAO, m_buffers);
+REGISTER_GL_GPU_RESOURCE(EBO, m_index_buffers);
 REGISTER_GL_GPU_RESOURCE(UniformBuffer, m_uniform_buffers);
 REGISTER_GL_GPU_RESOURCE(OpenGLDescriptorSet, m_descriptor_sets);
 REGISTER_GL_GPU_RESOURCE(OpenGLDescriptorSetLayout, m_descriptor_set_layouts);
-REGISTER_GL_GPU_RESOURCE(ssme::Material, m_materials);
+REGISTER_GL_GPU_RESOURCE(OpenGLShaderModule, m_shader_modules);
 
 } // namespace ssme::opengl

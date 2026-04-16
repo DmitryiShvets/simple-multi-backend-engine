@@ -1,59 +1,29 @@
 #pragma once
-#include "core/time.h"
+#include "entity_base.h"
+#include "world_base.h"
 #include <string>
-#include <type_traits>
+#include <typeinfo>
+#include <utility>
 
 namespace ssme {
-
-class Component;
-
 /**
  * @brief Entity class that can have multiple components attached to it.
  *
  * Entities are containers for components. They don't have any behavior
  * on their own, but gain functionality through the components attached to them.
  */
-class Entity {
-private:
-  std::string name;
-  bool active = true;
+class Entity : private EntityBase {
 
 public:
   /**
    * @brief Constructor with a name.
    * @param name The name of the entity.
    */
-  explicit Entity(const std::string &name) : name(name) {}
+  explicit Entity(EntityID id, WorldBase &world) : EntityBase(id, world) {}
 
-  /**
-   * @brief Virtual destructor for proper cleanup.
-   */
-  virtual ~Entity() = default;
+  EntityID id() const { return m_id; }
 
-  /**
-   * @brief Get the name of the entity.
-   * @return The name of the entity.
-   */
-  const std::string &getName() const { return name; }
-
-  /**
-   * @brief Check if the entity is active.
-   * @return True if the entity is active, false otherwise.
-   */
-  bool isActive() const { return active; }
-
-  /**
-   * @brief Set the active state of the entity.
-   * @param isActive The new active state.
-   */
-  void setActive(bool isActive) { active = isActive; }
-
-  /**
-   * @brief Update all components of the entity.
-   * @param deltaTime The time elapsed since the last frame.
-   */
-  void update(TimeDelta deltaTime);
-
+  std::string name() const { return getName(); }
   /**
    * @brief Add a component to the entity.
    * @tparam T The type of component to add.
@@ -61,21 +31,32 @@ public:
    * @param args The arguments to pass to the component constructor.
    * @return A pointer to the newly created component.
    */
-  template <typename T, typename... Args> T *addComponent(Args &&...args) {
-    static_assert(std::is_base_of<Component, T>::value,
-                  "T must derive from Component");
-    // NOT IMPLEMENTED
+  template <typename T, typename... Args> bool add(Args &&...args) {
+    T data(std::forward<Args>(args)...);
+    return add(std::move(data));
   }
 
+  template <typename T> bool add(T &&data) {
+    // 1. Extract pure type (without & and const)
+    using PureT = std::remove_cvref_t<T>;
+
+    // 2. Check if input object is temporary (rvalue)
+    // If T is not a reference, then it's rvalue (std::move was used)
+    bool is_move = !std::is_lvalue_reference_v<T>;
+
+    // 3. Call low-level method
+    return addComponentRaw(typeid(PureT).hash_code(), typeid(PureT).name(),
+                           sizeof(PureT), alignof(PureT), (const void *)&data,
+                           getLifecycle<PureT>(), is_move);
+  }
   /**
    * @brief Get a component of a specific type.
    * @tparam T The type of component to get.
    * @return A pointer to the component, or nullptr if not found.
    */
-  template <typename T> T *getComponent() const {
-    static_assert(std::is_base_of<Component, T>::value,
-                  "T must derive from Component");
-    // NOT IMPLEMENTED
+  template <typename T> T *get() const {
+    using PureT = std::remove_cvref_t<T>;
+    return static_cast<T *>(getComponentRaw(typeid(PureT).hash_code()));
   }
 
   /**
@@ -83,12 +64,8 @@ public:
    * @tparam T The type of component to remove.
    * @return True if the component was removed, false otherwise.
    */
-  template <typename T> bool removeComponent() {
-    static_assert(std::is_base_of<Component, T>::value,
-                  "T must derive from Component");
-
-    // NOT IMPLEMENTED
-    return true;
+  template <typename T> bool remove() {
+    return removeComponentRaw(typeid(T).hash_code());
   }
 
   /**
@@ -96,10 +73,8 @@ public:
    * @tparam T The type of component to check for.
    * @return True if the entity has the component, false otherwise.
    */
-  template <typename T> bool hasComponent() const {
-    static_assert(std::is_base_of<Component, T>::value,
-                  "T must derive from Component");
-    return getComponent<T>() != nullptr;
+  template <typename T> bool has() const {
+    return hasComponentRaw(typeid(T).hash_code());
   }
 };
 

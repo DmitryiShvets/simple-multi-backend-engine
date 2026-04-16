@@ -5,18 +5,21 @@ layout(location = 0) out vec3 fragColor;
 
 // Per-frame uniform
 layout(std140, binding = 0) uniform GlobalUBO {
-  mat4 projectionViewMatrix;
+    mat4 projectionViewMatrix;
 } ubo;
-
+// Per-object uniform
+layout(std140, binding = 1) uniform ObjectUBO {
+    float u_test_value;
+} obj;
 // Per-material uniform
-layout(std140, binding = 1) uniform MaterialUBO {
-  vec3 color;
+layout(std140, binding = 2) uniform MaterialUBO {
+    vec3 color;
 } material;
 
-// Push constants эмулируются через uniform (OpenGL не имеет push constants)
+// Push constants emulated via uniform (OpenGL doesn't have push constants)
 uniform mat4 model_mat;
 
 void main() {
-  gl_Position = ubo.projectionViewMatrix * model_mat * vec4(position, 1.0);
-  fragColor = material.color;
+    gl_Position = ubo.projectionViewMatrix * model_mat * vec4(position, 1.0);
+    fragColor = material.color;
 }

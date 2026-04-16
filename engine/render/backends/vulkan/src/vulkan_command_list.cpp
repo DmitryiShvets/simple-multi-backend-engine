@@ -1,5 +1,6 @@
 
 #include "vulkan_command_list.h"
+#include "utils/debug_assert.h"
 #include "vulkan/vulkan.hpp"
 #include "vulkan_buffer.h"
 #include "vulkan_descriptor_set.h"
@@ -63,11 +64,16 @@ void VulkanCommandList::setVertexBuffer(uint32_t first_binding, RID buffer_rid,
   }
 }
 void VulkanCommandList::setIndexBuffer(RID buffer_rid, uint64_t offset,
-                                       IndexType type) {}
+                                       IndexType type) {
+  auto buffer = m_storage.get<VulkanBuffer>(buffer_rid);
+  if (buffer) {
+    vk::Buffer vk_buffer = buffer->getBuffer();
+    m_command_buffer.bindIndexBuffer(vk_buffer, offset, toVkIndexType(type));
+  }
+}
 void VulkanCommandList::setDescriptorSet(uint32_t set_index, RID set_rid,
                                          RID pipeline_rid) {
-  auto descriptor_set =
-      m_storage.get<VulkanDescriptorSet>(set_rid);
+  auto descriptor_set = m_storage.get<VulkanDescriptorSet>(set_rid);
   auto pipeline = m_storage.get<VulkanPipeLine>(pipeline_rid);
   if (descriptor_set && pipeline) {
     m_command_buffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics,
@@ -80,6 +86,8 @@ void VulkanCommandList::setPushConstant(RID pipeline_rid,
                                         ShaderStageFlags stages,
                                         uint32_t offset) {
   auto pipeline = m_storage.get<VulkanPipeLine>(pipeline_rid);
+  debug_assert(pipeline != nullptr,
+               "Internal error! check creation of pipeline");
   auto *data = static_cast<const uint8_t *>(value.data());
   m_command_buffer.pushConstants<uint8_t>(
       pipeline->getLayoutHandle(), toVkShaderStageFlags(stages), offset,
@@ -93,7 +101,10 @@ void VulkanCommandList::draw(uint32_t vertex_count, uint32_t instance_count,
 void VulkanCommandList::drawIndexed(uint32_t index_count,
                                     uint32_t instance_count,
                                     uint32_t first_index, int32_t vertex_offset,
-                                    uint32_t first_instance) {}
+                                    uint32_t first_instance) {
+  m_command_buffer.drawIndexed(index_count, instance_count, first_index,
+                               vertex_offset, first_instance);
+}
 void VulkanCommandList::drawIndexedIndirect(RID buffer_rid, uint64_t offset,
                                             uint32_t draw_count,
                                             uint32_t stride) {}
@@ -102,8 +113,7 @@ void VulkanCommandList::dispatch(uint32_t group_count_x, uint32_t group_count_y,
 
 void VulkanCommandList::pipelineBarrier(const BarrierInfo &barrier) {
   for (const auto &img_barrier_desc : barrier.image_barriers) {
-    auto texture =
-        m_storage.get<VulkanTexture>(img_barrier_desc.image);
+    auto texture = m_storage.get<VulkanTexture>(img_barrier_desc.image);
     if (!texture) {
       assert(false && "Texture is not found");
       continue;

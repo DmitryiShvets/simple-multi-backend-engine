@@ -1,4 +1,5 @@
 #include "opengl_descriptor_set.h"
+#include <cstdint>
 
 namespace ssme::opengl {
 
@@ -8,12 +9,12 @@ void OpenGLDescriptorSet::addBinding(uint32_t binding, GLuint handle) {
     m_bindings.push_back({handle, binding});
 }
 
-void OpenGLDescriptorSet::bind() const {
+void OpenGLDescriptorSet::bind(uint32_t bind_point) const {
     // Bind each resource to its binding point
     for (const auto& b : m_bindings) {
         // For UBO use glBindBufferBase
         // binding = 0, 1, 2... (must match layout(binding = X) in shader!)
-        glBindBufferBase(GL_UNIFORM_BUFFER, b.binding, b.handle);
+        glBindBufferBase(GL_UNIFORM_BUFFER, bind_point, b.handle);
     }
 }
 

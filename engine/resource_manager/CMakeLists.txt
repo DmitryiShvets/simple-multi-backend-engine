@@ -1,13 +1,26 @@
 set(RESOURCES_SOURCES
     resources/buffer.cpp
+    resources/pipeline.cpp
+    resources/texture.cpp
+    resources/shader.cpp
+    resources/uniform_block.cpp
+    resources/mesh.cpp
+    resources/material.cpp
+    resources/descriptor_set.cpp
+)
+
+set(LOADER_SOURCES
+    loaders/shader_loader.cpp
+    loaders/material_loader.cpp
 )
 
 set(SOURCES
     resource_manager.cpp
     resource_handle_base.cpp
+    spirv_reflect.cpp
 )
 
-add_library(ssme_resources STATIC ${RESOURCES_SOURCES} ${SOURCES})
+add_library(ssme_resources STATIC ${RESOURCES_SOURCES} ${LOADER_SOURCES} ${SOURCES})
 add_library(ssme::resources ALIAS ssme_resources)
 
 target_include_directories(ssme_resources
@@ -19,4 +32,5 @@ target_include_directories(ssme_resources
 target_link_libraries(ssme_resources
     PRIVATE
         ssme::rhi
+        external::json
 )

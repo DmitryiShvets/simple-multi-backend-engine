@@ -3,11 +3,11 @@
 #include <iostream>
 #include <source_location>
 #include <string_view>
-#include <format> // C++20 фича для удобного текста
+#include <format> // C++20 feature for convenient text formatting
 
 namespace ssme {
 
-// Включаем проверки только в Debug-сборке
+// Enable checks only in Debug builds
 #ifdef NDEBUG
     constexpr bool DEBUG_MODE = false;
 #else
@@ -15,14 +15,14 @@ namespace ssme {
 #endif
 
 /**
- * @brief Современный ассерт для движка
+ * @brief Modern assert for the engine
  */
 inline void debug_assert(bool condition,
                           std::string_view message = "",
                           const std::source_location loc = std::source_location::current()) {
     if constexpr (DEBUG_MODE) {
         if (!condition) {
-            // Формируем красивый отчет
+            // Form a nice report
             std::string error_msg = std::format(
                 "\n--- ASSERTION FAILED ---\n"
                 "Message:  {}\n"
@@ -36,13 +36,13 @@ inline void debug_assert(bool condition,
                 loc.column()
             );
 
-            // 1. Пишем в твой логгер
+            // 1. Write to your logger
             // Logger::error_log(error_msg);
 
-            // 2. Дублируем в консоль для мгновенной реакции
+            // 2. Duplicate to console for instant reaction
             std::cerr << error_msg << std::endl;
 
-            // 3. Останавливаем выполнение (Breakpoint)
+            // 3. Stop execution (Breakpoint)
             #if defined(_MSC_VER)
                 __debugbreak();
             #else

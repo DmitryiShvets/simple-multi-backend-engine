@@ -53,26 +53,33 @@ public:
    * @return True if the resource was m_loaded successfully, false otherwise.
    */
   bool load() {
-    m_loaded = doLoad();
+    if (!m_loaded)
+      m_loaded = doLoad();
     return m_loaded;
   }
   /**
    * @brief Unload the resource.
    */
   void unload() {
-    doUnload();
+    if (m_loaded)
+      doUnload();
     m_loaded = false;
   }
   /**
    * @brief Set up gpu identifiers for the resources.
    */
   void setup(const VecRID &rids) { doSetup(rids); }
+  /**
+   * @brief Prepare internal data of resource. Check if it already exists.
+   */
+  uint32_t prepare() { return doPrepare(); }
 
   uint64_t incrementUsersCount() { return m_users.increment(); }
   uint64_t decrementUsersCount() { return m_users.decrement(); }
   uint64_t getUsersCount() const { return m_users.get(); }
 
 protected:
+  virtual uint32_t doPrepare() = 0;
   virtual void doSetup(const VecRID &rids) = 0;
   virtual bool doLoad() = 0;
   virtual bool doUnload() = 0;

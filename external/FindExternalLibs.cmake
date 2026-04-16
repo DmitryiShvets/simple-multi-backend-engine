@@ -103,3 +103,19 @@ set_target_properties(external::glad PROPERTIES
 
 # Add library search path
 link_directories("${MY_EXTERNAL_DIR}/lib" "${MY_EXTERNAL_DIR}/lib64")
+
+# ------------------------------------------------------------------------------
+# JSON (nlohmann/json)
+# ------------------------------------------------------------------------------
+find_path(JSON_INCLUDE NAMES nlohmann/json.hpp
+    PATHS "${MY_EXTERNAL_DIR}/include"
+    NO_DEFAULT_PATH)
+
+if(NOT JSON_INCLUDE)
+    message(FATAL_ERROR "JSON not found! Run: ./scripts/build_libraries.sh")
+endif()
+
+add_library(external::json INTERFACE IMPORTED)
+set_target_properties(external::json PROPERTIES
+    INTERFACE_INCLUDE_DIRECTORIES "${JSON_INCLUDE}"
+)
