@@ -27,6 +27,7 @@ public:
     void updateAllWindows() override;
     void swapOpenGLBuffers() override;
     void cleanup() override;
+    void destroy() override;
 
     // ==================== Per-Window Access ====================
 

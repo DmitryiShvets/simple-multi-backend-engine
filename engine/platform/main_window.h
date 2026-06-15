@@ -65,6 +65,10 @@ public:
     /**
      * @brief Clean up window resources.
      */
+    virtual void cleanup() = 0;
+    /**
+     * @brief Close window.
+     */
     virtual void destroy() = 0;
 
     /**

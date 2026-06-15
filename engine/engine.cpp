@@ -118,8 +118,9 @@ void Engine::cleanup() {
     m_render_system.reset();
 
     m_resource_manager.reset();
-    m_ui_manager.reset();
-    m_platform.reset();
+    m_platform->destroy();    // destroy windows backends
+    m_ui_manager.reset();     // destroy ui context
+    m_platform.reset();       // destroy windows context
 
     m_initialized = false;
   }

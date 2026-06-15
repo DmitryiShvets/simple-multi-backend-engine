@@ -66,10 +66,13 @@ void DesktopPlatform::updateAllWindows() {
   }
 }
 
-void DesktopPlatform::cleanup() {
+void DesktopPlatform::destroy() {
   for (auto &window : m_windows) {
     window->destroy();
   }
+}
+
+void DesktopPlatform::cleanup() {
   m_windows.clear();
   m_windowResized.clear();
   m_windowWidths.clear();

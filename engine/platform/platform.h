@@ -70,6 +70,11 @@ public:
    */
   virtual void cleanup() = 0;
 
+  /**
+   * @brief Destroy all windows.
+   */
+  virtual void destroy() = 0;
+
   // ==================== Per-Window Access ====================
 
   /**

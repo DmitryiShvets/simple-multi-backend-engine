@@ -4,9 +4,9 @@
 #include "main_window.h"
 #include "gpu_context_strategy.h"
 
-class ImGuiContext;
-class GLFWwindow;
-class GLFWmonitor;
+struct ImGuiContext;
+struct GLFWwindow;
+struct GLFWmonitor;
 
 namespace ssme {
 
@@ -22,6 +22,7 @@ public:
 
     void init(const GpuContextStrategy& contextStrategy) override;
     void destroy() override;
+    void cleanup() override;
     bool shouldClose() const override;
     void swapBuffers() override;
     void update() override;
