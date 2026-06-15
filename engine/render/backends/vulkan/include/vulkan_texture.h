@@ -1,4 +1,5 @@
 #pragma once
+#include <optional>
 #include <string>
 #include <vulkan/vulkan_raii.hpp>
 #include <vulkan_device.h>
@@ -20,10 +21,10 @@ public:
 
   // Getters
   vk::Format getFormat() const { return m_format; }
-  vk::ImageView getImageView() const { return m_image_view; }
+  vk::ImageView getImageView() const { return *m_image_view; }
   vk::Sampler getSampler() const { return *m_samplaer; }
   vk::Image getImage() const {
-    return m_is_owned ? *m_owned_image : m_borrowed_image;
+    return m_is_owned ? *m_owned_image.value() : m_borrowed_image;
   }
 private:
   VulkanDevice &m_device;

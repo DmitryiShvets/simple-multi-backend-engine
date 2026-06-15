@@ -39,7 +39,7 @@ void VulkanTexture::createTextureSampler() {
 void VulkanTexture::createTextureImageView(vk::Format format,
                                            vk::ImageAspectFlagBits flags) {
   m_format = format;
-  vk::Image image = m_is_owned ? *m_owned_image : m_borrowed_image;
+  vk::Image image = m_is_owned ? *m_owned_image.value() : m_borrowed_image;
   m_image_view = m_device.createImageView(image, m_format, flags);
 }
 
@@ -86,13 +86,13 @@ void VulkanTexture::createTextureImage(const std::string &filepath) {
   m_owned_image = std::move(image);
   m_owned_image_memory = std::move(image_memory);
 
-  m_device.transitionImageLayout(*m_owned_image, vk::Format::eR8G8B8A8Srgb,
+  m_device.transitionImageLayout(*m_owned_image.value(), vk::Format::eR8G8B8A8Srgb,
                                  vk::ImageLayout::eUndefined,
                                  vk::ImageLayout::eTransferDstOptimal);
-  m_device.copyBufferToImage(*staging_buffer, *m_owned_image,
+  m_device.copyBufferToImage(*staging_buffer, *m_owned_image.value(),
                              static_cast<uint32_t>(tex_width),
                              static_cast<uint32_t>(tex_height), 1);
-  m_device.transitionImageLayout(*m_owned_image, vk::Format::eR8G8B8A8Srgb,
+  m_device.transitionImageLayout(*m_owned_image.value(), vk::Format::eR8G8B8A8Srgb,
                                  vk::ImageLayout::eTransferDstOptimal,
                                  vk::ImageLayout::eShaderReadOnlyOptimal);
 }
@@ -120,7 +120,7 @@ void VulkanTexture::createDepthTextureImage(vk::Extent2D extent,
   m_owned_image = std::move(image);
   m_owned_image_memory = std::move(image_memory);
   // Transition depth image from UNDEFINED to DEPTH_ATTACHMENT_OPTIMAL
-  m_device.transitionImageLayout(*m_owned_image, format,
+  m_device.transitionImageLayout(*m_owned_image.value(), format,
                                  vk::ImageLayout::eUndefined,
                                  vk::ImageLayout::eDepthAttachmentOptimal);
 }

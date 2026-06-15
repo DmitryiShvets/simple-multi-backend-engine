@@ -50,7 +50,7 @@ vk::Result VulkanSwapChain::acquireNextImage(uint32_t *imageIndex) {
   m_device.getHandle().resetFences(*m_in_flight_fences[m_current_frame]);
   // Acquire the next available image from the swapchain.
   auto [result, image_index] = m_swap_chain.acquireNextImage(
-      UINT64_MAX, m_image_available_semaphores[m_current_frame], nullptr);
+      UINT64_MAX, *m_image_available_semaphores[m_current_frame], nullptr);
   *imageIndex = image_index;
   return result;
 }
@@ -80,7 +80,7 @@ VulkanSwapChain::submitCommandBuffers(const vk::CommandBuffer *buffers,
   // The `inFlightFences` will be signaled when the command buffer has finished
   // execution.
   m_device.getGraphicsQueue().submit(submit_info,
-                                     m_in_flight_fences[m_current_frame]);
+                                     *m_in_flight_fences[m_current_frame]);
 
   // --- Configure the presentation ---
   // Specify the swap chain to present to.

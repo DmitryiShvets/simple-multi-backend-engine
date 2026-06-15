@@ -3,9 +3,9 @@
 #include "main_window.h"
 #include <string>
 
-class GLFWwindow;
-class ImGuiContext;
-class ImDrawData;
+struct GLFWwindow;
+struct ImGuiContext;
+struct ImDrawData;
 
 namespace ssme {
 

@@ -28,3 +28,6 @@ int main() {
     return EXIT_FAILURE;
   }
 }
+// git clone
+// git init submodules
+// cp patches/imgui.CMakeLists.txt external/imgui/CMakeLists.txt

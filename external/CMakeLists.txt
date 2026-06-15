@@ -29,6 +29,9 @@ install(TARGETS glad
 install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/glad/include/glad
     DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
 )
+install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/glad/include/KHR
+    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+)
 
 # ============================================================================
 # ImGui (с копированием CMakeLists.txt если нужно)
