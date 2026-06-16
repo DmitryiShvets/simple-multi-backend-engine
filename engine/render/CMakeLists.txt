@@ -1,5 +1,6 @@
 option(BUILD_OPENGL_RENDERER "Build OpenGL renderer" ON)
 option(BUILD_VULKAN_RENDERER "Build Vulkan renderer" ON)
+option(BUILD_DX12_RENDERER "Build DirectX 12 renderer" ON)
 
 set(RENDER_SOURCES
     graph/render_graph.cpp
@@ -8,6 +9,7 @@ set(RENDER_SOURCES
     renderer.cpp
     opengl_renderer.cpp
     vulkan_renderer.cpp
+    d3d12_renderer.cpp
     render_system.cpp
 )
 
@@ -37,4 +39,9 @@ endif()
 # Vulkan submodule
 if(BUILD_VULKAN_RENDERER)
     target_link_libraries(ssme_render PRIVATE ssme::vulkan)
+endif()
+
+# DirectX 12 submodule
+if(BUILD_DX12_RENDERER)
+    target_link_libraries(ssme_render PRIVATE ssme::dx12)
 endif()

@@ -10,6 +10,7 @@
 #include "vulkan_pipeline.h"
 #include "vulkan_texture.h"
 #include <cassert>
+#include <cstdint>
 
 namespace ssme::vulkan {
 
@@ -91,7 +92,7 @@ void VulkanCommandList::setPushConstant(RID pipeline_rid,
   auto *data = static_cast<const uint8_t *>(value.data());
   m_command_buffer.pushConstants<uint8_t>(
       pipeline->getLayoutHandle(), toVkShaderStageFlags(stages), offset,
-      vk::ArrayProxy<const uint8_t>(value.size(), data));
+      vk::ArrayProxy<const uint8_t>(static_cast<uint32_t>(value.size()), data));
 }
 void VulkanCommandList::draw(uint32_t vertex_count, uint32_t instance_count,
                              uint32_t first_vertex, uint32_t first_instance) {

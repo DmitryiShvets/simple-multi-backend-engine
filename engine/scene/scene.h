@@ -20,7 +20,8 @@ public:
   World &getWorld() { return *m_world; }
 
   std::vector<SceneView> getSceneViews() {
-    return {m_render_scene, m_render_scene};
+      // todo: fix this
+    return {m_render_scene, m_render_scene, m_render_scene};
   }
 
 private:

@@ -1,4 +1,5 @@
 #include "ui_manager.h"
+#include "imgui_backend.h"
 #include "main_window.h"
 #include <imgui/imgui.h>
 #include <stdexcept>
@@ -18,6 +19,9 @@ void UIManager::addBackend(GpuBackend type) {
     break;
   case GpuBackend::Vulkan:
     m_backends.push_back(std::make_unique<ImGuiVulkanBackend>());
+    break;
+  case GpuBackend::DirectX12:
+    m_backends.push_back(std::make_unique<ImGuiDirectX12Backend>());
     break;
   default:
     throw std::runtime_error("Unknown backend type");
@@ -39,6 +43,7 @@ void UIManager::init(
 
 void UIManager::render(const std::function<void()> &draw_fn) {
   for (auto &backend : m_backends) {
+    if(!backend->isInitialized()) return;
     // Switch to this backend's context
     ImGui::SetCurrentContext(backend->getContext());
     backend->frame();

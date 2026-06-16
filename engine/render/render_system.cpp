@@ -1,13 +1,14 @@
 #include "render_system.h"
 #include "core/gpu_types.h"
-#include "scene_view.h"
 #include "core/uniforms.h"
-#include "opengl_renderer.h"
 #include "renderer.h"
 #include "resource_manager.h"
 #include "resources/descriptor_set.h"
 #include "resources/uniform_block.h"
+#include "scene_view.h"
+#include "opengl_renderer.h"
 #include "vulkan_renderer.h"
+#include "d3d12_renderer.h"
 #include <cstddef>
 #include <imgui.h>
 #include <memory>
@@ -22,6 +23,9 @@ void RenderSystem::addBackend(GpuBackend type) {
     break;
   case GpuBackend::Vulkan:
     m_renderers.push_back(std::make_unique<VulkanRenderer>(m_platform, m_rm));
+    break;
+  case GpuBackend::DirectX12:
+    m_renderers.push_back(std::make_unique<Dx12Renderer>(m_platform, m_rm));
     break;
   default:
     throw std::runtime_error("Unknown backend type");

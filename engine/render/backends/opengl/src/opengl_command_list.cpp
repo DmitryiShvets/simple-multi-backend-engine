@@ -3,7 +3,8 @@
 #include "opengl_descriptor_set.h"
 #include "opengl_gpu_storage.h"
 #include "opengl_shader_program.h"
-
+// Use glad for OpenGL functions (not system GL/gl.h)
+#include "glad/gl.h"
 namespace ssme::opengl {
 
 OpenGLCommandList::OpenGLCommandList(OpenGLGpuStorageMT &storage)

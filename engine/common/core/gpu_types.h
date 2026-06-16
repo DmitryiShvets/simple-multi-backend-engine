@@ -10,6 +10,7 @@ namespace ssme {
 enum class GpuBackend : size_t {
   OpenGL = 0,
   Vulkan = 1,
+  DirectX12 = 2,
   Count
 };
 

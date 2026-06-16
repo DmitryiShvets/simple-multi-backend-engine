@@ -4,6 +4,7 @@
 #include <imgui/backends/imgui_impl_glfw.h>
 #include <imgui/backends/imgui_impl_opengl3.h>
 #include <imgui/backends/imgui_impl_vulkan.h>
+#include <imgui/backends/imgui_impl_dx12.h>
 #include <imgui/imgui.h>
 
 #include <GLFW/glfw3.h>
@@ -93,6 +94,30 @@ void ImGuiVulkanBackend::frame() {
   }
   ImGui_ImplVulkan_NewFrame();
   ImGui_ImplGlfw_NewFrame();
+}
+
+
+// ============================================================================
+// ImGuiDirectX12Backend
+// ============================================================================
+
+void ImGuiDirectX12Backend::init(MainWindow &window,
+                              const UIBackendConfig &config) {
+  if (m_initialized) {
+    return;
+  }
+  // ImGuiBackend::init(window, config);
+  // ImGui_ImplGlfw_InitForVulkan(m_glfw_window, false);
+  // window.setUiContext(m_context);
+  // m_initialized = true;
+}
+
+void ImGuiDirectX12Backend::frame() {
+  if (!m_initialized) {
+    return;
+  }
+  // ImGui_ImplVulkan_NewFrame();
+  // ImGui_ImplGlfw_NewFrame();
 }
 
 } // namespace ssme

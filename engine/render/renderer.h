@@ -14,7 +14,7 @@
 namespace ssme {
 class SceneView;
 class CommandList;
-class RenderItem;
+struct RenderItem;
 
 struct FrameData {
   std::vector<ResourceHandle<UniformBuffer>> uniform_buffer;

@@ -176,11 +176,16 @@ DesktopPlatform::createWindow(const std::string &title, int width, int height,
 
   // Initialize with OpenGL context strategy
   // TODO: Make this configurable (OpenGL/Vulkan)
-  OpenGLGpuContextCreator gl_context_creator;
+  OpenGLGpuContextCreator gl_gpu_ctx_creator;
   VulkanGpuContextCreator vk_gpu_ctx_creator;
+  Dx12GpuContextCreator dx_gpu_ctx_creator;
   if (type == GpuBackend::OpenGL) {
-    window->init(gl_context_creator);
-  } else {
+    window->init(gl_gpu_ctx_creator);
+  }
+  else if (type == GpuBackend::DirectX12) {
+    window->init(dx_gpu_ctx_creator);
+  }
+  else {
     window->init(vk_gpu_ctx_creator);
   }
 

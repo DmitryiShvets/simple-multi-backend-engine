@@ -16,6 +16,7 @@
 #include "ui_manager.h"
 #include "utils/common_utils.h"
 #include <flecs.h>
+#include <malloc.h>
 #include <memory>
 namespace ssme {
 
@@ -35,11 +36,14 @@ bool Engine::initialize(int width, int height) {
   m_platform->initialize("MyApp", width, height);
   m_platform->addWindow("Opengl Window", width, height, GpuBackend::OpenGL);
   m_platform->addWindow("Vulkan Window", width, height, GpuBackend::Vulkan);
+  m_platform->addWindow("DirectX Window", width, height, GpuBackend::DirectX12);
 
   m_platform->setWindowPosition(static_cast<size_t>(GpuBackend::OpenGL),
                                 {100, 100});
   m_platform->setWindowPosition(static_cast<size_t>(GpuBackend::Vulkan),
                                 {950, 100});
+  m_platform->setWindowPosition(static_cast<size_t>(GpuBackend::DirectX12),
+                                {350, 800});
   // Set resize callback
   m_platform->setResizeCallback(
       [this](size_t window_index, int width, int height) {
@@ -64,16 +68,21 @@ bool Engine::initialize(int width, int height) {
 
   std::vector<std::reference_wrapper<MainWindow>> windows = {
       m_platform->getWindow(static_cast<size_t>(GpuBackend::OpenGL)),
-      m_platform->getWindow(static_cast<size_t>(GpuBackend::Vulkan))};
+      m_platform->getWindow(static_cast<size_t>(GpuBackend::Vulkan)),
+      m_platform->getWindow(static_cast<size_t>(GpuBackend::DirectX12)),
+  };
   // Add backends in SAME order as BackendType enum: OpenGL first, Vulkan second
   m_ui_manager = std::make_unique<UIManager>();
   m_ui_manager->addBackend(GpuBackend::OpenGL);
   m_ui_manager->addBackend(GpuBackend::Vulkan);
+  m_ui_manager->addBackend(GpuBackend::DirectX12);
   m_ui_manager->init(windows);
   // auto m_world = std::make_unique<World<FlecsWorldImpl>>();
   std::vector<ImGuiContext *> ui_contexts = {
       m_ui_manager->getContext(GpuBackend::OpenGL),
-      m_ui_manager->getContext(GpuBackend::Vulkan)};
+      m_ui_manager->getContext(GpuBackend::Vulkan),
+      m_ui_manager->getContext(GpuBackend::DirectX12),
+  };
 
   m_resource_manager = std::make_unique<ResourceManager>();
   m_resource_manager->registerLoader(std::make_unique<ShaderLoader>());
@@ -83,6 +92,7 @@ bool Engine::initialize(int width, int height) {
                                                    m_resource_manager.get());
   m_render_system->addBackend(GpuBackend::OpenGL);
   m_render_system->addBackend(GpuBackend::Vulkan);
+  m_render_system->addBackend(GpuBackend::DirectX12);
   m_render_system->init(ui_contexts);
 
   // Register render devices with the resource manager
@@ -90,11 +100,13 @@ bool Engine::initialize(int width, int height) {
       GpuBackend::OpenGL, &m_render_system->getDevice(GpuBackend::OpenGL));
   m_resource_manager->registerDevice(
       GpuBackend::Vulkan, &m_render_system->getDevice(GpuBackend::Vulkan));
+  m_resource_manager->registerDevice(
+      GpuBackend::DirectX12, &m_render_system->getDevice(GpuBackend::DirectX12));
   m_render_system->createPerFrameResources();
 
   m_scene = std::make_unique<Scene>(*m_resource_manager.get());
   m_initialized = true;
-  return true;
+  return m_initialized;
 }
 
 void Engine::cleanup() {

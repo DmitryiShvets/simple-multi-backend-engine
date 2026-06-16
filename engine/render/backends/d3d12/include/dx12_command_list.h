@@ -1,16 +1,16 @@
 #pragma once
 
 #include "command_list.h"
-#include "opengl_gpu_storage_fwd.h"
+#include "dx12_gpu_storage_fwd.h"
 
-namespace ssme::opengl {
+namespace ssme::d3d12 {
 
 // OpenGL CommandList - immediate mode wrapper
 // Most commands execute immediately, state is managed by OpenGL itself
-class OpenGLCommandList final : public CommandList {
+class Dx12CommandList final : public CommandList {
 public:
-  OpenGLCommandList(OpenGLGpuStorageMT& storage);
-  ~OpenGLCommandList() override = default;
+  Dx12CommandList(Dx12GpuStorageMT& storage);
+  ~Dx12CommandList() override = default;
 
   // --- Lifecycle ---
   void begin() override {}
@@ -51,7 +51,7 @@ public:
   void clearColorImage(RID image, const float color[4]) override;
 
 private:
-  OpenGLGpuStorageMT& m_storage;
+  Dx12GpuStorageMT& m_storage;
 };
 
-} // namespace ssme::opengl
+} // namespace ssme::d3d12

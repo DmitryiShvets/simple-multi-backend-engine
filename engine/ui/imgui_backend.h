@@ -35,6 +35,7 @@ public:
   ImDrawData *getDrawData() { return m_draw_data; }
   void setDrawData(ImDrawData *data) { m_draw_data = data; }
   MainWindow &getWindow() { return *m_window; }
+  bool isInitialized() { return m_initialized; }
 
 protected:
   ImGuiContext *m_context = nullptr;
@@ -58,6 +59,16 @@ public:
  * @brief RAII wrapper for Vulkan ImGui backend
  */
 class ImGuiVulkanBackend : public ImGuiBackend {
+public:
+  void init(MainWindow &window,
+            const UIBackendConfig &config) override;
+  void frame() override;
+};
+
+/**
+ * @brief RAII wrapper for Vulkan ImGui backend
+ */
+class ImGuiDirectX12Backend : public ImGuiBackend {
 public:
   void init(MainWindow &window,
             const UIBackendConfig &config) override;
