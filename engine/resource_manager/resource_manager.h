@@ -134,7 +134,7 @@ public:
 
     // Create new slot with exclusive lock
     std::unique_lock lock(m_map_mutex);
-    index = m_slots.size();
+    index = static_cast<uint32_t>(m_slots.size());
     m_slots.emplace_back();
     m_uuid_to_idx[uuid] = index;
 

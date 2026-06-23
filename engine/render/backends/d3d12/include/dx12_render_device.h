@@ -5,10 +5,12 @@
 
 namespace ssme::d3d12 {
 
+class Dx12Device;
+
 // This is the concrete OpenGL implementation of the pure RenderDevice interface.
 class Dx12RenderDevice final : public RenderDevice {
 public:
-    Dx12RenderDevice(Dx12GpuStorageMT& storage);
+    Dx12RenderDevice(Dx12Device& device, Dx12GpuStorageMT& storage);
     virtual ~Dx12RenderDevice() override;
 
     // --- Buffer ---
@@ -41,6 +43,7 @@ public:
     void updateBufferRaw(RID rid, size_t offset, size_t size, const void *data) override;
 
 private:
+    Dx12Device& m_device;
     Dx12GpuStorageMT& m_storage;
 };
 

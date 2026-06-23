@@ -1,6 +1,11 @@
 set(DX12_RENDER_SOURCES
  src/dx12_command_list.cpp
  src/dx12_render_device.cpp
+ src/dx12_device.cpp
+ src/dx12_swap_chain.cpp
+ src/dx12_helpers.cpp
+ src/dx12_buffer.cpp
+ src/dx12_texture.cpp
 )
 
 add_library(ssme_dx12 STATIC ${DX12_RENDER_SOURCES})
@@ -15,9 +20,13 @@ target_include_directories(ssme_dx12
 # DEPENDENCIES
 target_link_libraries(ssme_dx12
     PRIVATE
+        d3d12
+        dxgi
+        d3dcompiler
         external::imgui
         ssme::common
         ssme::rhi
+        ssme::platform
         ssme::resources
 )
 

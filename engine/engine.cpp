@@ -43,7 +43,7 @@ bool Engine::initialize(int width, int height) {
   m_platform->setWindowPosition(static_cast<size_t>(GpuBackend::Vulkan),
                                 {950, 100});
   m_platform->setWindowPosition(static_cast<size_t>(GpuBackend::DirectX12),
-                                {350, 800});
+                                {500, 400});
   // Set resize callback
   m_platform->setResizeCallback(
       [this](size_t window_index, int width, int height) {

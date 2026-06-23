@@ -60,10 +60,17 @@ void execute(RenderGraph &graph, RID back_buffer, RID depth_buffer,
 // Constructor now takes ownership of the low-level device
 VulkanRenderer::VulkanRenderer(Platform *platform, ResourceManager *rm)
     : m_platform(platform), m_rm(rm) {
-  m_device = std::make_unique<ssme::vulkan::VulkanDevice>(platform);
-
   /* -------------INIT STATE-------------- */
-  createSwapChain();
+  m_device = std::make_unique<ssme::vulkan::VulkanDevice>(platform);
+  m_swap_chain = std::make_unique<ssme::vulkan::VulkanSwapChain>(
+      *m_device, vk::Extent2D{800, 400}, m_storage);
+
+  m_command_lists.clear();
+  m_command_lists.reserve(MAX_FRAMES_IN_FLIGHT);
+  for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
+    m_command_lists.push_back(std::make_unique<ssme::vulkan::VulkanCommandList>(
+        *m_device, m_storage));
+  }
   m_rhi_device =
       std::make_unique<ssme::vulkan::VulkanRenderDevice>(*m_device, m_storage);
   m_imgui_descriptor_pool =
@@ -218,19 +225,9 @@ void VulkanRenderer::renderFrame(SceneView &view, ImDrawData *ui_draw_data) {
 
 void VulkanRenderer::destroy() {
   m_device->getHandle().waitIdle();
-  ImGui::SetCurrentContext(m_imgui_context);
-  ImGui_ImplVulkan_Shutdown();
-}
-
-void VulkanRenderer::createSwapChain() {
-  m_swap_chain = std::make_unique<ssme::vulkan::VulkanSwapChain>(
-      *m_device, vk::Extent2D{800, 400}, m_storage);
-
-  m_command_lists.clear();
-  m_command_lists.reserve(MAX_FRAMES_IN_FLIGHT);
-  for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
-    m_command_lists.push_back(std::make_unique<ssme::vulkan::VulkanCommandList>(
-        *m_device, m_storage));
+  if(m_imgui_context) {
+    ImGui::SetCurrentContext(m_imgui_context);
+    ImGui_ImplVulkan_Shutdown();
   }
 }
 

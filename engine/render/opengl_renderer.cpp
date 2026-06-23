@@ -91,8 +91,10 @@ void OpenGLRenderer::renderFrame(SceneView &view, ImDrawData *ui_draw_data) {
 }
 
 void OpenGLRenderer::destroy() {
-  ImGui::SetCurrentContext(m_imgui_context);
-  ImGui_ImplOpenGL3_Shutdown();
+    if(m_imgui_context) {
+        ImGui::SetCurrentContext(m_imgui_context);
+        ImGui_ImplOpenGL3_Shutdown();
+    }
 }
 
 void OpenGLRenderer::setFrameResources(std::shared_ptr<FrameData> data) {

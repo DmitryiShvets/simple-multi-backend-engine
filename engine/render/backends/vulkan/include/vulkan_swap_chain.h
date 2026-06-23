@@ -81,6 +81,10 @@ public:
   /**
    * @brief Acquires the index of the next available image from the swap chain
    * to be rendered into.
+   * NOTE: IT INCLUDES TWO STEPS OF SYNCHRONIZATION
+   * 1. waitForFences: The CPU doesn't run ahead of GPU more than FRAMES_IN_FLIGHT
+   * 2. acquireNextImage: The GPU signals image_available when the back buffer is free
+   *
    * @param imageIndex A pointer to a uint32_t that will be filled with the
    * acquired image index.
    * @return A vk::Result indicating success, or if the swap chain is out of
@@ -92,6 +96,10 @@ public:
   /**
    * @brief Submits the provided command buffers for execution and presents the
    * rendered image to the screen.
+   * NOTE: IT INCLUDES TWO STEPS OF SYNCHRONIZATION
+   * 1. SUBMIT: GPU is waiting for image_available, GPU signals render_finished
+   * 2. PRESENT: GPU wait for render_finished, show the picture
+   *
    * @param buffers A pointer to an array of command buffers to be submitted.
    * @param imageIndex A pointer to the index of the image that was just
    * rendered into.

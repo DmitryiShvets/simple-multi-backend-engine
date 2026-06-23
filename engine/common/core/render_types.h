@@ -103,4 +103,8 @@ struct Rect {
   int32_t x, y;
   uint32_t width, height;
 };
+
+struct Extent2D {
+    uint32_t width, height;
+};
 } // namespace ssme

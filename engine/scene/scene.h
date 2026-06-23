@@ -21,6 +21,7 @@ public:
 
   std::vector<SceneView> getSceneViews() {
       // todo: fix this
+    // return {m_render_scene, m_render_scene};
     return {m_render_scene, m_render_scene, m_render_scene};
   }
 

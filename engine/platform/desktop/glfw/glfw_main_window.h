@@ -40,6 +40,7 @@ public:
 
     // Accessors
     void* getNativeWindow() const override;
+    void* getNativeHwnd() const override;
     void setUiContext(void* ctx) override;
     WindowConfig getConfig() override;
     GpuBackend getGpuBackend() override;

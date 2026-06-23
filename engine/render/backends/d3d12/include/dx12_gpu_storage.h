@@ -10,6 +10,8 @@
 
 // Full type definitions required for ResourceOwner<T> (uses unique_ptr
 // internally)
+#include "dx12_buffer.h"
+#include "dx12_texture.h"
 
 namespace ssme {
 class Material; // Forward declare from parent namespace
@@ -152,6 +154,9 @@ private:
   // Per-type ResourceOwner (type-safe storage)
   // ========================================================================
 
+  ResourceOwner<Dx12Texture> m_textures;
+  ResourceOwner<Dx12Buffer> m_buffers;
+
   // ========================================================================
   // RID Allocator for internal resources
   // ========================================================================
@@ -203,11 +208,13 @@ private:
 // Helper struct for type-to-member mapping (with specializations)
 // ============================================================================
 
-#define REGISTER_DX12_GPU_RESOURCE(Type, MemberName)                             \
+#define REGISTER_DX12_GPU_RESOURCE(Type, MemberName)                           \
   template <> struct GpuResourceTraits<Type> {                                 \
     template <bool TS>                                                         \
-    static constexpr auto member = &Dx12GpuStorage<TS>::MemberName;          \
+    static constexpr auto member = &Dx12GpuStorage<TS>::MemberName;            \
   }
 
+REGISTER_DX12_GPU_RESOURCE(Dx12Texture, m_textures);
+REGISTER_DX12_GPU_RESOURCE(Dx12Buffer, m_buffers);
 
 } // namespace ssme::d3d12

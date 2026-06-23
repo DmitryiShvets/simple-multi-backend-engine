@@ -46,7 +46,6 @@ public:
   void setFrameResources(std::shared_ptr<FrameData> data) override;
 
 private:
-  // This class now owns the core device and resource manager
   GpuBackend m_backend_type = GpuBackend::Vulkan;
   Platform * m_platform;
   ResourceManager* m_rm;
@@ -66,7 +65,6 @@ private:
   // --- Rendering Logic (Orchestration) ---
   ImGuiContext *m_imgui_context = nullptr;
   // Private, API-dependent methods for frame lifecycle management
-  void createSwapChain();         // Will be called during initialization
   void createPerFrameResources(); // Create per-frame uniform buffers and
                                   // descriptor sets
   void

@@ -1,4 +1,5 @@
 #include "dx12_render_device.h"
+#include "dx12_device.h"
 #include "core/rid.h"
 #include "dx12_gpu_storage_fwd.h"
 #include "utils/debug_assert.h"
@@ -9,8 +10,8 @@
 
 namespace ssme::d3d12 {
 
-Dx12RenderDevice::Dx12RenderDevice(Dx12GpuStorageMT &storage)
-    : m_storage(storage) {}
+Dx12RenderDevice::Dx12RenderDevice(Dx12Device& device, Dx12GpuStorageMT &storage)
+    : m_device(device), m_storage(storage) {}
 
 Dx12RenderDevice::~Dx12RenderDevice() {}
 
