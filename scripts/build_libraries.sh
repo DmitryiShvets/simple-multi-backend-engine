@@ -14,8 +14,7 @@ mkdir -p "$INSTALL_DIR"
 mkdir -p build/libs_build
 cd build/libs_build
 
-cmake -G "Ninja" -DCMAKE_BUILD_TYPE=Debug -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreadedDebugDLL
- -DCMAKE_INSTALL_PREFIX="$INSTALL_DIR" -B . -S ../../external
+cmake -G "Ninja" -DCMAKE_BUILD_TYPE=Debug -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreadedDebugDLL -DCMAKE_INSTALL_PREFIX="$INSTALL_DIR" -B . -S ../../external
 
 ninja
 ninja install

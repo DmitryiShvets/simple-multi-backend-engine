@@ -3,6 +3,7 @@
 #include "main_window.h"
 #include <imgui/imgui.h>
 #include <stdexcept>
+#include <algorithm>
 
 namespace ssme {
 
