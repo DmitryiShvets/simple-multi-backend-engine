@@ -1,6 +1,10 @@
 option(BUILD_OPENGL_RENDERER "Build OpenGL renderer" ON)
 option(BUILD_VULKAN_RENDERER "Build Vulkan renderer" ON)
-option(BUILD_DX12_RENDERER "Build DirectX 12 renderer" ON)
+if(WIN32)
+    option(BUILD_DX12_RENDERER "Build DirectX 12 renderer" ON)
+else()
+    set(BUILD_DX12_RENDERER OFF)
+endif()
 
 set(RENDER_SOURCES
     graph/render_graph.cpp
@@ -9,9 +13,12 @@ set(RENDER_SOURCES
     renderer.cpp
     opengl_renderer.cpp
     vulkan_renderer.cpp
-    d3d12_renderer.cpp
     render_system.cpp
 )
+# d3d12_renderer.cpp only on Windows
+if(WIN32)
+list(APPEND RENDER_SOURCES d3d12_renderer.cpp)
+endif()
 
 add_library(ssme_render STATIC ${RENDER_SOURCES})
 add_library(ssme::render ALIAS ssme_render)

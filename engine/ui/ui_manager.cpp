@@ -20,9 +20,11 @@ void UIManager::addBackend(GpuBackend type) {
   case GpuBackend::Vulkan:
     m_backends.push_back(std::make_unique<ImGuiVulkanBackend>());
     break;
+#ifdef _WIN32
   case GpuBackend::DirectX12:
     m_backends.push_back(std::make_unique<ImGuiDirectX12Backend>());
     break;
+#endif
   default:
     throw std::runtime_error("Unknown backend type");
   }

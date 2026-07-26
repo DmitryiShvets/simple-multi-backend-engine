@@ -11,9 +11,10 @@ target_include_directories(app
 
 target_link_libraries(app PRIVATE ssme::engine)
 
+if(WIN32)
 add_custom_command(TARGET app POST_BUILD
-  COMMAND ${CMAKE_COMMAND} -E copy_if_different
-    "${CMAKE_SOURCE_DIR}/build/libs/bin/flecs.dll"
-    "$<TARGET_FILE_DIR:app>"
-  COMMENT "Copying flecs.dll to output directory"
-)
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "${CMAKE_SOURCE_DIR}/build/libs/bin/flecs.dll"
+        "$<TARGET_FILE_DIR:app>"
+    COMMENT "Copying flecs.dll to output directory")
+endif()

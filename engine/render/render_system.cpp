@@ -8,7 +8,9 @@
 #include "scene_view.h"
 #include "opengl_renderer.h"
 #include "vulkan_renderer.h"
-#include "d3d12_renderer.h"
+#ifdef _WIN32
+    #include "d3d12_renderer.h"
+#endif
 #include <cstddef>
 #include <imgui.h>
 #include <memory>
@@ -24,9 +26,11 @@ void RenderSystem::addBackend(GpuBackend type) {
   case GpuBackend::Vulkan:
     m_renderers.push_back(std::make_unique<VulkanRenderer>(m_platform, m_rm));
     break;
+#ifdef _WIN32
   case GpuBackend::DirectX12:
     m_renderers.push_back(std::make_unique<Dx12Renderer>(m_platform, m_rm));
     break;
+#endif
   default:
     throw std::runtime_error("Unknown backend type");
   }

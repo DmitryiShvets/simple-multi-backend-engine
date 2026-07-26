@@ -4,7 +4,9 @@
 #include <imgui/backends/imgui_impl_glfw.h>
 #include <imgui/backends/imgui_impl_opengl3.h>
 #include <imgui/backends/imgui_impl_vulkan.h>
+#ifdef _WIN32
 #include <imgui/backends/imgui_impl_dx12.h>
+#endif
 #include <imgui/imgui.h>
 
 #include <GLFW/glfw3.h>
@@ -101,7 +103,7 @@ void ImGuiVulkanBackend::frame() {
 // ============================================================================
 // ImGuiDirectX12Backend
 // ============================================================================
-
+#ifdef _WIN32
 void ImGuiDirectX12Backend::init(MainWindow &window,
                               const UIBackendConfig &config,  GpuBackend type) {
   if (m_initialized) {
@@ -121,5 +123,5 @@ void ImGuiDirectX12Backend::frame() {
   ImGui_ImplDX12_NewFrame();
   ImGui_ImplGlfw_NewFrame();
 }
-
+#endif
 } // namespace ssme

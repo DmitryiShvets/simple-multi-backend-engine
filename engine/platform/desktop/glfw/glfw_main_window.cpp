@@ -8,8 +8,10 @@
 #include <imgui_internal.h>
 #define GLFW_INCLUDE_NONE
 #include <GLFW/glfw3.h>
+#ifdef _WIN32
 #define GLFW_EXPOSE_NATIVE_WIN32
 #include <GLFW/glfw3native.h>
+#endif
 
 namespace ssme {
 // Constructor implementation
@@ -269,7 +271,11 @@ void GLFWMainWindow::resizeCallback(GLFWwindow *window, int width, int height) {
 }
 
 void *GLFWMainWindow::getNativeWindow() const { return m_window; }
+#ifdef _WIN32
 void *GLFWMainWindow::getNativeHwnd() const { return glfwGetWin32Window(m_window); }
+#else
+void *GLFWMainWindow::getNativeHwnd() const { return nullptr; }
+#endif
 
 void GLFWMainWindow::setUiContext(void *ctx) {
   m_ui_context = static_cast<ImGuiContext *>(ctx);

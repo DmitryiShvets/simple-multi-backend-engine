@@ -4,8 +4,10 @@ set(PLATFORM_SOURCES
     desktop/glfw/glfw_main_window.cpp
     desktop/glfw/glfw_vk_gpu_context_creator.cpp
     desktop/glfw/glfw_gl_gpu_context_creator.cpp
-    desktop/glfw/glfw_dx12_gpu_context_creator.cpp
 )
+if(WIN32)
+list(APPEND PLATFORM_SOURCES desktop/glfw/glfw_dx12_gpu_context_creator.cpp)
+endif()
 
 # Create platform library
 add_library(ssme_platform STATIC ${PLATFORM_SOURCES})
