@@ -71,8 +71,6 @@ void RenderProxyBuilder::buildProxy(Entity &entity) {
       .layout = object_ubo_layout,
   };
   proxy.obj_uniforms = m_rm.load<UniformBuffer>("u_obj_buffer" + ent_mame, u_buff_desc);
-  // u_buffer->repack(object_ubo_data);
-  // u_buffer->update(&packed, sizeof(packed));
 
   DescriptorDesc u_ds_desc{
       .layout_id = proxy.obj_uniform_ds_layout.get()->getLayoutId(),

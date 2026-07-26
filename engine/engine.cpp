@@ -16,8 +16,46 @@
 #include "ui_manager.h"
 #include "utils/common_utils.h"
 #include <flecs.h>
+#include <malloc.h>
 #include <memory>
 namespace ssme {
+
+static constexpr struct {
+  GpuBackend backend;
+  const char *title;
+  int x, y;
+  // NOTE: IF g_enable_validation_layers IN DX12 RENDER IS ENABLED, THE BACKEND
+  //       INIT ORDER MATTERS: DX12 MUST BE CREATED BEFORE VULKAN.
+  //
+  // WHY: When D3D12 validation is enabled, Dx12Device::initialize() calls:
+  //   D3D12GetDebugInterface → EnableDebugLayer() → CreateDXGIFactory2(DEBUG)
+  //
+  // EnableDebugLayer() installs a GLOBAL DXGI hook (ID3D12Debug intercepts all
+  // IDXGIFactory creation). Later, when Vulkan initializes, glfwCreateWindowSurface
+  // internally calls vkCreateWin32SurfaceKHR, which uses DXGI to enumerate
+  // adapters and create the surface.
+  //
+  // If D3D12 debug hook is already active, it wraps any subsequent IDXGIFactory
+  // creation. Vulkan's internal CreateDXGIFactory call gets the debug-wrapped
+  // factory, and everything works transparently — the debug layer is compatible
+  // with DXGI calls from any API.
+  //
+  // If Vulkan initializes FIRST, it creates its IDXGIFactory WITHOUT the D3D12
+  // debug wrapper. When D3D12 validation then enables EnableDebugLayer(), the
+  // newly installed debug hook may not properly track Vulkan's already-created
+  // DXGI objects. This can cause DXGI internal state mismatch, leading to:
+  //   - vkCreateWin32SurfaceKHR failing (ErrorDeviceLost) (I GOT IT)
+  //   - IDXGIFactory::EnumAdapters returning unexpected results (I GOT IT)
+  //   - D3D12 reporting false-positive CORRUPTION warnings on shared DXGI objects
+  //
+  // This is a known Windows/DXGI limitation. The D3D12 debug layer and Vulkan WSI
+  // share DXGI internally, and the debug hook must be established before any
+  // DXGI factories are created — regardless of which API creates them.
+} kBackends[] = {
+    {GpuBackend::OpenGL, "OpenGL Window", 100, 100},
+    {GpuBackend::DirectX12, "DirectX Window", 500, 400},
+    {GpuBackend::Vulkan, "Vulkan Window", 950, 100},
+};
 
 struct TestComp {
   int x;
@@ -33,13 +71,11 @@ bool Engine::initialize(int width, int height) {
   m_window_width = width, m_window_height = height;
   m_platform = std::make_unique<DesktopPlatform>();
   m_platform->initialize("MyApp", width, height);
-  m_platform->addWindow("Opengl Window", width, height, GpuBackend::OpenGL);
-  m_platform->addWindow("Vulkan Window", width, height, GpuBackend::Vulkan);
-
-  m_platform->setWindowPosition(static_cast<size_t>(GpuBackend::OpenGL),
-                                {100, 100});
-  m_platform->setWindowPosition(static_cast<size_t>(GpuBackend::Vulkan),
-                                {950, 100});
+   // Register windows in app
+  for (auto &b : kBackends) {
+    m_platform->addWindow(b.title, width, height, b.backend);
+    m_platform->setWindowPosition(b.backend, {b.x, b.y});
+  }
   // Set resize callback
   m_platform->setResizeCallback(
       [this](size_t window_index, int width, int height) {
@@ -61,40 +97,38 @@ bool Engine::initialize(int width, int height) {
     //   imguiSystem->HandleChar(c);
     // }
   });
-
-  std::vector<std::reference_wrapper<MainWindow>> windows = {
-      m_platform->getWindow(static_cast<size_t>(GpuBackend::OpenGL)),
-      m_platform->getWindow(static_cast<size_t>(GpuBackend::Vulkan))};
-  // Add backends in SAME order as BackendType enum: OpenGL first, Vulkan second
   m_ui_manager = std::make_unique<UIManager>();
-  m_ui_manager->addBackend(GpuBackend::OpenGL);
-  m_ui_manager->addBackend(GpuBackend::Vulkan);
-  m_ui_manager->init(windows);
-  // auto m_world = std::make_unique<World<FlecsWorldImpl>>();
-  std::vector<ImGuiContext *> ui_contexts = {
-      m_ui_manager->getContext(GpuBackend::OpenGL),
-      m_ui_manager->getContext(GpuBackend::Vulkan)};
-
   m_resource_manager = std::make_unique<ResourceManager>();
+  m_render_system = std::make_unique<RenderSystem>(m_platform.get(),
+                                                   m_resource_manager.get());
+  std::vector<std::reference_wrapper<MainWindow>> windows;
+  std::vector<ImGuiContext*> ui_contexts;
+
   m_resource_manager->registerLoader(std::make_unique<ShaderLoader>());
   m_resource_manager->registerLoader(std::make_unique<MaterialLoader>());
 
-  m_render_system = std::make_unique<RenderSystem>(m_platform.get(),
-                                                   m_resource_manager.get());
-  m_render_system->addBackend(GpuBackend::OpenGL);
-  m_render_system->addBackend(GpuBackend::Vulkan);
+  for (auto& b : kBackends) {
+      windows.push_back(m_platform->getWindow(b.backend));
+      m_ui_manager->addBackend(b.backend);
+  }
+  m_ui_manager->init(windows);
+
+  for (auto& b : kBackends) {
+      ui_contexts.push_back(m_ui_manager->getContext(b.backend));
+      m_render_system->addBackend(b.backend);
+  }
   m_render_system->init(ui_contexts);
 
   // Register render devices with the resource manager
-  m_resource_manager->registerDevice(
-      GpuBackend::OpenGL, &m_render_system->getDevice(GpuBackend::OpenGL));
-  m_resource_manager->registerDevice(
-      GpuBackend::Vulkan, &m_render_system->getDevice(GpuBackend::Vulkan));
+  for (auto& b : kBackends) {
+      m_resource_manager->registerDevice(b.backend, &m_render_system->getDevice(b.backend));
+  }
+
   m_render_system->createPerFrameResources();
 
   m_scene = std::make_unique<Scene>(*m_resource_manager.get());
   m_initialized = true;
-  return true;
+  return m_initialized;
 }
 
 void Engine::cleanup() {
@@ -118,8 +152,9 @@ void Engine::cleanup() {
     m_render_system.reset();
 
     m_resource_manager.reset();
-    m_ui_manager.reset();
-    m_platform.reset();
+    m_platform->destroy(); // destroy windows backends
+    m_ui_manager.reset();  // destroy ui context
+    m_platform.reset();    // destroy windows context
 
     m_initialized = false;
   }
@@ -153,12 +188,10 @@ void Engine::render() {
   // TODO: ADD SUPPORT FOR USER WIDGETS TO UI MANAGER
   m_ui_manager->render([this]() { m_test_widget.render(); });
 
-  std::vector<SceneView> scenes = m_scene->getSceneViews();
-  // scenes[0].z = CUtils::lerp(-1, 1, m_test_widget.m_slider_value);
-  scenes[0].x = CUtils::lerp(-3, 3, m_test_widget.m_slider_value);
-  // scenes[1].z = -2;
-  // scenes[1].z = CUtils::lerp(-3, 3, m_test_widget.m_slider_value);
-  scenes[1].x = CUtils::lerp(-3, 3, m_test_widget.m_slider_value);
+  std::vector<SceneView> scenes = m_scene->getSceneViews(std::size(kBackends));
+  for (size_t i = 0; i < std::size(kBackends); i++) {
+      scenes[i].x = CUtils::lerp(-3, 3, m_test_widget.m_slider_value);
+  }
 
   std::vector<ImDrawData *> ui_draw_bundle = m_ui_manager->getBundleDrawData();
   m_render_system->render(scenes, ui_draw_bundle);

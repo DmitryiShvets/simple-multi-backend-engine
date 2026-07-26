@@ -57,7 +57,7 @@ vk::DeviceSize VulkanBuffer::getAlignment(vk::DeviceSize instanceSize,
  * @return VkResult of the buffer mapping call
  */
 void VulkanBuffer::map(vk::DeviceSize size, vk::DeviceSize offset) {
-  assert(m_buffer != nullptr && m_memory != nullptr &&
+  assert(*m_buffer != nullptr && *m_memory != nullptr &&
          "Called map on buffer before create");
   m_mapped = m_memory.mapMemory(offset, size);
 }
@@ -114,7 +114,7 @@ void VulkanBuffer::writeToBuffer(void *data, vk::DeviceSize size,
  */
 void VulkanBuffer::flush(vk::DeviceSize size, vk::DeviceSize offset) {
   vk::MappedMemoryRange mapped_range{
-      .memory = m_memory, .offset = offset, .size = size};
+      .memory = *m_memory, .offset = offset, .size = size};
   m_device.getHandle().flushMappedMemoryRanges(mapped_range);
 }
 
@@ -131,7 +131,7 @@ void VulkanBuffer::flush(vk::DeviceSize size, vk::DeviceSize offset) {
  */
 void VulkanBuffer::invalidate(vk::DeviceSize size, vk::DeviceSize offset) {
   vk::MappedMemoryRange mapped_range{
-      .memory = m_memory, .offset = offset, .size = size};
+      .memory = *m_memory, .offset = offset, .size = size};
   m_device.getHandle().invalidateMappedMemoryRanges(mapped_range);
 }
 
@@ -146,7 +146,7 @@ void VulkanBuffer::invalidate(vk::DeviceSize size, vk::DeviceSize offset) {
 vk::DescriptorBufferInfo
 VulkanBuffer::getDescriptorInfo(vk::DeviceSize size, vk::DeviceSize offset) {
   return vk::DescriptorBufferInfo{
-      .buffer = m_buffer,
+      .buffer = *m_buffer,
       .offset = offset,
       .range = size,
   };

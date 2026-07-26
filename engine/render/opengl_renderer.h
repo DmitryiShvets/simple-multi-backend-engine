@@ -20,14 +20,6 @@ class Platform;
 class ResourceManager;
 class SceneView;
 
-// Per-frame resources for OpenGL (analogous to Vulkan)
-struct OpenGLPerFrameResources {
-  RID uniform_buffer;     // UBO for FrameUniforms (view-projection, camera)
-  RID descriptor_set_rid; // Descriptor set for Set 0 binding
-};
-
-
-
 // This is the concrete, API-dependent implementation of the IRenderer interface
 // for OpenGL.
 class OpenGLRenderer final : public IRenderer {
@@ -50,7 +42,7 @@ public:
   void setFrameResources(std::shared_ptr<FrameData> data) override;
 
 private:
-  void createPerFrameResources();
+
   void updatePerFrameResources(const SceneView &view);
 
   GpuBackend m_backend_type = GpuBackend::OpenGL;

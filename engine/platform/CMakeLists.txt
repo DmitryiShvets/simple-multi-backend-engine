@@ -2,7 +2,9 @@
 set(PLATFORM_SOURCES
     desktop/desktop_platform.cpp
     desktop/glfw/glfw_main_window.cpp
-    desktop/glfw/glfw_gpu_context_creator.cpp
+    desktop/glfw/glfw_vk_gpu_context_creator.cpp
+    desktop/glfw/glfw_gl_gpu_context_creator.cpp
+    desktop/glfw/glfw_dx12_gpu_context_creator.cpp
 )
 
 # Create platform library

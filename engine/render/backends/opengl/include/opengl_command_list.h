@@ -3,9 +3,6 @@
 #include "command_list.h"
 #include "opengl_gpu_storage_fwd.h"
 
-// Use glad for OpenGL functions (not system GL/gl.h)
-#include "glad/gl.h"
-
 namespace ssme::opengl {
 
 // OpenGL CommandList - immediate mode wrapper

@@ -4,6 +4,7 @@ build/
 *.swp
 
 # IDE settings
+.vs/
 
 # External dependensies
 

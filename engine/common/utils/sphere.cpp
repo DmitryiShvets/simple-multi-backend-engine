@@ -1,5 +1,6 @@
 #include "sphere.h"
 #include <cmath>
+#include <numbers>
 
 SphereGeometry getSphere3D(float radius, uint64_t sector_count, uint64_t stack_count) {
     const float PI = std::numbers::pi;

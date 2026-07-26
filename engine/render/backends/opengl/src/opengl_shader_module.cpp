@@ -8,6 +8,7 @@ namespace ssme::opengl {
 OpenGLShaderModule::OpenGLShaderModule(const GLenum type,
                                        const std::string &shader_path) {
   auto code = CUtils::readFileChar(shader_path);
+  code.push_back('\0');
   m_shader_module = createShader(code.data(), type);
 }
 

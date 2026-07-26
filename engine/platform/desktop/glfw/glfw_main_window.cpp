@@ -1,24 +1,23 @@
-#include "main_window.h"
 #include "glfw_main_window.h"
-#include <imgui/imgui.h>
-#include <imgui/backends/imgui_impl_glfw.h>
 #include "imgui_internal.h"
+#include "main_window.h"
 #include "utils/logger.h"
+#include <imgui/backends/imgui_impl_glfw.h>
+#include <imgui/imgui.h>
 
 #include <imgui_internal.h>
 #define GLFW_INCLUDE_NONE
 #include <GLFW/glfw3.h>
+#define GLFW_EXPOSE_NATIVE_WIN32
+#include <GLFW/glfw3native.h>
 
 namespace ssme {
-    // Constructor implementation
-    GLFWMainWindow::GLFWMainWindow(const WindowConfig& cfg)
-        : m_config(cfg), m_window(nullptr), m_ui_context(nullptr) {
-    }
+// Constructor implementation
+GLFWMainWindow::GLFWMainWindow(const WindowConfig &cfg)
+    : m_config(cfg), m_window(nullptr), m_ui_context(nullptr) {}
 
-    // Destructor implementation
-    GLFWMainWindow::~GLFWMainWindow() {
-        destroy();
-    }
+// Destructor implementation
+GLFWMainWindow::~GLFWMainWindow() { cleanup(); }
 // Initialize the static counter
 int GLFWMainWindow::s_active_windows = 0;
 
@@ -39,8 +38,8 @@ void GLFWMainWindow::init(const GpuContextStrategy &contextStrategy) {
   // Use the provided strategy to prepare window hints
   contextStrategy.prepareWindowCreationHints();
   m_backend_type = contextStrategy.getGpuBackend();
-  m_window = glfwCreateWindow(m_config.width, m_config.height, m_config.title.c_str(),
-                              NULL, NULL);
+  m_window = glfwCreateWindow(m_config.width, m_config.height,
+                              m_config.title.c_str(), NULL, NULL);
   if (!m_window) {
     Logger::error_log("Failed to create window!");
     if (s_active_windows == 0) {
@@ -56,6 +55,7 @@ void GLFWMainWindow::init(const GpuContextStrategy &contextStrategy) {
   if (!contextStrategy.createContext(this->getNativeWindow())) {
     Logger::error_log("Failed to create GPU context!");
     destroy();
+    cleanup();
     exit(EXIT_FAILURE);
   }
 
@@ -78,7 +78,9 @@ void GLFWMainWindow::destroy() {
     m_window = nullptr;
     s_active_windows--;
   }
+}
 
+void GLFWMainWindow::cleanup() {
   if (s_active_windows == 0) {
     glfwTerminate();
   }
@@ -89,9 +91,7 @@ void GLFWMainWindow::swapBuffers() {
     glfwSwapBuffers(m_window);
 }
 
-void GLFWMainWindow::update() {
-  glfwPollEvents();
-}
+void GLFWMainWindow::update() { glfwPollEvents(); }
 
 bool GLFWMainWindow::shouldClose() const {
   return glfwWindowShouldClose(m_window);
@@ -109,9 +109,7 @@ void GLFWMainWindow::setResizeCallback(ResizeCallback cb) {
   m_resizeCallback = cb;
 }
 
-void GLFWMainWindow::setKeyCallback(KeyCallback cb) {
-  m_keyCallback = cb;
-}
+void GLFWMainWindow::setKeyCallback(KeyCallback cb) { m_keyCallback = cb; }
 
 void GLFWMainWindow::setMouseCallback(MouseCallback cb) {
   m_mouseCallback = cb;
@@ -121,9 +119,7 @@ void GLFWMainWindow::setScrollCallback(ScrollCallback cb) {
   m_scrollCallback = cb;
 }
 
-void GLFWMainWindow::setCharCallback(CharCallback cb) {
-  m_charCallback = cb;
-}
+void GLFWMainWindow::setCharCallback(CharCallback cb) { m_charCallback = cb; }
 
 void GLFWMainWindow::setWindowFocusCallback(WindowFocusCallback cb) {
   m_windowFocusCallback = cb;
@@ -272,21 +268,16 @@ void GLFWMainWindow::resizeCallback(GLFWwindow *window, int width, int height) {
   }
 }
 
-void *GLFWMainWindow::getNativeWindow() const {
-  return m_window;
-}
+void *GLFWMainWindow::getNativeWindow() const { return m_window; }
+void *GLFWMainWindow::getNativeHwnd() const { return glfwGetWin32Window(m_window); }
 
 void GLFWMainWindow::setUiContext(void *ctx) {
   m_ui_context = static_cast<ImGuiContext *>(ctx);
 }
 
-WindowConfig GLFWMainWindow::getConfig() {
-  return m_config;
-}
+WindowConfig GLFWMainWindow::getConfig() { return m_config; }
 
-GpuBackend GLFWMainWindow::getGpuBackend() {
-    return m_backend_type;
-}
+GpuBackend GLFWMainWindow::getGpuBackend() { return m_backend_type; }
 
 Key GLFWMainWindow::fromGLFWKey(int glfwKey) {
   switch (glfwKey) {

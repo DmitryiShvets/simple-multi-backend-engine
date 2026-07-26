@@ -65,6 +65,10 @@ public:
     /**
      * @brief Clean up window resources.
      */
+    virtual void cleanup() = 0;
+    /**
+     * @brief Close window.
+     */
     virtual void destroy() = 0;
 
     /**
@@ -102,6 +106,7 @@ public:
 
     virtual WindowConfig getConfig() = 0;
     virtual void* getNativeWindow() const = 0;
+    virtual void* getNativeHwnd() const = 0;
     virtual void setUiContext(void* ctx) = 0;
     virtual GpuBackend getGpuBackend() = 0;
 };

@@ -19,8 +19,8 @@ public:
 
   World &getWorld() { return *m_world; }
 
-  std::vector<SceneView> getSceneViews() {
-    return {m_render_scene, m_render_scene};
+  std::vector<SceneView> getSceneViews(size_t count) {
+      return std::vector<SceneView>(count, m_render_scene);
   }
 
 private:

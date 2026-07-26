@@ -2,7 +2,7 @@
 #include "vulkan_types.h"
 #include <vulkan/vulkan_raii.hpp>
 
-// Forwarc declaration
+// Forward declaration
 namespace ssme {
 class Platform;
 }

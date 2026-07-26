@@ -283,7 +283,6 @@ void VulkanRenderDevice::destroyPipelineLayout(RID id) {
   if (id.isNull())
     return;
 
-  // Get buffer from storage
   auto *layout = m_storage.get<VulkanPipelineLayout>(id);
   if (layout) {
     // Remove from storage (this will call VulkanPipelineLayout destructor)
@@ -323,8 +322,6 @@ RID VulkanRenderDevice::createGraphicsPipeline(const GraphicsPipelineDesc &desc,
     throw std::runtime_error("Invalid pipeline layout RID in createPipeline");
   }
   vk::PipelineLayout vk_pipeline_layout = vk_pl_layout->getHandle();
-
-  // Debug: Check if handle is valid
   if (!vk_pipeline_layout) {
     throw std::runtime_error(
         "createGraphicsPipeline: vk_pipeline_layout is VK_NULL_HANDLE");
@@ -411,7 +408,7 @@ RID VulkanRenderDevice::containsGraphicsPipeline(std::size_t hash) {
 
 RID VulkanRenderDevice::createShaderModule(const ShaderModuleDesc &desc,
                                            RID id) {
- auto path = "res/shaders/" + desc.file_path + ".spv";
+ auto path = "res/shaders/" + desc.file_path + ".glsl.spv";
   auto shader_module =
       std::make_unique<VulkanShaderModule>(m_device, path);
   if (id.isNull()) {

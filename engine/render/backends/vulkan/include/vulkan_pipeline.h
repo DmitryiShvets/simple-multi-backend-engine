@@ -3,8 +3,6 @@
 #include "vulkan_shader_module.h"
 
 #include <memory>
-#include <string>
-#include <vector>
 #include <vulkan/vulkan_raii.hpp>
 
 namespace ssme::vulkan {

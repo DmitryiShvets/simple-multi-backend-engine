@@ -37,7 +37,8 @@ struct alignas(16) FrameUniformsStd140 {
         : view_projection(1.0f)
         , light_position(0.0f), _pad0(0.0f)
         , Kd(0.0f), _pad1(0.0f)
-        , Ld(0.0f), _pad2(0.0f) {}
+        , Ld(0.0f), _pad2(0.0f)
+        , camera_position(1.0f),_pad3(0.0f) {}
 
     // Convert from convenient ObjectUniforms to std140 layout
     static FrameUniformsStd140 from(const FrameUniforms& src) {

@@ -66,10 +66,13 @@ void DesktopPlatform::updateAllWindows() {
   }
 }
 
-void DesktopPlatform::cleanup() {
+void DesktopPlatform::destroy() {
   for (auto &window : m_windows) {
     window->destroy();
   }
+}
+
+void DesktopPlatform::cleanup() {
   m_windows.clear();
   m_windowResized.clear();
   m_windowWidths.clear();
@@ -77,9 +80,20 @@ void DesktopPlatform::cleanup() {
 }
 
 // ==================== Per-Window Access ====================
-MainWindow &DesktopPlatform::getWindow(size_t type) { return *m_windows[type]; }
-const MainWindow &DesktopPlatform::getWindow(size_t type) const {
-  return *m_windows[type];
+
+MainWindow &DesktopPlatform::getWindow(GpuBackend type) {
+    auto it = std::find_if(m_windows.begin(), m_windows.end(),
+        [type](auto &w) { return w->getGpuBackend() == type; });
+    if (it == m_windows.end())
+        throw std::runtime_error("Window not found");
+    return **it;
+}
+MainWindow const &DesktopPlatform::getWindow(GpuBackend type) const {
+    auto it = std::find_if(m_windows.begin(), m_windows.end(),
+        [type](auto &w) { return w->getGpuBackend() == type; });
+    if (it == m_windows.end())
+        throw std::runtime_error("Window not found");
+    return **it;
 }
 
 void DesktopPlatform::getWindowSize(size_t index, int *width,
@@ -173,11 +187,16 @@ DesktopPlatform::createWindow(const std::string &title, int width, int height,
 
   // Initialize with OpenGL context strategy
   // TODO: Make this configurable (OpenGL/Vulkan)
-  OpenGLGpuContextCreator gl_context_creator;
+  OpenGLGpuContextCreator gl_gpu_ctx_creator;
   VulkanGpuContextCreator vk_gpu_ctx_creator;
+  Dx12GpuContextCreator dx_gpu_ctx_creator;
   if (type == GpuBackend::OpenGL) {
-    window->init(gl_context_creator);
-  } else {
+    window->init(gl_gpu_ctx_creator);
+  }
+  else if (type == GpuBackend::DirectX12) {
+    window->init(dx_gpu_ctx_creator);
+  }
+  else {
     window->init(vk_gpu_ctx_creator);
   }
 
@@ -242,9 +261,9 @@ void DesktopPlatform::onWindowChar(size_t index, unsigned int codepoint) {
   }
 }
 
-void DesktopPlatform::setWindowPosition(size_t index,
-                                        std::pair<int, int> position) {
-  m_windows[index]->setPosition(position.first, position.second);
+void DesktopPlatform::setWindowPosition(GpuBackend type, std::pair<int, int> position) {
+    auto& window = getWindow(type);
+    window.setPosition(position.first, position.second);
 }
 
 void DesktopPlatform::swapOpenGLBuffers() {
@@ -253,9 +272,8 @@ void DesktopPlatform::swapOpenGLBuffers() {
         return e->getGpuBackend() == GpuBackend::OpenGL;
       });
   if (gl_window == m_windows.end()) {
-    // Found OpenGL window
-    throw std::runtime_error("Failed to swap buffers! Failed to find "
-                             "suitable Opengl-context window.");
+        // NOTE: USER CAN DISABLE GL WINODW. IT'S OK
+        return;
   }
   gl_window->get()->swapBuffers();
 }

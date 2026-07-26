@@ -48,18 +48,13 @@ public:
    * @brief Get render by it type
    */
   IRenderer &getRenderer(GpuBackend type);
-  IRenderer &getRenderer(size_t type);
   const IRenderer &getRenderer(GpuBackend type) const;
   void addBackend(GpuBackend type);
   void createPerFrameResources();
-
   /**
    * @brief Get RenderDevice
    */
   RenderDevice &getDevice(GpuBackend type);
-
-  void waitIdle(size_t index);
-
   void waitIdleAll();
 
 private:

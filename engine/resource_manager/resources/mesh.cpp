@@ -32,7 +32,7 @@ bool Mesh::doLoad() {
     rd.get().createBuffer(
         BufferDesc{
             .size = m_desc.vertices.size(),
-            .element_size = m_desc.vertices.size() / m_layout.getStride(),
+            .element_size =  m_layout.getStride(),
             .usage = static_cast<uint32_t>(BufferUsage::VERTEX_BUFFER),
             .initial_data = m_desc.vertices.data(),
             .layout = m_layout,

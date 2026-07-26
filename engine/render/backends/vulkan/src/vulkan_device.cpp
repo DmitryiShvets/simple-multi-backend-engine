@@ -95,7 +95,8 @@ void VulkanDevice::createInstance(
       .applicationVersion = VK_MAKE_VERSION(1, 0, 0),
       .pEngineName = "No Engine",
       .engineVersion = VK_MAKE_VERSION(1, 0, 0),
-      .apiVersion = vk::ApiVersion14};
+      .apiVersion = vk::ApiVersion14,
+  };
   // --- Fill out Instance Create Info ---
   // This is the main struct for creating the instance.
   vk::InstanceCreateInfo create_info{
@@ -152,7 +153,7 @@ void VulkanDevice::pickPhysicalDevice() {
     }
   }
 
-  if (m_physical_device == nullptr) {
+  if (*m_physical_device == nullptr) {
     throw std::runtime_error("Failed to find a suitable GPU!");
   }
 }
@@ -236,7 +237,7 @@ VulkanDevice::findQueueFamilies(const vk::raii::PhysicalDevice &device,
 
 void VulkanDevice::createLogicalDevice() {
   // Create the VkDevice, which is our main interface to the physical device.
-  m_queue_family_indices = findQueueFamilies(m_physical_device, m_surface);
+  m_queue_family_indices = findQueueFamilies(m_physical_device, *m_surface);
 
   std::vector<vk::DeviceQueueCreateInfo> queue_create_infos;
   std::set unique_queue_families = {m_queue_family_indices.graphics_family,
@@ -343,7 +344,7 @@ VulkanDevice::findSupportedFormat(const std::vector<vk::Format> &candidates,
 
 vk::raii::CommandBuffer VulkanDevice::createCommandBuffer() const {
   vk::CommandBufferAllocateInfo create_info{
-      .commandPool = m_command_pool,
+      .commandPool = *m_command_pool,
       .level = vk::CommandBufferLevel::ePrimary,
       .commandBufferCount = 1};
 
@@ -449,7 +450,7 @@ ImageResource VulkanDevice::createImage(const vk::ImageCreateInfo &imageInfo,
 
   vk::raii::DeviceMemory image_memory =
       vk::raii::DeviceMemory(m_device, alloc_info);
-  image.bindMemory(image_memory, 0);
+  image.bindMemory(*image_memory, 0);
 
   return {std::move(image), std::move(image_memory)};
 }
@@ -511,7 +512,7 @@ BufferResource VulkanDevice::createBuffer(vk::DeviceSize size,
 
   vk::raii::DeviceMemory buffer_memory =
       vk::raii::DeviceMemory(m_device, alloc_info);
-  buffer.bindMemory(buffer_memory, 0);
+  buffer.bindMemory(*buffer_memory, 0);
 
   return {std::move(buffer), std::move(buffer_memory)};
 }
@@ -519,9 +520,9 @@ BufferResource VulkanDevice::createBuffer(vk::DeviceSize size,
 SwapChainSupportDetails
 VulkanDevice::querySwapChainSupport(const vk::raii::PhysicalDevice &device) {
   SwapChainSupportDetails details;
-  details.capabilities = device.getSurfaceCapabilitiesKHR(m_surface);
-  details.formats = device.getSurfaceFormatsKHR(m_surface);
-  details.present_modes = device.getSurfacePresentModesKHR(m_surface);
+  details.capabilities = device.getSurfaceCapabilitiesKHR(*m_surface);
+  details.formats = device.getSurfaceFormatsKHR(*m_surface);
+  details.present_modes = device.getSurfacePresentModesKHR(*m_surface);
   return details;
 }
 

@@ -97,7 +97,7 @@ VulkanDescriptorPool::~VulkanDescriptorPool() {
 vk::raii::DescriptorSet VulkanDescriptorPool::allocateDescriptor(
     const vk::DescriptorSetLayout &descriptorSetLayout) const {
   vk::DescriptorSetAllocateInfo alloc_info{
-      .descriptorPool = m_ds_pool,
+      .descriptorPool = *m_ds_pool,
       .descriptorSetCount = 1,
       .pSetLayouts = &descriptorSetLayout,
   };
@@ -175,7 +175,7 @@ std::unique_ptr<VulkanDescriptorSet> DescriptorWriter::build() {
 
 void DescriptorWriter::overwrite(vk::raii::DescriptorSet &set) {
   for (auto &write : m_writes) {
-    write.dstSet = set;
+    write.dstSet = *set;
   }
   m_ds_pool.m_device.getHandle().updateDescriptorSets(m_writes, {});
 }

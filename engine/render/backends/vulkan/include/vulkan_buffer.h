@@ -22,7 +22,7 @@ public:
   void flush(vk::DeviceSize size = vk::WholeSize, vk::DeviceSize offset = 0);
   void invalidate(vk::DeviceSize size = vk::WholeSize,
                   vk::DeviceSize offset = 0);
-  uint32_t count() const { return m_instance_count; }
+  uint32_t count() const { return static_cast<uint32_t>(m_instance_count); }
   void writeToIndex(void *data, int index);
   void flushIndex(int index);
   void invalidateIndex(int index);
@@ -33,7 +33,7 @@ public:
 
   vk::Buffer getBuffer() const { return *m_buffer; }
   void *getMappedMemory() const { return m_mapped; }
-  uint32_t getInstanceCount() const { return m_instance_count; }
+  uint32_t getInstanceCount() const { return static_cast<uint32_t>(m_instance_count); }
   vk::DeviceSize getInstanceSize() const { return m_instance_size; }
   vk::DeviceSize getAlignmentSize() const { return m_alignment_size; }
   vk::BufferUsageFlags getUsageFlags() const { return m_usage_flags; }

@@ -1,6 +1,5 @@
 #include "vulkan_shader_module.h"
 #include "utils/common_utils.h"
-#include <vector>
 
 namespace ssme::vulkan {
 
