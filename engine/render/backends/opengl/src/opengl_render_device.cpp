@@ -316,7 +316,7 @@ RID OpenGLRenderDevice::createShaderModule(const ShaderModuleDesc &desc,
                                            RID id) {
   GLenum stage = desc.stage == ssme::ShaderStage::VERTEX ? GL_VERTEX_SHADER
                                                          : GL_FRAGMENT_SHADER;
- auto path = "res/shaders/" + desc.file_path;
+ auto path = "res/shaders/" + desc.file_path + ".glsl";
   auto shader_module =
       std::make_unique<OpenGLShaderModule>(stage, path);
   if (id.isNull()) {

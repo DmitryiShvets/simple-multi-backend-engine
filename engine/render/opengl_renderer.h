@@ -42,7 +42,7 @@ public:
   void setFrameResources(std::shared_ptr<FrameData> data) override;
 
 private:
-  void createPerFrameResources();
+
   void updatePerFrameResources(const SceneView &view);
 
   GpuBackend m_backend_type = GpuBackend::OpenGL;

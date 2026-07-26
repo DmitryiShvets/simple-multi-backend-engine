@@ -34,8 +34,8 @@ public:
     void getWindowSize(size_t index, int* width, int* height) const override;
     bool hasWindowResized(size_t index) const override;
     void* createVulkanSurface(void* instance) override;
-    MainWindow &getWindow(size_t type) override;
-    const MainWindow &getWindow(size_t type) const override;
+    MainWindow &getWindow(GpuBackend type) override;
+    const MainWindow &getWindow(GpuBackend type) const override;
     std::vector<const char*> getRequiredVulkanInstanceExtensions() const override;
 
     // ==================== Callbacks ====================
@@ -60,7 +60,7 @@ public:
 
     void setWindowTitle(size_t index, const std::string& title) override;
 
-    void setWindowPosition(size_t index, std::pair<int, int> position) override;
+    void setWindowPosition(GpuBackend type, std::pair<int, int> position) override;
 
 private:
     // All windows

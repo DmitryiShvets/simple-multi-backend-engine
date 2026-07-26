@@ -40,6 +40,13 @@ public:
 
   void setFrameResources(std::shared_ptr<FrameData> data) override;
 
+  struct ImGuiSrvHandle {
+      D3D12_CPU_DESCRIPTOR_HANDLE cpu = {};
+      D3D12_GPU_DESCRIPTOR_HANDLE gpu = {};
+      bool allocated = false;
+  };
+  ImGuiSrvHandle m_imgui_srv_handle;
+
 private:
   GpuBackend m_backend_type = GpuBackend::DirectX12;
   Platform *m_platform;
@@ -54,10 +61,12 @@ private:
   // --- Rendering Logic (Orchestration) ---
   ImGuiContext *m_imgui_context = nullptr;
 
+  Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_imgui_srv_heap;
+  bool m_imgui_initialized = false;
 
   std::shared_ptr<FrameData> m_frame_data = nullptr;
   // Private, API-dependent methods for frame lifecycle management
-  void createPerFrameResources();
+
   void updatePerFrameResources(const SceneView &view);
 };
 

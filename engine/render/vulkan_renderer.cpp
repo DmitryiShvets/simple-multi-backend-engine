@@ -63,7 +63,7 @@ VulkanRenderer::VulkanRenderer(Platform *platform, ResourceManager *rm)
   /* -------------INIT STATE-------------- */
   m_device = std::make_unique<ssme::vulkan::VulkanDevice>(platform);
   m_swap_chain = std::make_unique<ssme::vulkan::VulkanSwapChain>(
-      *m_device, vk::Extent2D{800, 400}, m_storage);
+      *m_device, vk::Extent2D{800, 600}, m_storage);
 
   m_command_lists.clear();
   m_command_lists.reserve(MAX_FRAMES_IN_FLIGHT);
@@ -81,7 +81,6 @@ VulkanRenderer::VulkanRenderer(Platform *platform, ResourceManager *rm)
           .setPoolFlags(vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet)
           .setMaxSets(100) // More than enough for ImGui
           .build();
-  // createPerFrameResources();
   /* -------------INIT 3D-------------- */
   /* -------------INIT MISC-------------- */
 }
@@ -259,7 +258,7 @@ void VulkanRenderer::updatePerFrameResources(const SceneView &view) {
   uniforms.Ld = glm::vec3(1.0f, 1.0f, 1.0f); // Light intensity (white light)
   uniforms.camera_position = glm::vec3(0.0f, 5.0f, 5.0f);
   auto packed = Uniforms::FrameUniformsStd140::from(uniforms);
-  ubo->update(&packed, sizeof(packed));
+  m_rhi_device->updateBuffer(ubo->getUbo(), packed);
 }
 
 void VulkanRenderer::present() {

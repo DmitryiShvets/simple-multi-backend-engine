@@ -1,4 +1,5 @@
 #include "vulkan_swap_chain.h"
+#include "vulkan/vulkan.hpp"
 #include "vulkan_device.h"
 #include "vulkan_gpu_storage.h"
 #include "vulkan_gpu_storage_fwd.h"
@@ -136,7 +137,7 @@ void VulkanSwapChain::createSwapChain() {
       .imageSharingMode = vk::SharingMode::eExclusive,
       .preTransform = swap_chain_support.capabilities.currentTransform,
       .compositeAlpha = vk::CompositeAlphaFlagBitsKHR::eOpaque,
-      .presentMode = present_mode,
+      .presentMode = vk::PresentModeKHR::eFifo,
       .clipped = vk::True,
       .oldSwapchain = nullptr};
   // 5. Handle how images are used across different queue families.

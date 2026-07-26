@@ -5,5 +5,6 @@
 namespace ssme::d3d12 {
 
 D3D12_RESOURCE_STATES toD3d12State(ImageLayout layout);
+DXGI_FORMAT toDxgiFormat(Format format);
 
 }

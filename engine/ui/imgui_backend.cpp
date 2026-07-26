@@ -43,8 +43,9 @@ void ImGuiBackend::configureContext(const UIBackendConfig &config) {
   style.ScaleAllSizes(config.scale);
 }
 void ImGuiBackend::init(MainWindow &window,
-                        const UIBackendConfig &config) {
+                        const UIBackendConfig &config, GpuBackend type) {
   m_window = &window;
+  m_backend_type = type;
   m_glfw_window = static_cast<GLFWwindow *>(window.getNativeWindow());
   ImGui::SetCurrentContext(m_context);
   configureContext(config);
@@ -55,11 +56,11 @@ void ImGuiBackend::init(MainWindow &window,
 // ============================================================================
 
 void ImGuiOpenGLBackend::init(MainWindow &window,
-                              const UIBackendConfig &config) {
+                              const UIBackendConfig &config,  GpuBackend type) {
   if (m_initialized) {
     return;
   }
-  ImGuiBackend::init(window, config);
+  ImGuiBackend::init(window, config, type);
   ImGui_ImplGlfw_InitForOpenGL(m_glfw_window, false);
   window.setUiContext(m_context);
   m_initialized = true;
@@ -78,11 +79,11 @@ void ImGuiOpenGLBackend::frame() {
 // ============================================================================
 
 void ImGuiVulkanBackend::init(MainWindow &window,
-                              const UIBackendConfig &config) {
+                              const UIBackendConfig &config,  GpuBackend type) {
   if (m_initialized) {
     return;
   }
-  ImGuiBackend::init(window, config);
+  ImGuiBackend::init(window, config, type);
   ImGui_ImplGlfw_InitForVulkan(m_glfw_window, false);
   window.setUiContext(m_context);
   m_initialized = true;
@@ -102,22 +103,23 @@ void ImGuiVulkanBackend::frame() {
 // ============================================================================
 
 void ImGuiDirectX12Backend::init(MainWindow &window,
-                              const UIBackendConfig &config) {
+                              const UIBackendConfig &config,  GpuBackend type) {
   if (m_initialized) {
     return;
   }
-  // ImGuiBackend::init(window, config);
-  // ImGui_ImplGlfw_InitForVulkan(m_glfw_window, false);
-  // window.setUiContext(m_context);
-  // m_initialized = true;
+  m_backend_type = type;
+  ImGuiBackend::init(window, config, type);           // base
+  ImGui_ImplGlfw_InitForOther(m_glfw_window, false);  // без API-инита
+  window.setUiContext(m_context);
+  m_initialized = true;
 }
 
 void ImGuiDirectX12Backend::frame() {
   if (!m_initialized) {
     return;
   }
-  // ImGui_ImplVulkan_NewFrame();
-  // ImGui_ImplGlfw_NewFrame();
+  ImGui_ImplDX12_NewFrame();
+  ImGui_ImplGlfw_NewFrame();
 }
 
 } // namespace ssme

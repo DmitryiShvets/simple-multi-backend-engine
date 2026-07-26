@@ -1,5 +1,6 @@
 #pragma once
 
+#include "core/gpu_types.h"
 #include "main_window.h"
 #include <string>
 
@@ -27,7 +28,7 @@ public:
   ImGuiBackend();
   virtual ~ImGuiBackend();
 
-  virtual void init(MainWindow &window, const UIBackendConfig &config);
+  virtual void init(MainWindow &window, const UIBackendConfig &config, GpuBackend type);
   virtual void frame() = 0;
   void configureContext(const UIBackendConfig &config);
 
@@ -36,6 +37,7 @@ public:
   void setDrawData(ImDrawData *data) { m_draw_data = data; }
   MainWindow &getWindow() { return *m_window; }
   bool isInitialized() { return m_initialized; }
+  GpuBackend getGpuBackend() const { return m_backend_type;}
 
 protected:
   ImGuiContext *m_context = nullptr;
@@ -43,6 +45,7 @@ protected:
   bool m_initialized = false;
   MainWindow *m_window = nullptr;
   GLFWwindow *m_glfw_window = nullptr;
+  GpuBackend m_backend_type;
 };
 
 /**
@@ -51,7 +54,7 @@ protected:
 class ImGuiOpenGLBackend : public ImGuiBackend {
 public:
   void init(MainWindow &window,
-            const UIBackendConfig &config) override;
+            const UIBackendConfig &config, GpuBackend type) override;
   void frame() override;
 };
 
@@ -61,7 +64,7 @@ public:
 class ImGuiVulkanBackend : public ImGuiBackend {
 public:
   void init(MainWindow &window,
-            const UIBackendConfig &config) override;
+            const UIBackendConfig &config, GpuBackend type) override;
   void frame() override;
 };
 
@@ -71,7 +74,7 @@ public:
 class ImGuiDirectX12Backend : public ImGuiBackend {
 public:
   void init(MainWindow &window,
-            const UIBackendConfig &config) override;
+            const UIBackendConfig &config, GpuBackend type) override;
   void frame() override;
 };
 

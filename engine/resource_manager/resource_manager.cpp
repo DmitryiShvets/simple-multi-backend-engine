@@ -6,11 +6,7 @@
 namespace ssme {
 
 void ResourceManager::registerDevice(GpuBackend type, RenderDevice *device) {
-  size_t index = static_cast<size_t>(type);
-  if (m_devices.size() <= index) {
-    m_devices.resize(index + 1, nullptr);
-  }
-  m_devices[index] = device;
+  m_devices.push_back(device);
   // avoid broken refs
   m_device_refs.clear();
   // Convert vector<RenderDevice*> to VecRefRD

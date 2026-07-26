@@ -1,6 +1,6 @@
 #pragma once
 #include "vulkan_device.h"
-#include <vector>
+#include <string>
 
 namespace ssme::vulkan {
 class VulkanShaderModule {

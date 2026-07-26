@@ -85,8 +85,8 @@ public:
    */
   virtual void getWindowSize(size_t index, int *width, int *height) const = 0;
   // Get window by backend type
-  virtual MainWindow &getWindow(size_t type) = 0;
-  virtual const MainWindow &getWindow(size_t type) const = 0;
+  virtual MainWindow &getWindow(GpuBackend type) = 0;
+  virtual const MainWindow &getWindow(GpuBackend type) const = 0;
 
   /**
    * @brief Check if specific window has been resized.
@@ -157,8 +157,8 @@ public:
    */
   virtual void setWindowTitle(size_t index, const std::string &title) = 0;
 
-  virtual void setWindowPosition(size_t index,
-                                 std::pair<int, int> position) = 0;
+  virtual void setWindowPosition(GpuBackend type, std::pair<int, int> position) = 0;
+
 };
 
 } // namespace ssme

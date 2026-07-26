@@ -1,6 +1,6 @@
 {
-  "vertex_shader": "v_ads.glsl",
-  "fragment_shader": "f_default.glsl",
+  "vertex_shader": "v_ads",
+  "fragment_shader": "f_default",
   "blocks": {
     "MaterialUBO": {
       "color": [0.0, 0.0, 1.0]

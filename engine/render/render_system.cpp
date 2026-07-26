@@ -58,6 +58,7 @@ void RenderSystem::render(std::vector<SceneView> &scenes,
 
   for (size_t i = 0; i < m_renderers.size(); ++i) {
     if (m_renderers[i]) {
+        // if(i == 1) continue;
       m_renderers[i]->renderFrame(scenes[i], ui_draw_data[i]);
     }
   }
@@ -75,35 +76,21 @@ void RenderSystem::destroy() {
 size_t RenderSystem::getRendererCount() const { return m_renderers.size(); }
 
 IRenderer &RenderSystem::getRenderer(GpuBackend type) {
-  const size_t index = static_cast<size_t>(type);
-
-  if (index >= m_renderers.size() || !m_renderers[index]) {
-    throw std::out_of_range("Renderer not found for backend type");
-  }
-  return *m_renderers[index];
+    for (auto &r : m_renderers)
+        if (r && r->getGpuBackend() == type) return *r;
+    throw std::out_of_range("Renderer not found");
 }
 
-IRenderer &RenderSystem::getRenderer(size_t index) {
-  if (index >= m_renderers.size() || !m_renderers[index]) {
-    throw std::out_of_range("Renderer not found for backend type");
-  }
-  return *m_renderers[index];
-}
-
-const IRenderer &RenderSystem::getRenderer(GpuBackend type) const {
-  const size_t index = static_cast<size_t>(type);
-
-  if (index >= m_renderers.size() || !m_renderers[index]) {
-    throw std::out_of_range("Renderer not found for backend type");
-  }
-  return *m_renderers[index];
+const IRenderer& RenderSystem::getRenderer(GpuBackend type) const {
+    for (auto& r : m_renderers)
+        if (r && r->getGpuBackend() == type) return *r;
+    throw std::out_of_range("Renderer not found");
 }
 
 RenderDevice &RenderSystem::getDevice(GpuBackend type) {
   return getRenderer(type).getRenderDeivce();
 }
 
-void RenderSystem::waitIdle(size_t index) { getRenderer(index).waitIdle(); }
 
 void RenderSystem::waitIdleAll() {
   for (auto &renderer : m_renderers) {

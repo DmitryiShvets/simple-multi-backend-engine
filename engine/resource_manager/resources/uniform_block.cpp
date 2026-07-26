@@ -48,17 +48,18 @@ bool UniformBuffer::doUnload() {
   return true;
 }
 
-void UniformBuffer::repack(const UniformSet &data) {
-  // Repack current parameters
-  m_layout.get()->packTo(data, m_packed_data.data());
-  update(m_packed_data.data(), m_packed_data.size(), 0);
-}
+// TODO: REFACTORING. IT LEADS TO DATA RACES.
+// void UniformBuffer::repack(const UniformSet &data) {
+//   // Repack current parameters
+//   m_layout.get()->packTo(data, m_packed_data.data());
+//   update(m_packed_data.data(), m_packed_data.size(), 0);
+// }
 
-void UniformBuffer::update(const void *data, size_t size, size_t offset) {
-  // Update buffer in GPU (via RenderDevice)
-  for (auto &rd : m_devices) {
-    rd.get().updateBufferRaw(m_ubo_id, offset, size, data);
-  }
-}
+// void UniformBuffer::update(const void *data, size_t size, size_t offset) {
+//   // Update buffer in GPU (via RenderDevice)
+//   for (auto &rd : m_devices) {
+//     rd.get().updateBufferRaw(m_ubo_id, offset, size, data);
+//   }
+// }
 
 } // namespace ssme

@@ -127,7 +127,7 @@ void OpenGLRenderer::updatePerFrameResources(const SceneView &view) {
   uniforms.camera_position = glm::vec3(0.0f, 5.0f, 5.0f);
   auto packed = Uniforms::FrameUniformsStd140::from(uniforms);
   // Update buffer
-  ubo->update(&packed, sizeof(packed));
+  m_rhi_device->updateBuffer(ubo->getUbo(), packed);
 }
 
 void OpenGLRenderer::waitIdle() const { glFinish(); }

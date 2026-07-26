@@ -19,4 +19,21 @@ D3D12_RESOURCE_STATES toD3d12State(ImageLayout layout) {
   }
 }
 
+DXGI_FORMAT toDxgiFormat(Format format) {
+  switch (format) {
+  case Format::R32G32B32A32_SFLOAT:
+    return DXGI_FORMAT_R32G32B32A32_FLOAT;
+  case Format::R32G32B32_SFLOAT:
+    return DXGI_FORMAT_R32G32B32_FLOAT;
+  case Format::R32G32_SFLOAT:
+    return DXGI_FORMAT_R32G32_FLOAT;
+  case Format::R32_SFLOAT:
+    return DXGI_FORMAT_R32_FLOAT;
+  case Format::R8G8B8A8_UNORM:
+    return DXGI_FORMAT_R8G8B8A8_UNORM;
+  default:
+    return DXGI_FORMAT_UNKNOWN;
+  }
+}
+
 } // namespace ssme::d3d12

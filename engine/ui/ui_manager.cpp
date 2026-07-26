@@ -37,13 +37,15 @@ void UIManager::init(
   }
 
   for (size_t i = 0; i < m_backends.size(); ++i) {
-    m_backends[i]->init(windows[i].get(), config);
+    m_backends[i]->init(windows[i].get(), config,
+                        windows[i].get().getGpuBackend());
   }
 }
 
 void UIManager::render(const std::function<void()> &draw_fn) {
   for (auto &backend : m_backends) {
-    if(!backend->isInitialized()) return;
+    if (!backend->isInitialized())
+      continue;
     // Switch to this backend's context
     ImGui::SetCurrentContext(backend->getContext());
     backend->frame();
@@ -60,19 +62,23 @@ void UIManager::destroy() { m_backends.clear(); }
 size_t UIManager::getBackendCount() const { return m_backends.size(); }
 
 ImGuiBackend &UIManager::getBackend(GpuBackend type) {
-  const size_t index = static_cast<size_t>(type);
-  if (index >= m_backends.size()) {
+  auto backend =
+      std::find_if(m_backends.begin(), m_backends.end(),
+                   [type](auto &e) { return e->getGpuBackend() == type; });
+  if (backend == m_backends.end()) {
     throw std::out_of_range("Backend index out of range");
   }
-  return *m_backends[index];
+  return **backend;
 }
 
 const ImGuiBackend &UIManager::getBackend(GpuBackend type) const {
-  const size_t index = static_cast<size_t>(type);
-  if (index >= m_backends.size()) {
+  auto backend =
+      std::find_if(m_backends.begin(), m_backends.end(),
+                   [type](auto &e) { return e->getGpuBackend() == type; });
+  if (backend == m_backends.end()) {
     throw std::out_of_range("Backend index out of range");
   }
-  return *m_backends[index];
+  return **backend;
 }
 
 std::vector<ImDrawData *> UIManager::getBundleDrawData() const {
@@ -84,19 +90,23 @@ std::vector<ImDrawData *> UIManager::getBundleDrawData() const {
 }
 
 ImDrawData *UIManager::getDrawData(GpuBackend type) const {
-  const size_t index = static_cast<size_t>(type);
-  if (index >= m_backends.size()) {
-    return nullptr;
+  auto backend =
+      std::find_if(m_backends.begin(), m_backends.end(),
+                   [type](auto &e) { return e->getGpuBackend() == type; });
+  if (backend == m_backends.end()) {
+    throw std::out_of_range("Backend index out of range");
   }
-  return m_backends[index]->getDrawData();
+  return (*backend)->getDrawData();
 }
 
 ImGuiContext *UIManager::getContext(GpuBackend type) const {
-  const size_t index = static_cast<size_t>(type);
-  if (index >= m_backends.size()) {
-    return nullptr;
+  auto backend =
+      std::find_if(m_backends.begin(), m_backends.end(),
+                   [type](auto &e) { return e->getGpuBackend() == type; });
+  if (backend == m_backends.end()) {
+    throw std::out_of_range("Backend index out of range");
   }
-  return m_backends[index]->getContext();
+  return (*backend)->getContext();
 }
 
 } // namespace ssme

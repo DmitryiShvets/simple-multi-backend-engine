@@ -66,7 +66,7 @@ void Dx12SwapChain::createSwapChain() {
   swapChainDesc.SampleDesc.Count = 1;
 
   auto &dx_window =
-      m_platform->getWindow(static_cast<size_t>(GpuBackend::DirectX12));
+      m_platform->getWindow(GpuBackend::DirectX12);
   HWND hwnd = (HWND)dx_window.getNativeHwnd();
   Microsoft::WRL::ComPtr<IDXGISwapChain1> swapChain;
   auto d = m_device.getFactory();
@@ -99,8 +99,13 @@ void Dx12SwapChain::createSwapChain() {
     for (UINT n = 0; n < FRAMES_IN_FLIGHT; n++) {
       DX::ThrowIfFailed(
           m_swap_chain->GetBuffer(n, IID_PPV_ARGS(&m_swap_chain_images[n])));
+      D3D12_RENDER_TARGET_VIEW_DESC rtv_desc = {};
+      rtv_desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
+      rtv_desc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
       m_device.getHandle()->CreateRenderTargetView(m_swap_chain_images[n].Get(),
-                                                   nullptr, rtvHandle);
+                                                   &rtv_desc, rtvHandle);
+      std::wstring bufferName = L"BackBuffer_" + std::to_wstring(n);
+      m_swap_chain_images[n]->SetName(bufferName.c_str());
       rtvHandle.Offset(1, m_rtv_descriptor_size);
     }
   }
@@ -110,8 +115,9 @@ void Dx12SwapChain::createTextureWrappers() {
   auto FRAMES_IN_FLIGHT = getImageCount();
   m_swap_chain_texture_rids.resize(FRAMES_IN_FLIGHT);
   for (uint32_t i = 0; i < FRAMES_IN_FLIGHT; i++) {
-    auto texture = std::make_unique<Dx12Texture>(m_swap_chain_images[i],
-                                                 DXGI_FORMAT_R8G8B8A8_UNORM);
+    auto texture = std::make_unique<Dx12Texture>(
+        m_device, m_swap_chain_images[i], DXGI_FORMAT_R8G8B8A8_UNORM,
+        getRtvHandle(i));
     m_swap_chain_texture_rids[i] = m_rm.add(std::move(texture));
   }
 }
@@ -137,6 +143,17 @@ CD3DX12_CPU_DESCRIPTOR_HANDLE Dx12SwapChain::getRtvHandle(UINT frame_index) {
 
 RID Dx12SwapChain::getTextureRID(uint32_t index) const {
   return m_swap_chain_texture_rids[index];
+}
+
+void Dx12SwapChain::waitForGpu() {
+    m_fence_value++;
+    DX::ThrowIfFailed(
+        m_device.getCommandQueue()->Signal(m_fence.Get(), m_fence_value));
+    if (m_fence->GetCompletedValue() < m_fence_value) {
+        DX::ThrowIfFailed(
+            m_fence->SetEventOnCompletion(m_fence_value, m_fence_event));
+        WaitForSingleObject(m_fence_event, INFINITE);
+    }
 }
 
 } // namespace ssme::d3d12

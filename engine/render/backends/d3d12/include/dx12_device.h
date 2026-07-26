@@ -9,6 +9,7 @@ struct ID3D12PipelineState;
 struct IDXGIFactory1;
 struct IDXGIFactory4;
 struct IDXGIAdapter1;
+struct ID3D12InfoQueue;
 
 namespace ssme {
 class Platform;
@@ -46,6 +47,7 @@ public:
     return m_command_queue;
   }
 
+  void flushD3D12Messages();
 private:
   void getHardwareAdapter(_In_ IDXGIFactory1 *pFactory,
                           _Outptr_result_maybenull_ IDXGIAdapter1 **ppAdapter,
@@ -56,7 +58,13 @@ private:
   Microsoft::WRL::ComPtr<IDXGIFactory4> m_factory = nullptr;
   Microsoft::WRL::ComPtr<ID3D12Device> m_device = nullptr;
   Microsoft::WRL::ComPtr<ID3D12CommandQueue> m_command_queue = nullptr;
-  bool m_use_warp_device = false;
+  Microsoft::WRL::ComPtr<ID3D12InfoQueue> m_info_queue;
+  bool m_use_warp_device = true;
+  #ifndef NDEBUG
+    bool g_enable_validation_layers = true;
+  #else
+    bool g_enable_validation_layers = false;
+  #endif
 
 public:
 

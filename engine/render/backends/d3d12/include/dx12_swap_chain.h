@@ -61,6 +61,9 @@ public:
 
   CD3DX12_CPU_DESCRIPTOR_HANDLE getRtvHandle(UINT frame_index);
 
+  Extent2D getSwapChainExtent() const { return m_extent; }
+
+  void waitForGpu();
 private:
   /** @brief Main initialization function that calls all the creation helpers.
    */

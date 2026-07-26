@@ -47,4 +47,4 @@ private:
     Dx12GpuStorageMT& m_storage;
 };
 
-} // namespace ssme::opengl
+} // namespace ssme::d3d12

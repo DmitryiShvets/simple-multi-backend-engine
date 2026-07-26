@@ -42,12 +42,12 @@ public:
   RID getUbo() const { return m_ubo_id; }
   const uint8_t *getData() const { return m_packed_data.data(); }
   size_t getDataSize() const { return m_packed_data.size(); }
-
-  void repack(const UniformSet &data);
+  // TODO: REFACTORING. IT LEADS TO DATA RACES.
+  // void repack(const UniformSet &data);
   /**
    * @brief Update data (partially or fully)
    */
-  void update(const void *data, size_t size, size_t offset = 0);
+  // void update(const void *data, size_t size, size_t offset = 0);
 
 private:
   RID m_ubo_id = RID::INVALID;

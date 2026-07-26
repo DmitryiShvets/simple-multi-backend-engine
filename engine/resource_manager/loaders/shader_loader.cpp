@@ -15,7 +15,7 @@ bool ShaderLoader::load(const std::string &path, ResourceManager &rm, void *out_
   auto &refl = desc->reflection;
 
   // 1. Read binary
-  std::vector<char> code = CUtils::readFileChar("res/shaders/" + path + ".spv");
+  std::vector<char> code = CUtils::readFileChar("res/shaders/" + path + ".glsl.spv");
   spv_reflect::ShaderModule spv_module{code.size(), code.data()};
   if (spv_module.GetResult() != SPV_REFLECT_RESULT_SUCCESS) {
     debug_assert(false, "ERROR: could not process '" + path +

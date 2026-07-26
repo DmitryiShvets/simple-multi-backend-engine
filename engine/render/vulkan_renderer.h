@@ -65,8 +65,6 @@ private:
   // --- Rendering Logic (Orchestration) ---
   ImGuiContext *m_imgui_context = nullptr;
   // Private, API-dependent methods for frame lifecycle management
-  void createPerFrameResources(); // Create per-frame uniform buffers and
-                                  // descriptor sets
   void
   updatePerFrameResources(const SceneView &view); // Update per-frame uniforms
   void acquireNextImage(); // wait for fences and retrives new image

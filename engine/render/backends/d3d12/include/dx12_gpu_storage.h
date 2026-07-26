@@ -11,7 +11,12 @@
 // Full type definitions required for ResourceOwner<T> (uses unique_ptr
 // internally)
 #include "dx12_buffer.h"
+#include "dx12_shader_module.h"
 #include "dx12_texture.h"
+#include "dx12_pipeline_layout.h"
+#include "dx12_pipeline.h"
+#include "dx12_descriptor_set.h"
+
 
 namespace ssme {
 class Material; // Forward declare from parent namespace
@@ -154,9 +159,13 @@ private:
   // Per-type ResourceOwner (type-safe storage)
   // ========================================================================
 
-  ResourceOwner<Dx12Texture> m_textures;
   ResourceOwner<Dx12Buffer> m_buffers;
-
+  ResourceOwner<Dx12Texture> m_textures;
+  ResourceOwner<Dx12Pipeline> m_pipelines;
+  ResourceOwner<Dx12DescriptorSetLayout> m_ds_layouts;
+  ResourceOwner<Dx12DescriptorSet> m_descriptor_sets;
+  ResourceOwner<Dx12PipelineLayout> m_pipeline_layouts;
+  ResourceOwner<Dx12ShaderModule> m_shader_modules;
   // ========================================================================
   // RID Allocator for internal resources
   // ========================================================================
@@ -214,7 +223,12 @@ private:
     static constexpr auto member = &Dx12GpuStorage<TS>::MemberName;            \
   }
 
-REGISTER_DX12_GPU_RESOURCE(Dx12Texture, m_textures);
 REGISTER_DX12_GPU_RESOURCE(Dx12Buffer, m_buffers);
+REGISTER_DX12_GPU_RESOURCE(Dx12Texture, m_textures);
+REGISTER_DX12_GPU_RESOURCE(Dx12Pipeline, m_pipelines);
+REGISTER_DX12_GPU_RESOURCE(Dx12DescriptorSetLayout, m_ds_layouts);
+REGISTER_DX12_GPU_RESOURCE(Dx12DescriptorSet, m_descriptor_sets);
+REGISTER_DX12_GPU_RESOURCE(Dx12PipelineLayout, m_pipeline_layouts);
+REGISTER_DX12_GPU_RESOURCE(Dx12ShaderModule, m_shader_modules);
 
 } // namespace ssme::d3d12

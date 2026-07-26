@@ -1,4 +1,5 @@
 #include "vulkan_texture.h"
+#include <vulkan_device.h>
 #include "utils/image_loader.h"
 #include <cstring>
 #include <stdexcept>
