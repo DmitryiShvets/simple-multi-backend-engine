@@ -351,5 +351,4 @@ struct BarrierInfo {
   std::vector<ImageBarrierDesc> image_barriers;
 };
 
-enum class ResourceState { UNDEFINED, TRANSFER_DST, PRESENT_SRC };
 } // namespace ssme

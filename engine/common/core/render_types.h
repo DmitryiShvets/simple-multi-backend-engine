@@ -12,13 +12,24 @@ using BufferUsageFlags = uint32_t;
 enum class ImageLayout {
   UNDEFINED,
   COLOR_ATTACHMENT,
-  DEPTH_STENCIL_ATTACHMENT,
+  DEPTH_ATTACHMENT,
   PRESENT_SRC,
   TRANSFER_DST,
   SHADER_READ_ONLY,
+  UNORDERED_ACCESS,
 };
 
-enum class LoadOp { DONT_CARE, LOAD, CLEAR };
+enum class ImageUsage : uint32_t {
+    COLOR_ATTACHMENT  = 1 << 0,
+    DEPTH_STENCIL     = 1 << 1,
+    SHADER_READ       = 1 << 2,
+    UNORDERED_ACCESS  = 1 << 3,
+    PRESENT           = 1 << 4,
+    TRANSFER_DST      = 1 << 5,
+    TRANSFER_SRC      = 1 << 6,
+};
+
+enum class LoadOp { DONT_CARE, LOAD, CLEAR, AUTO };
 enum class StoreOp { DONT_CARE, STORE };
 
 enum class DescriptorType {
