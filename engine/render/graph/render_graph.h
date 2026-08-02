@@ -9,6 +9,7 @@
 #include <vector>
 
 namespace ssme {
+class TransientPool;
 
 // A graph structure that defines all the passes for a single frame
 class RenderGraph {
@@ -52,7 +53,7 @@ public:
   void build();
 
   // ── Compilation ──
-  CompiledPlan compile(ResourceManager *rm);
+  CompiledPlan compile(TransientPool *pool);
   void compile();
   // --- Accessors for the Executor ---
   // Нужно удалить это после рефакторинга. это легаси костыль
@@ -88,6 +89,10 @@ private:
   bool isFirstWriter(PassIndex passIdx, ResourceView view) const;
   RenderingInfo buildRenderingInfo(const PassNode &pass,
                                    const std::vector<RID> &rid_by_view) const;
+  void allocateTransientResources(TransientPool *pool,
+                                  const std::vector<Lifetime> &lifetimes,
+                                  std::vector<RID> &rid_by_view);
+
   std::vector<ResourceEntry> m_entries;
   std::vector<std::unique_ptr<RenderPass>> m_render_passes;
   std::vector<std::unique_ptr<RenderSlot>> m_slots;

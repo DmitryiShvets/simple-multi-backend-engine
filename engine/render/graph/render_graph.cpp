@@ -2,6 +2,7 @@
 #include "core/render_types.h"
 #include "core/resource_types.h"
 #include "graph/render_gtaph_utils.h"
+#include "graph/transient_pool.h"
 #include "render_pass.h"
 #include "resource_manager.h"
 #include <queue>
@@ -28,6 +29,27 @@ static ImageLayout ToImageLayout(ResourceState s) {
                                    // ImageLayout
   }
 }
+static Format ToFormat(ResourceFormat fmt) {
+  switch (fmt) {
+  case ResourceFormat::RGBA8:   return Format::R8G8B8A8_UNORM;
+  case ResourceFormat::RGBA16F: return Format::R32G32B32A32_SFLOAT;
+  case ResourceFormat::D32F:    return Format::R32_SFLOAT;
+  case ResourceFormat::R8:
+    debug_assert(false, "R8 transient not supported yet");
+    return Format::R32_SFLOAT;
+  }
+  return Format::R8G8B8A8_UNORM;
+}
+
+static ImageUsage UsageFor(ResourceFormat fmt) {
+  if (fmt == ResourceFormat::D32F)
+    return ImageUsage::DEPTH_STENCIL;
+  constexpr uint32_t RT = static_cast<uint32_t>(ImageUsage::COLOR_ATTACHMENT) |
+                          static_cast<uint32_t>(ImageUsage::SHADER_READ) |
+                          static_cast<uint32_t>(ImageUsage::TRANSFER_SRC);
+  return static_cast<ImageUsage>(RT);
+}
+
 // --- RenderGraph Implementation ---
 
 RenderGraph::RenderGraph() {}
@@ -272,7 +294,7 @@ void RenderGraph::compile() {}
 
 // Full compile pipeline: sort → cull → precompute barriers. Returns a
 // self-contained plan.
-CompiledPlan RenderGraph::compile(ResourceManager *rm) {
+CompiledPlan RenderGraph::compile(TransientPool *pool) {
   // 1. подготавливаем граф для топологической сортировки
   buildEdges();
   // 2. Топологическая сортировка Sort passes into dependency order
@@ -297,11 +319,7 @@ CompiledPlan RenderGraph::compile(ResourceManager *rm) {
     }
   }
   // 7. Resource allocation (transient)
-  // allocate_transient_resources(order);
-  // return CompiledSchedule{
-  //     .passes = std::move(passes),
-  //     .resources = collect_transient_resources(),
-  // };
+  allocateTransientResources(pool, lifetimes, rid_by_view);
   const CompiledPlan plan{std::move(sorted), std::move(mapping),
                           std::move(barriers)};
   buildCompiledPasses(plan, rid_by_view);
@@ -533,5 +551,26 @@ RenderGraph::buildRenderingInfo(const PassNode &pass,
   }
   return info;
 }
+
+void RenderGraph::allocateTransientResources(
+    TransientPool *pool, const std::vector<Lifetime> &lifetimes,
+    std::vector<RID> &rid_by_view) {
+  for (const auto &[name, view] : m_name2view_map) {
+    const ResourceIndex i = view.index;
+    if (m_entries[i].imported)                       // свапчейн — уже забинден
+      continue;
+    if (lifetimes[i].first_use == UINT32_MAX)        // отцеллен/не используется
+      continue;
+    const auto &desc = m_entries[i].desc;
+    TextureDesc tex_desc{};
+    tex_desc.width = desc.width;
+    tex_desc.height = desc.height;
+    tex_desc.format = ToFormat(desc.format);
+    tex_desc.usage = UsageFor(desc.format);
+    tex_desc.generate_mips = false;
+    rid_by_view[i] = pool->getOrCreate(name, tex_desc);
+  }
+}
+
 
 } // namespace ssme
