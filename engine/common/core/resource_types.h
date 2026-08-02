@@ -86,7 +86,7 @@ struct TextureDesc {
   uint32_t width = 0;
   uint32_t height = 0;
   Format format = Format::R8G8B8A8_UNORM;
-
+  ImageUsage usage = ImageUsage::SHADER_READ;
   // Sampler params
   Filter min_filter = Filter::LINEAR;
   Filter mag_filter = Filter::LINEAR;
@@ -104,9 +104,9 @@ struct SamplerDesc {
 
 // ==================== Shader Descriptors ====================
 
-
 // Information about specific Binding (slot)
-// Created in shader via reflection. Previously created manually in Pipeline config
+// Created in shader via reflection. Previously created manually in Pipeline
+// config
 struct Binding {
   uint32_t set;
   uint32_t binding;
@@ -146,7 +146,6 @@ struct DescriptorLayout {
   }
 
   std::string uuid() const { return std::format("ds_layout{:016x}", hash()); }
-
 };
 
 struct PushConstantRange {
@@ -172,18 +171,17 @@ struct PushConstantRange {
  * Contains references to buffers/textures for binding
  */
 struct DescriptorDesc {
-  RID layout_id;                          // layout ID (must be created)
-  std::vector<RID> uniform_buffers;       // Uniform buffer RIDs
-  std::vector<RID> storage_buffers;       // Storage buffer RIDs
-  std::vector<RID> sampled_images;        // Texture RIDs
-  std::vector<RID> samplers;              // Sampler RIDs
+  RID layout_id;                    // layout ID (must be created)
+  std::vector<RID> uniform_buffers; // Uniform buffer RIDs
+  std::vector<RID> storage_buffers; // Storage buffer RIDs
+  std::vector<RID> sampled_images;  // Texture RIDs
+  std::vector<RID> samplers;        // Sampler RIDs
 
   bool operator==(const DescriptorDesc &other) const {
     return layout_id == other.layout_id &&
            uniform_buffers == other.uniform_buffers &&
            storage_buffers == other.storage_buffers &&
-           sampled_images == other.sampled_images &&
-           samplers == other.samplers;
+           sampled_images == other.sampled_images && samplers == other.samplers;
   }
 
   std::size_t hash() const {
@@ -205,18 +203,16 @@ struct DescriptorDesc {
   }
 
   std::string uuid() const { return std::format("ds_{:016x}", hash()); }
-
 };
 
-
 struct ShaderReflectionData {
-    std::vector<VertexInputRequirement> vertex_requirements;
-    std::map<std::string, PushConstantRange> push_constants;
-    std::map<std::string, std::shared_ptr<UniformLayout>> push_constants_layouts;
-    std::map<std::string, std::shared_ptr<UniformLayout>> binding_layouts;
-    std::map<uint32_t, DescriptorLayout> ds_layouts;
-    uint32_t descriptor_set_count = 0;
-    uint32_t required_components = 0;
+  std::vector<VertexInputRequirement> vertex_requirements;
+  std::map<std::string, PushConstantRange> push_constants;
+  std::map<std::string, std::shared_ptr<UniformLayout>> push_constants_layouts;
+  std::map<std::string, std::shared_ptr<UniformLayout>> binding_layouts;
+  std::map<uint32_t, DescriptorLayout> ds_layouts;
+  uint32_t descriptor_set_count = 0;
+  uint32_t required_components = 0;
 };
 
 struct ShaderModuleDesc {

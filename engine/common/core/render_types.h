@@ -88,6 +88,9 @@ enum class Filter {
 
 enum class Wrap {
    REPEAT,
+   MIRRORED,
+   CLAMP,
+   BORDER,
 };
 
 enum class Format {

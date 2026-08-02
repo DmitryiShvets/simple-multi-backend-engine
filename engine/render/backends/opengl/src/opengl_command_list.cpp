@@ -124,10 +124,38 @@ void OpenGLCommandList::pipelineBarrier(const BarrierInfo &barrier) {
 
 // --- Render Pass Management ---
 void OpenGLCommandList::beginRendering(const RenderingInfo &info) {
-  (void)info;
+  GLuint fbo = 0;
+  if (!info.color_attachments.empty()) {
+    auto *tex = m_storage.get<OpenGLTexture>(info.color_attachments[0].texture);
+    if (tex)
+      fbo = tex->getFbo();
+  }
+  glBindFramebuffer(GL_FRAMEBUFFER, fbo);
+
+  // GL требует depth и color в одном FBO — привязываем depth на лету
+  if (fbo != 0 && info.depth_attachment.texture.isValid()) {
+    auto *tex = m_storage.get<OpenGLTexture>(info.depth_attachment.texture);
+    if (tex)
+      glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D,
+                             tex->getTexture(), 0);
+  }
+
+  if (!info.color_attachments.empty()) {
+    auto &color = info.color_attachments[0];
+    if (color.load_op == LoadOp::CLEAR) {
+      glClearColor(color.clear_value.r, color.clear_value.g,
+                   color.clear_value.b, color.clear_value.a);
+      glClear(GL_COLOR_BUFFER_BIT);
+    }
+  }
+  auto &depth = info.depth_attachment;
+  if (depth.texture.isValid() && depth.load_op == LoadOp::CLEAR) {
+    glClearDepth(depth.clear_value);
+    glClear(GL_DEPTH_BUFFER_BIT);
+  }
 }
 
-void OpenGLCommandList::endRendering() {}
+void OpenGLCommandList::endRendering() { glBindFramebuffer(GL_FRAMEBUFFER, 0); }
 
 // --- Resource Manipulation ---
 void OpenGLCommandList::copyBuffer(RID src, RID dst, const BufferCopy &region) {
