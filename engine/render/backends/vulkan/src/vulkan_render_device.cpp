@@ -82,7 +82,22 @@ void VulkanRenderDevice::destroyBuffer(RID rid) {
 // -----------------------------------------------------------------------
 
 RID VulkanRenderDevice::createTexture(const TextureDesc &desc, RID id) {
-  return RID{};
+  if (!desc.source_path.empty()) {
+    // файловая текстура — существующий file-ctor
+    auto tex = std::make_unique<VulkanTexture>(m_device, desc.source_path);
+    id = id.isNull() ? m_storage.add(std::move(tex))
+                     : (m_storage.store(id, std::move(tex)), id);
+    return id;
+  }
+  bool is_depth = (static_cast<uint32_t>(desc.usage) &
+                   static_cast<uint32_t>(ImageUsage::DEPTH_STENCIL)) != 0;
+  vk::Format vk_format = is_depth ? vk::Format::eD32Sfloat
+                                  : toVkFormat(desc.format);
+  auto tex = std::make_unique<VulkanTexture>(
+      m_device, desc.width, desc.height, vk_format, desc.usage);
+  if (id.isNull()) id = m_storage.add(std::move(tex));
+  else m_storage.store(id, std::move(tex));
+  return id;
 }
 
 void VulkanRenderDevice::destroyTexture(RID rid) {

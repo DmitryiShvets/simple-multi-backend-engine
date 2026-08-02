@@ -31,6 +31,12 @@ vk::Format toVkFormat(Format format) {
     return vk::Format::eR32G32B32Sfloat;
   case Format::R32G32_SFLOAT:
     return vk::Format::eR32G32Sfloat;
+  case Format::R8G8B8A8_UNORM:
+    return vk::Format::eR8G8B8A8Unorm;
+  case Format::R32_SFLOAT:
+    return vk::Format::eR32Sfloat;
+  case Format::R32G32B32A32_SFLOAT:
+    return vk::Format::eR32G32B32A32Sfloat;
   default:
     return vk::Format::eUndefined;
   }

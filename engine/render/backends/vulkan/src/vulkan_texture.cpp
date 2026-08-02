@@ -27,8 +27,16 @@ VulkanTexture::VulkanTexture(VulkanDevice &device, vk::Image image,
 VulkanTexture::VulkanTexture(VulkanDevice &device, vk::Extent2D extent,
                              vk::Format format)
     : m_device(device), m_is_owned(true) {
-  createDepthTextureImage(extent, format);
-  createTextureImageView(format, vk::ImageAspectFlagBits::eDepth);
+  createRenderTargetImage(extent.width, extent.height, format,
+                          ImageUsage::DEPTH_STENCIL);
+}
+
+// Render-target constructor (color or depth)
+VulkanTexture::VulkanTexture(VulkanDevice &device, uint32_t width,
+                             uint32_t height, vk::Format format,
+                             ImageUsage usage)
+    : m_device(device), m_is_owned(true) {
+  createRenderTargetImage(width, height, format, usage);
 }
 
 VulkanTexture::~VulkanTexture() {}
@@ -124,6 +132,46 @@ void VulkanTexture::createDepthTextureImage(vk::Extent2D extent,
   m_device.transitionImageLayout(*m_owned_image.value(), format,
                                  vk::ImageLayout::eUndefined,
                                  vk::ImageLayout::eDepthAttachmentOptimal);
+}
+// Replaces createDepthTextureImage — now handles color too
+void VulkanTexture::createRenderTargetImage(uint32_t width, uint32_t height,
+                                            vk::Format format,
+                                            ImageUsage usage) {
+  bool is_depth = (static_cast<uint32_t>(usage) &
+                   static_cast<uint32_t>(ImageUsage::DEPTH_STENCIL)) != 0;
+  vk::ImageUsageFlags image_usage =
+      is_depth ? vk::ImageUsageFlagBits::eDepthStencilAttachment
+               : (vk::ImageUsageFlagBits::eColorAttachment |
+                  vk::ImageUsageFlagBits::eSampled |
+                  vk::ImageUsageFlagBits::eTransferSrc);
+
+  vk::ImageCreateInfo create_info{
+      .imageType = vk::ImageType::e2D,
+      .format = format,
+      .extent = vk::Extent3D{.width = width, .height = height, .depth = 1},
+      .mipLevels = 1,
+      .arrayLayers = 1,
+      .samples = vk::SampleCountFlagBits::e1,
+      .tiling = vk::ImageTiling::eOptimal,
+      .usage = image_usage,
+      .sharingMode = vk::SharingMode::eExclusive,
+      .initialLayout = vk::ImageLayout::eUndefined,
+  };
+
+  auto [image, image_memory] = m_device.createImage(
+      create_info, vk::MemoryPropertyFlagBits::eDeviceLocal);
+
+  m_owned_image = std::move(image);
+  m_owned_image_memory = std::move(image_memory);
+
+  createTextureImageView(
+      format, is_depth ? vk::ImageAspectFlagBits::eDepth
+                       : vk::ImageAspectFlagBits::eColor);
+
+  m_device.transitionImageLayout(
+      *m_owned_image.value(), format, vk::ImageLayout::eUndefined,
+      is_depth ? vk::ImageLayout::eDepthAttachmentOptimal
+               : vk::ImageLayout::eColorAttachmentOptimal);
 }
 
 } // namespace ssme::vulkan
