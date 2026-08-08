@@ -1,7 +1,7 @@
 #pragma once
-#include "graph/render_slot.h"
 #include "render_gtaph_utils.h"
-#include "render_pass.h" // Include the new header
+#include "render_pass.h"
+#include "render_slot.h"
 #include "utils/debug_assert.h"
 #include <map>
 #include <memory>
@@ -31,7 +31,6 @@ public:
     m_slots.push_back(std::move(slot));
     return *static_cast<T *>(m_slots.back().get());
   }
-  // template <typename T> T *getSlot();
 
   // ── Resource registration ──
   // Create a virtual resource -- returns a handle, not GPU memory.
@@ -44,28 +43,22 @@ public:
                  ResourceState initialState = ResourceState::UNDEFINED);
   // Declarative API for specifying resource dependencies
   void read(PassIndex pass, ResourceView resource);
+  void read(PassIndex pass, ResourceView view, ResourceState state);
   void write(PassIndex pass, ResourceView resource);
+  void write(PassIndex pass, ResourceView view, ResourceState state);
   void readWrite(PassIndex pass, ResourceView resource);
+  RID ridOf(ResourceView view) const { return m_rid_by_view[view.index]; }
   // Adds a new pass to the graph, returning a reference to it for configuration
   RenderPass &addPass(const std::string &name);
+  void bindImport(ResourceView view, RID rid);
 
   // ── Compilation ──
   void build();
-
-  // ── Compilation ──
   CompiledPlan compile(TransientPool *pool);
-  void compile();
-  // --- Accessors for the Executor ---
-  // Нужно удалить это после рефакторинга. это легаси костыль
-  const std::vector<std::unique_ptr<RenderPass>> &getPasses() const {
-    return m_render_passes;
-  }
-  void execute(CommandList &cmd, const CompiledPlan &plan,
-               const std::vector<RID> &rid_by_view, const Rect &render_area);
-
-  void bindImport(ResourceView view, RID rid);
 
   // ── Runtime ──
+  void execute(CommandList &cmd, const CompiledPlan &plan,
+               const Rect &render_area);
   void reset();
 
 private:
@@ -99,6 +92,7 @@ private:
   std::vector<PassNode> m_passes;
   std::map<std::string, ResourceView> m_name2view_map;
   std::vector<RID> m_imported_rids;
+  std::vector<RID> m_rid_by_view;
 };
 
 } // namespace ssme

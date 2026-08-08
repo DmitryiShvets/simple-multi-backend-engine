@@ -15,6 +15,7 @@ enum class ImageLayout {
   DEPTH_ATTACHMENT,
   PRESENT_SRC,
   TRANSFER_DST,
+  TRANSFER_SRC,
   SHADER_READ_ONLY,
   UNORDERED_ACCESS,
 };
@@ -100,6 +101,7 @@ enum class Format {
   R32G32_SFLOAT,
   R32_SFLOAT,
   R8G8B8A8_UNORM,
+  R8G8B8A8_SRGB,
   // Add other formats as needed
 };
 
@@ -120,5 +122,11 @@ struct Rect {
 
 struct Extent2D {
     uint32_t width, height;
+};
+
+struct ImageBlit {
+  int32_t src_x, src_y;    // upper left corner of the source
+  uint32_t width, height;  // area size
+  int32_t dst_x, dst_y;    // upper left corner of the receiver
 };
 } // namespace ssme

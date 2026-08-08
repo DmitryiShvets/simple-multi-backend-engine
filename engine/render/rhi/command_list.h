@@ -50,6 +50,7 @@ public:
     virtual void copyBuffer(RID src, RID dst, const BufferCopy& region) = 0;
     virtual void copyBufferToImage(RID src_buffer, RID dst_image, const BufferImageCopy& region) = 0;
     virtual void clearColorImage(RID image, const float color[4]) = 0;
+    virtual void blitImage(RID src, RID dst, const ImageBlit& region) = 0;
 };
 
 } // namespace ssme

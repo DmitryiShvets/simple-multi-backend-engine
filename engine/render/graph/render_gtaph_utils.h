@@ -1,12 +1,10 @@
 
 #pragma once
 #include "command_list.h"
-#include "core/render_types.h"
-#include "core/resource_types.h"
-#include "core/rid.h"
 #include "resource_handle.h"
 #include "resources/texture.h"
 #include <string>
+#include <map>
 
 namespace ssme {
 
@@ -16,7 +14,8 @@ using BlockIndex = uint32_t;    // index into the physical-block free list
 using ExecuteCallback = std::function<void(CommandList &cmd)>;
 
 enum class ResourceFormat {
-  RGBA8,
+  RGBA8_UNORM,
+  RGBA8_SRGB,
   RGBA16F,
   R8,
   D32F,
@@ -25,7 +24,7 @@ enum class ResourceFormat {
 struct ResourceDesc {
   uint32_t width;
   uint32_t height;
-  ResourceFormat format = ResourceFormat::RGBA8;
+  ResourceFormat format = ResourceFormat::RGBA8_UNORM;
 };
 
 // Lightweight handle, index into FrameGraph's resource array, no GPU memory
@@ -95,7 +94,8 @@ inline uint32_t BytesPerPixel(ResourceFormat fmt) {
   switch (fmt) {
   case ResourceFormat::R8:
     return 1;
-  case ResourceFormat::RGBA8:
+  case ResourceFormat::RGBA8_SRGB:
+  case ResourceFormat::RGBA8_UNORM:
     return 4;
   case ResourceFormat::D32F:
     return 4;
@@ -138,6 +138,8 @@ struct TransientResource {
 struct PassNode {
   std::vector<ResourceView> reads;
   std::vector<ResourceView> writes;
+  std::map<ResourceIndex, ResourceState> custom_read_state;
+  std::map<ResourceIndex, ResourceState> custom_write_state;
   std::vector<ResourceView> read_writes; // UAV (explicit)
   std::vector<PassIndex> depends_on;
   std::vector<PassIndex> successors; // passes that depend on this one

@@ -3,9 +3,8 @@
 #include "core/render_types.h"
 #include "core/rid.h"
 #include "graph/render_graph.h"
+#include "graph/render_gtaph_utils.h"
 #include "graph/render_slot.h"
-#include "resource_handle.h"
-#include "resources/texture.h"
 
 namespace ssme {
 
@@ -13,30 +12,20 @@ class SinkSlot : public RenderSlot {
 public:
   std::string_view name() const override { return "SINK"; }
 
-  void setSwapchain(RID color, RID depth, Extent2D extent) {
+  void setSwapchain(RID color, Extent2D extent) {
     m_color_rid = color;
-    m_depth_rid = depth;
     m_extent = extent;
   }
 
   void onSetup(RenderGraph &graph) override {
     ResourceDesc swapchain_color_desc{
-        .width = 600,
-        .height = 400,
-        .format = ResourceFormat::RGBA16F,
+        .width = m_extent.width,
+        .height = m_extent.height,
+        .format = ResourceFormat::RGBA8_SRGB,
     };
     m_swapchain_color = graph.importResource(
-        "swapchain/color", swapchain_color_desc, ResourceState::PRESENT);
-    ResourceDesc swapchain_depth_desc{
-        .width = 600,
-        .height = 400,
-        .format = ResourceFormat::D32F,
-    };
-    m_swapchain_depth =
-        graph.importResource("swapchain/depth", swapchain_depth_desc,
-                             ResourceState::DEPTH_ATTACHMENT);
+        "swapchain/color", swapchain_color_desc, ResourceState::UNDEFINED);
     graph.bindImport(m_swapchain_color, m_color_rid);
-    graph.bindImport(m_swapchain_depth, m_depth_rid);
   }
   void onResolve(RenderGraph &graph) override {
     m_final_color = graph.getResource("scene_color");
@@ -44,11 +33,14 @@ public:
 
   void onBuild(RenderGraph &graph) override {
     graph.addPass("Present")
-        .read(m_final_color)
-        .write(m_swapchain_color)
-        .write(m_swapchain_depth)
+        .read(m_final_color, ResourceState::TRANSFER_SRC)
+        .write(m_swapchain_color, ResourceState::TRANSFER_DST)
         .setLoadOp(LoadOp::LOAD)
-        .setExecuteCallback([](auto &cmd) {});
+        .setExecuteCallback([this, &graph](CommandList &cmd) {
+            cmd.blitImage(graph.ridOf(m_final_color),
+                          graph.ridOf(m_swapchain_color),
+                          ImageBlit{0, 0, m_extent.width, m_extent.height, 0, 0});
+        });
   }
 
 private:
@@ -64,14 +56,14 @@ public:
 
   void onSetup(RenderGraph &graph) override {
     ResourceDesc scene_color_desc{
-        .width = 600,
-        .height = 400,
-        .format = ResourceFormat::RGBA16F,
+        .width = m_extent.width,
+        .height = m_extent.height,
+        .format = ResourceFormat::RGBA8_SRGB,
     };
     m_scene_color = graph.addResource("scene_color", scene_color_desc);
     ResourceDesc scene_depth_desc{
-        .width = 600,
-        .height = 400,
+        .width = m_extent.width,
+        .height = m_extent.height,
         .format = ResourceFormat::D32F,
     };
     m_scene_depth = graph.addResource("scene_depth", scene_depth_desc);
@@ -84,7 +76,10 @@ public:
     graph.addPass("OpaqueScene")
         .write(m_scene_color)
         .write(m_scene_depth)
-        .setExecuteCallback([](auto &cmd) {});
+        .setExecuteCallback([this](CommandList &cmd) {
+          if (m_draw)
+            m_draw(cmd);
+        });
   }
 
 private:
@@ -96,18 +91,7 @@ public:
   std::string_view name() const override { return "IMGUI"; }
 
   void onSetup(RenderGraph &graph) override {
-    ResourceDesc scene_color_desc{
-        .width = 600,
-        .height = 400,
-        .format = ResourceFormat::RGBA16F,
-    };
-    m_scene_color = graph.addResource("scene_color", scene_color_desc);
-    ResourceDesc scene_depth_desc{
-        .width = 600,
-        .height = 400,
-        .format = ResourceFormat::D32F,
-    };
-    m_scene_depth = graph.addResource("scene_depth", scene_depth_desc);
+    m_scene_color = graph.getResource("scene_color");
   }
   void onResolve(RenderGraph &graph) override {
     // у этого прохода нету зависимостей
@@ -116,12 +100,14 @@ public:
   void onBuild(RenderGraph &graph) override {
     graph.addPass("ImGui")
         .write(m_scene_color)
-        .write(m_scene_depth)
-        .setExecuteCallback([](auto &cmd) {});
+        .setExecuteCallback([this](CommandList &cmd) {
+          if (m_draw)
+            m_draw(cmd);
+        });
   }
 
 private:
-  ResourceView m_scene_color, m_scene_depth;
+  ResourceView m_scene_color;
 };
 
 } // namespace ssme

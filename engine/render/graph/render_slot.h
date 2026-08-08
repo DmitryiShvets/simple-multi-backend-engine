@@ -1,5 +1,7 @@
 
 #pragma once
+#include "core/render_types.h"
+#include "graph/render_gtaph_utils.h"
 #include <string_view>
 
 namespace ssme {
@@ -22,8 +24,11 @@ public:
   // каждый слот объявляет пассы (addPass + read/write + callback)
   virtual void onBuild(RenderGraph &node) {}
 
-  // ── Runtime ──
-  // virtual bool isEnabled() const { return true; }
-  // virtual void onUpdate(RenderGraph &graph) {}
+  virtual void setExtent(Extent2D e) { m_extent = e; }
+  virtual void setDrawCallback(ExecuteCallback cb) { m_draw = std::move(cb); }
+
+protected:
+  Extent2D m_extent;
+  ExecuteCallback m_draw;
 };
 } // namespace ssme

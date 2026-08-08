@@ -218,4 +218,5 @@ void Dx12CommandList::clearColorImage(RID image, const float color[4]) {
   (void)image;
 }
 
+void Dx12CommandList::blitImage(RID src, RID dst, const ImageBlit &region) {}
 } // namespace ssme::d3d12

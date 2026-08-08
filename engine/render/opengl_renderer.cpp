@@ -1,7 +1,7 @@
 #include "opengl_renderer.h"
 #include "core/resource_types.h"
-#include "scene_view.h"
 #include "core/uniforms.h"
+#include "graph/render_graph.h"
 #include "opengl_buffer_objects.h"
 #include "opengl_command_list.h"
 #include "opengl_render_device.h"
@@ -9,6 +9,7 @@
 #include "render_device.h"
 #include "render_item.h"
 #include "resource_manager.h"
+#include "scene_view.h"
 #include "utils/logger.h"
 #include <glm/gtc/matrix_transform.hpp>
 #include <imgui/backends/imgui_impl_opengl3.h>
@@ -17,15 +18,14 @@
 
 namespace ssme {
 
-
-
 OpenGLRenderer::OpenGLRenderer(Platform *platform, ResourceManager *rm)
     : m_platform(platform), m_rm(rm) {
   /* -------------INIT STATE-------------- */
   m_rhi_device = std::make_unique<ssme::opengl::OpenGLRenderDevice>(m_storage);
+  m_swapchain_rid =
+      m_storage.add(ssme::opengl::OpenGLTexture::createDefaultFramebuffer());
+
   m_command_list = std::make_unique<ssme::opengl::OpenGLCommandList>(m_storage);
-  // m_scene_renderer = std::make_unique<SceneRenderer>();
-  // m_executor = std::make_unique<RenderGraphExecutor>(m_rhi_device.get());
   /* -------------SETUP 3D-------------- */
   glEnable(GL_DEPTH_TEST);
   glEnable(GL_CULL_FACE);
@@ -52,6 +52,7 @@ void OpenGLRenderer::init(ImGuiContext *ctx) {
 OpenGLRenderer::~OpenGLRenderer() { destroy(); };
 
 void OpenGLRenderer::renderFrame(SceneView &view, ImDrawData *ui_draw_data) {
+  throw std::runtime_error("Depreceted render method!");
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
   // Update per-frame uniforms (camera, projection)
@@ -90,11 +91,37 @@ void OpenGLRenderer::renderFrame(SceneView &view, ImDrawData *ui_draw_data) {
   }
 }
 
+Extent2D OpenGLRenderer::queryFramebufferSize() const {
+  GLint vp[4];
+  glGetIntegerv(GL_VIEWPORT, vp);
+  return {static_cast<uint32_t>(vp[2]), static_cast<uint32_t>(vp[3])};
+}
+
+SwapchainInfo OpenGLRenderer::getSwapchain() {
+  return {m_swapchain_rid, queryFramebufferSize()};
+}
+
+void OpenGLRenderer::renderFrameGraph(RenderGraph &graph,
+                                      const CompiledPlan &plan, SceneView &view,
+                                      ImDrawData *ui) {
+  updatePerFrameResources(view);
+  auto extent = queryFramebufferSize();
+  Rect rect{.x = 0, .y = 0, .width = extent.width, .height = extent.height};
+  m_command_list->begin();
+  graph.execute(*m_command_list, plan, rect);
+  m_command_list->end();
+}
+
+void OpenGLRenderer::renderImGui(CommandList &, ImDrawData *ui) {
+  ImGui::SetCurrentContext(m_imgui_context);
+  ImGui_ImplOpenGL3_RenderDrawData(ui);
+}
+
 void OpenGLRenderer::destroy() {
-    if(m_imgui_context) {
-        ImGui::SetCurrentContext(m_imgui_context);
-        ImGui_ImplOpenGL3_Shutdown();
-    }
+  if (m_imgui_context) {
+    ImGui::SetCurrentContext(m_imgui_context);
+    ImGui_ImplOpenGL3_Shutdown();
+  }
 }
 
 void OpenGLRenderer::setFrameResources(std::shared_ptr<FrameData> data) {
@@ -110,11 +137,11 @@ void OpenGLRenderer::updatePerFrameResources(const SceneView &view) {
   float aspect_ratio = viewport_dims[2] / static_cast<float>(viewport_dims[3]);
   // Calculate view-projection matrix
   // Camera at (0, 0, 5) looking at (0, 0, 0), up is +Y
-  glm::mat4 view_mat =
-      glm::lookAt(glm::vec3(0.0f + view.x, 0.0f, 5.0f + view.z), // Camera position
-                  glm::vec3(0.0f, 0.0f, 0.0f),          // Look at target
-                  glm::vec3(0.0f, 1.0f, 0.0f)           // Up direction
-      );
+  glm::mat4 view_mat = glm::lookAt(
+      glm::vec3(0.0f + view.x, 0.0f, 5.0f + view.z), // Camera position
+      glm::vec3(0.0f, 0.0f, 0.0f),                   // Look at target
+      glm::vec3(0.0f, 1.0f, 0.0f)                    // Up direction
+  );
   glm::mat4 proj_mat =
       glm::perspective(glm::radians(45.0f), aspect_ratio, 0.1f, 100.0f);
 

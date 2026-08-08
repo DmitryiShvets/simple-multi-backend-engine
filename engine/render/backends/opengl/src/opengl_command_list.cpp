@@ -177,4 +177,21 @@ void OpenGLCommandList::clearColorImage(RID image, const float color[4]) {
   (void)image;
 }
 
+void OpenGLCommandList::blitImage(RID src, RID dst, const ImageBlit &region) {
+  auto *src_tex = m_storage.get<OpenGLTexture>(src);
+  GLuint dst_fbo = 0;
+  if (auto *dst_tex = m_storage.get<OpenGLTexture>(dst))
+    dst_fbo = dst_tex->getFbo(); // default-FB вьюпер даёт 0
+
+  if (src_tex) {
+    glBindFramebuffer(GL_READ_FRAMEBUFFER, src_tex->getFbo());
+    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, dst_fbo);
+    GLint w = static_cast<GLint>(region.width), h = static_cast<GLint>(region.height);
+    glBlitFramebuffer(region.src_x, region.src_y, region.src_x + w, region.src_y + h,
+                      region.dst_x, region.dst_y, region.dst_x + w, region.dst_y + h,
+                      GL_COLOR_BUFFER_BIT, GL_LINEAR);
+  }
+  glBindFramebuffer(GL_FRAMEBUFFER, 0);
+}
+
 } // namespace ssme::opengl

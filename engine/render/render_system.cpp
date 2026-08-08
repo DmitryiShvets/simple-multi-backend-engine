@@ -8,6 +8,10 @@
 #include "scene_view.h"
 #include "opengl_renderer.h"
 #include "vulkan_renderer.h"
+#include "graph/render_graph.h"
+#include "graph/render_slots.h"
+#include "core/render_types.h"
+
 #ifdef _WIN32
     #include "d3d12_renderer.h"
 #endif
@@ -48,23 +52,49 @@ void RenderSystem::init(const std::vector<ImGuiContext *> &contexts) {
   }
 }
 
+
 void RenderSystem::render(std::vector<SceneView> &scenes,
                           const std::vector<ImDrawData *> &ui_draw_data) {
-  if (scenes.size() != m_renderers.size()) {
-    throw std::invalid_argument(
-        "Number of scenes must match number of renderers");
-  }
-
-  if (ui_draw_data.size() != m_renderers.size()) {
-    throw std::invalid_argument(
-        "Number of UI draw data must match number of renderers");
-  }
+  if (scenes.size() != m_renderers.size() ||
+      ui_draw_data.size() != m_renderers.size())
+    throw std::invalid_argument("Render count mismatch");
 
   for (size_t i = 0; i < m_renderers.size(); ++i) {
-    if (m_renderers[i]) {
-        // if(i == 1) continue;
-      m_renderers[i]->renderFrame(scenes[i], ui_draw_data[i]);
+    auto &r = *m_renderers[i];
+    if (!r.supportsFrameGraph()) {
+      r.renderFrame(scenes[i], ui_draw_data[i]); // legacy GL
+      continue;
     }
+
+    r.beginFrame();
+    auto sw = r.getSwapchain();
+    uint32_t frame_ds_idx = r.getCurrentFrameIndex();
+    RID frame_ds_rid = m_frame_data->uniform_ds[frame_ds_idx]
+                           ->getDescriptorSetId();
+
+    RenderGraph graph;
+    auto &opaque = graph.addSlot<MainOpaqueSlot>();
+    opaque.setExtent(sw.extent);
+    opaque.setDrawCallback(
+        [&r, &scenes, i, frame_ds_rid](CommandList &cmd) {
+          for (auto &obj : scenes[i].opaque_objects) {
+            obj.setDescriptor(0, frame_ds_rid);
+            r.draw(cmd, obj);
+          }
+        });
+    auto &imgui = graph.addSlot<ImGuiSlot>();
+    imgui.setExtent(sw.extent);
+    imgui.setDrawCallback(
+        [&r, ui_draw_data, i](CommandList &cmd) {
+          if (ui_draw_data[i])
+            r.renderImGui(cmd, ui_draw_data[i]);
+        });
+    auto &sink = graph.addSlot<SinkSlot>();
+    sink.setSwapchain(sw.color, sw.extent);
+
+    graph.build();
+    auto plan = graph.compile(&m_transient_pool);
+    r.renderFrameGraph(graph, plan, scenes[i], ui_draw_data[i]);
   }
 }
 

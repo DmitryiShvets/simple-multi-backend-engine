@@ -19,6 +19,10 @@ vk::ImageLayout toVkImageLayout(ImageLayout layout) {
     return vk::ImageLayout::ePresentSrcKHR;
   case ImageLayout::TRANSFER_DST:
     return vk::ImageLayout::eTransferDstOptimal;
+  case ImageLayout::TRANSFER_SRC:
+    return vk::ImageLayout::eTransferSrcOptimal;
+  case ImageLayout::DEPTH_ATTACHMENT:
+    return vk::ImageLayout::eDepthAttachmentOptimal;
   case ImageLayout::SHADER_READ_ONLY:
     return vk::ImageLayout::eShaderReadOnlyOptimal;
   default:
@@ -33,6 +37,8 @@ vk::Format toVkFormat(Format format) {
     return vk::Format::eR32G32Sfloat;
   case Format::R8G8B8A8_UNORM:
     return vk::Format::eR8G8B8A8Unorm;
+  case Format::R8G8B8A8_SRGB:
+    return vk::Format::eB8G8R8A8Srgb;
   case Format::R32_SFLOAT:
     return vk::Format::eR32Sfloat;
   case Format::R32G32B32A32_SFLOAT:

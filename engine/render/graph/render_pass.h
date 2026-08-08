@@ -24,12 +24,11 @@ public:
   RenderPass &write(ResourceView resource);
   RenderPass &readWrite(ResourceView resource);
   RenderPass &setLoadOp(LoadOp op);
+  RenderPass &read(ResourceView resource, ResourceState state);
+  RenderPass &write(ResourceView resource, ResourceState state);
+
   // for compiler
   const std::string &name() const;
-  // const std::vector<ResourceView> &getInputs() const;
-  // const std::vector<ResourceView> &getOutputs() const;
-  // PassNode getNode();
-  // bool isEnabled() const;
   const ExecuteCallback &getExecuteCallback() const;
   void setExecuteCallback(ExecuteCallback &&callback);
   LoadOp getLoadOp() const { return m_load_op; }

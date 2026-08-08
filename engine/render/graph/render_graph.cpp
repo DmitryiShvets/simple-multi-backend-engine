@@ -4,7 +4,8 @@
 #include "graph/render_gtaph_utils.h"
 #include "graph/transient_pool.h"
 #include "render_pass.h"
-#include "resource_manager.h"
+
+#include <numeric>
 #include <queue>
 #include <unordered_set>
 #include <utility>
@@ -24,6 +25,8 @@ static ImageLayout ToImageLayout(ResourceState s) {
     return ImageLayout::PRESENT_SRC;
   case ResourceState::TRANSFER_DST:
     return ImageLayout::TRANSFER_DST;
+  case ResourceState::TRANSFER_SRC:
+    return ImageLayout::TRANSFER_SRC;
   default:
     return ImageLayout::UNDEFINED; // TRANSFER_SRC не имеет аналога в
                                    // ImageLayout
@@ -31,9 +34,14 @@ static ImageLayout ToImageLayout(ResourceState s) {
 }
 static Format ToFormat(ResourceFormat fmt) {
   switch (fmt) {
-  case ResourceFormat::RGBA8:   return Format::R8G8B8A8_UNORM;
-  case ResourceFormat::RGBA16F: return Format::R32G32B32A32_SFLOAT;
-  case ResourceFormat::D32F:    return Format::R32_SFLOAT;
+  case ResourceFormat::RGBA8_UNORM:
+    return Format::R8G8B8A8_UNORM;
+  case ResourceFormat::RGBA8_SRGB:
+    return Format::R8G8B8A8_SRGB;
+  case ResourceFormat::RGBA16F:
+    return Format::R32G32B32A32_SFLOAT;
+  case ResourceFormat::D32F:
+    return Format::R32_SFLOAT;
   case ResourceFormat::R8:
     debug_assert(false, "R8 transient not supported yet");
     return Format::R32_SFLOAT;
@@ -155,6 +163,16 @@ void RenderGraph::readWrite(PassIndex pass, ResourceView view) {
       view); // marks this handle as UAV for StateForUsage
 }
 
+void RenderGraph::read(PassIndex pass, ResourceView view, ResourceState state) {
+  m_passes[pass].custom_read_state[view.index] = state;
+  read(pass, view);
+}
+void RenderGraph::write(PassIndex pass, ResourceView view,
+                        ResourceState state) {
+  m_passes[pass].custom_write_state[view.index] = state;
+  write(pass, view);
+}
+
 // Deduplicate raw dependsOn edges and build forward adjacency list (successors)
 // for Kahn's algorithm.
 void RenderGraph::buildEdges() {
@@ -263,12 +281,21 @@ RenderGraph::computeBarriers(const std::vector<PassIndex> &sorted,
       }
     }
   }
+  // for (uint32_t o = 0; o < sorted.size(); o++) {
+  //   PassIndex p = sorted[o];
+  //   printf("  [pass %s idx %u]:", m_render_passes[p]->name().data(), p);
+  //   for (auto &b : result[o])
+  //     printf(" r%u(%d->%d)%s", b.resource_index,
+  //            (int)b.old_state, (int)b.new_state, b.is_aliasing ? "[alias]" : "");
+  //   printf("\n");
+  // }
+
 
   uint32_t total = 0;
   for (auto &v : result)
     total += static_cast<uint32_t>(v.size());
-  printf("  Barriers computed: %u transition(s) across %u passes\n", total,
-         static_cast<uint32_t>(sorted.size()));
+  // printf("  Barriers computed: %u transition(s) across %u passes\n", total,
+  //        static_cast<uint32_t>(sorted.size()));
   return result;
 }
 
@@ -280,6 +307,7 @@ void RenderGraph::emitBarriers(CommandList &cmd,
   for (const auto &b : barriers) {
     if (b.is_aliasing)
       continue; // RHI BarrierInfo пока не умеет aliasing-барьеры
+    if (b.old_state == b.new_state) continue; // НОВОЕ: no-op переход . это баг???
     info.image_barriers.push_back({.image = rid_by_view[b.resource_index],
                                    .old_layout = ToImageLayout(b.old_state),
                                    .new_layout = ToImageLayout(b.new_state)});
@@ -287,7 +315,6 @@ void RenderGraph::emitBarriers(CommandList &cmd,
   if (!info.image_barriers.empty())
     cmd.pipelineBarrier(info);
 }
-void RenderGraph::compile() {}
 
 // In declared passes + virtual resources + read/write edges
 // Out ordered passes · aliased memory · barrier list · physical bindings
@@ -310,19 +337,20 @@ CompiledPlan RenderGraph::compile(TransientPool *pool) {
   // 6. Compute barriers: insert transitions at every resource state change
   auto barriers = computeBarriers(
       sorted, mapping); // extended: also emits aliasing transitions
-  std::vector<RID> rid_by_view(m_entries.size(), RID::INVALID);
+  m_rid_by_view.assign(m_entries.size(), RID::INVALID);
+
   for (ResourceIndex i = 0; i < m_entries.size(); i++) {
     if (m_entries[i].imported) {
       if (i < m_imported_rids.size())
-        rid_by_view[i] = m_imported_rids[i];
-      debug_assert(rid_by_view[i].isValid(), "import without bound RID");
+        m_rid_by_view[i] = m_imported_rids[i];
+      debug_assert(m_rid_by_view[i].isValid(), "import without bound RID");
     }
   }
   // 7. Resource allocation (transient)
-  allocateTransientResources(pool, lifetimes, rid_by_view);
+  allocateTransientResources(pool, lifetimes, m_rid_by_view);
   const CompiledPlan plan{std::move(sorted), std::move(mapping),
                           std::move(barriers)};
-  buildCompiledPasses(plan, rid_by_view);
+  buildCompiledPasses(plan, m_rid_by_view);
 
   return plan;
 }
@@ -418,7 +446,19 @@ RenderGraph::aliasResources(const std::vector<Lifetime> &lifetimes) {
 // Infer the ResourceState a pass needs for a given resource handle.
 ResourceState RenderGraph::stateForUsage(PassIndex passIdx, ResourceView view,
                                          bool isWrite) const {
-  for (auto &rw : m_passes[passIdx].read_writes)
+  const auto &node = m_passes[passIdx];
+  // check if node hase overrides
+  if (isWrite) {
+    auto it = node.custom_write_state.find(view.index);
+    if (it != node.custom_write_state.end())
+      return it->second;
+  } else {
+    auto it = node.custom_read_state.find(view.index);
+    if (it != node.custom_read_state.end())
+      return it->second;
+  }
+  // default
+  for (auto &rw : node.read_writes)
     if (rw.index == view.index)
       return ResourceState::UNORDERED_ACCESS;
   if (isWrite)
@@ -437,7 +477,6 @@ void RenderGraph::bindImport(ResourceView view, RID rid) {
 
 // Pure playback, emit precomputed barriers, call execute lambdas. No analysis.
 void RenderGraph::execute(CommandList &cmd, const CompiledPlan &plan,
-                          const std::vector<RID> &rid_by_view,
                           const Rect &render_area) {
   // FOR EACH PASS
   //      submit precomputed barriers
@@ -449,14 +488,27 @@ void RenderGraph::execute(CommandList &cmd, const CompiledPlan &plan,
     PassIndex passIdx = plan.sorted[orderIdx];
     if (!m_passes[passIdx].alive)
       continue;
-    emitBarriers(cmd, plan.barriers[orderIdx], rid_by_view);
-    RenderingInfo info = m_render_passes[passIdx]->rendering_info;
-    info.render_area = render_area; // extent из SinkSlot
-    cmd.beginRendering(info);
+    emitBarriers(cmd, plan.barriers[orderIdx], m_rid_by_view);
+    const RenderingInfo &info0 = m_render_passes[passIdx]->rendering_info;
+    const bool has_attachments =
+        !info0.color_attachments.empty() ||
+        info0.depth_attachment.texture.isValid();
+    if (has_attachments) {
+      RenderingInfo info = info0;
+      info.render_area = render_area;
+      cmd.beginRendering(info);
+      cmd.setViewport({.x = 0.0f, .y = 0.0f,
+                       .width = (float)render_area.width,
+                       .height = (float)render_area.height,
+                       .minDepth = 0.0f, .maxDepth = 1.0f});
+      cmd.setScissor(render_area);
+
+    }
     auto &cb = m_render_passes[passIdx]->getExecuteCallback();
     if (cb)
       cb(cmd);
-    cmd.endRendering();
+    if (has_attachments)
+      cmd.endRendering();
   }
 }
 void RenderGraph::reset() {
@@ -511,6 +563,11 @@ RenderGraph::buildRenderingInfo(const PassNode &pass,
                                 const std::vector<RID> &rid_by_view) const {
   RenderingInfo info;
   for (const ResourceView &v : pass.writes) {
+    auto itw = pass.custom_write_state.find(v.index);
+    if (itw != pass.custom_write_state.end() &&
+        itw->second != ResourceState::COLOR_ATTACHMENT &&
+        itw->second != ResourceState::DEPTH_ATTACHMENT)
+      continue; // copy/transfer — это не аттачмент
     bool is_uav = false;
     for (const ResourceView &rw : pass.read_writes)
       if (rw.index == v.index) {
@@ -541,7 +598,7 @@ RenderGraph::buildRenderingInfo(const PassNode &pass,
           .load_op = load,
           .store_op = StoreOp::STORE,
           /* из ResourceDesc или дефолт */
-          .clear_value = {0.0f, 0.0f, 0.0f, 1.0f},
+          .clear_value = {0.1f, 0.1f, 0.1f, 1.0f},
           .initial_layout = load == LoadOp::CLEAR
                                 ? ImageLayout::UNDEFINED
                                 : ImageLayout::COLOR_ATTACHMENT,
@@ -557,9 +614,9 @@ void RenderGraph::allocateTransientResources(
     std::vector<RID> &rid_by_view) {
   for (const auto &[name, view] : m_name2view_map) {
     const ResourceIndex i = view.index;
-    if (m_entries[i].imported)                       // свапчейн — уже забинден
+    if (m_entries[i].imported) // свапчейн — уже забинден
       continue;
-    if (lifetimes[i].first_use == UINT32_MAX)        // отцеллен/не используется
+    if (lifetimes[i].first_use == UINT32_MAX) // отцеллен/не используется
       continue;
     const auto &desc = m_entries[i].desc;
     TextureDesc tex_desc{};
@@ -571,6 +628,5 @@ void RenderGraph::allocateTransientResources(
     rid_by_view[i] = pool->getOrCreate(name, tex_desc);
   }
 }
-
 
 } // namespace ssme

@@ -1,8 +1,10 @@
 #include "opengl_texture.h"
 #include "core/render_types.h"
+#include "opengl_buffer_objects.h"
 #include "utils/image_loader.h"
 #include <GL/gl.h>
 #include <stdexcept>
+#include <sys/ucontext.h>
 
 namespace ssme::opengl {
 
@@ -12,33 +14,63 @@ static bool hasFlag(ImageUsage usage, ImageUsage flag) {
 
 static GLenum toInternalFormat(Format format) {
   switch (format) {
-  case Format::R8G8B8A8_UNORM:     return GL_RGBA8;
-  case Format::R32_SFLOAT:         return GL_R32F;
-  case Format::R32G32_SFLOAT:      return GL_RG32F;
-  case Format::R32G32B32_SFLOAT:   return GL_RGB32F;
-  case Format::R32G32B32A32_SFLOAT: return GL_RGBA32F;
-  default: throw std::runtime_error("Unsupported Format in OpenGLTexture");
+  case Format::R8G8B8A8_SRGB:
+      return GL_SRGB8_ALPHA8;
+  case Format::R8G8B8A8_UNORM:
+    return GL_RGBA8;
+  case Format::R32_SFLOAT:
+    return GL_R32F;
+  case Format::R32G32_SFLOAT:
+    return GL_RG32F;
+  case Format::R32G32B32_SFLOAT:
+    return GL_RGB32F;
+  case Format::R32G32B32A32_SFLOAT:
+    return GL_RGBA32F;
+  default:
+    throw std::runtime_error("Unsupported Format in OpenGLTexture");
   }
 }
 
 static GLenum toInternalWrap(Wrap wrap) {
   switch (wrap) {
-  case Wrap::REPEAT:        return GL_REPEAT;
-  case Wrap::MIRRORED:      return GL_MIRRORED_REPEAT;
-  case Wrap::CLAMP:         return GL_CLAMP_TO_EDGE;
-  case Wrap::BORDER:        return GL_CLAMP_TO_BORDER;
-  default: throw std::runtime_error("Unsupported Wrap in OpenGLTexture");
+  case Wrap::REPEAT:
+    return GL_REPEAT;
+  case Wrap::MIRRORED:
+    return GL_MIRRORED_REPEAT;
+  case Wrap::CLAMP:
+    return GL_CLAMP_TO_EDGE;
+  case Wrap::BORDER:
+    return GL_CLAMP_TO_BORDER;
+  default:
+    throw std::runtime_error("Unsupported Wrap in OpenGLTexture");
   }
 }
 
 static void toUploadFormat(Format format, GLenum &fmt, GLenum &type) {
   switch (format) {
-  case Format::R8G8B8A8_UNORM:     fmt = GL_RGBA; type = GL_UNSIGNED_BYTE; break;
-  case Format::R32_SFLOAT:         fmt = GL_RED;  type = GL_FLOAT; break;
-  case Format::R32G32_SFLOAT:      fmt = GL_RG;   type = GL_FLOAT; break;
-  case Format::R32G32B32_SFLOAT:   fmt = GL_RGB;  type = GL_FLOAT; break;
-  case Format::R32G32B32A32_SFLOAT: fmt = GL_RGBA; type = GL_FLOAT; break;
-  default: throw std::runtime_error("Unsupported Format in OpenGLTexture");
+  case Format::R8G8B8A8_SRGB:
+  case Format::R8G8B8A8_UNORM:
+    fmt = GL_RGBA;
+    type = GL_UNSIGNED_BYTE;
+    break;
+  case Format::R32_SFLOAT:
+    fmt = GL_RED;
+    type = GL_FLOAT;
+    break;
+  case Format::R32G32_SFLOAT:
+    fmt = GL_RG;
+    type = GL_FLOAT;
+    break;
+  case Format::R32G32B32_SFLOAT:
+    fmt = GL_RGB;
+    type = GL_FLOAT;
+    break;
+  case Format::R32G32B32A32_SFLOAT:
+    fmt = GL_RGBA;
+    type = GL_FLOAT;
+    break;
+  default:
+    throw std::runtime_error("Unsupported Format in OpenGLTexture");
   }
 }
 
@@ -78,8 +110,11 @@ OpenGLTexture::OpenGLTexture(const TextureDesc &desc)
       is_depth_attachment ? GL_DEPTH_COMPONENT32F : toInternalFormat(m_format);
   glGenTextures(1, &m_texture);
   glBindTexture(GL_TEXTURE_2D, m_texture);
+  GLenum img_fmt = is_depth_attachment ? GL_DEPTH_COMPONENT : GL_RGBA;
+  GLenum img_type = is_depth_attachment ? GL_FLOAT : GL_UNSIGNED_BYTE;
   glTexImage2D(GL_TEXTURE_2D, 0, internal_format, (GLsizei)m_width,
-               (GLsizei)m_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+               (GLsizei)m_height, 0, img_fmt, img_type, data);
+
   if (has_data) {
     GLenum upload_format, upload_type;
     toUploadFormat(m_format, upload_format, upload_type);
@@ -88,8 +123,10 @@ OpenGLTexture::OpenGLTexture(const TextureDesc &desc)
   }
   if (desc.generate_mips && has_data)
     glGenerateMipmap(GL_TEXTURE_2D);
-  GLenum min_filter = desc.min_filter == Filter::LINEAR ? GL_LINEAR : GL_NEAREST;
-  GLenum mag_filter = desc.mag_filter == Filter::LINEAR ? GL_LINEAR : GL_NEAREST;
+  GLenum min_filter =
+      desc.min_filter == Filter::LINEAR ? GL_LINEAR : GL_NEAREST;
+  GLenum mag_filter =
+      desc.mag_filter == Filter::LINEAR ? GL_LINEAR : GL_NEAREST;
   GLenum wrap_S = toInternalWrap(desc.wrap_s);
   GLenum wrap_T = toInternalWrap(desc.wrap_t);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, min_filter);
@@ -102,11 +139,12 @@ OpenGLTexture::OpenGLTexture(const TextureDesc &desc)
 
   // --- FBO only for render targets ---
   if (is_color_attachment || is_depth_attachment) {
-    GLenum attachment = is_depth_attachment ? GL_DEPTH_ATTACHMENT : GL_COLOR_ATTACHMENT0;
+    GLenum attachment =
+        is_depth_attachment ? GL_DEPTH_ATTACHMENT : GL_COLOR_ATTACHMENT0;
     glGenFramebuffers(1, &m_fbo);
     glBindFramebuffer(GL_FRAMEBUFFER, m_fbo);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, attachment, GL_TEXTURE_2D,
-                           m_texture, 0);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, attachment, GL_TEXTURE_2D, m_texture,
+                           0);
     bool complete =
         glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE;
     glBindFramebuffer(GL_FRAMEBUFFER, 0);

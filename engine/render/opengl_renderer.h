@@ -24,7 +24,7 @@ class SceneView;
 // for OpenGL.
 class OpenGLRenderer final : public IRenderer {
 public:
-  OpenGLRenderer(Platform *platform, ResourceManager* rm );
+  OpenGLRenderer(Platform *platform, ResourceManager *rm);
   ~OpenGLRenderer();
 
   void init(ImGuiContext *ctx) override;
@@ -41,13 +41,20 @@ public:
 
   void setFrameResources(std::shared_ptr<FrameData> data) override;
 
+  bool supportsFrameGraph() const override { return true; }
+
+  SwapchainInfo getSwapchain() override;
+  uint32_t getCurrentFrameIndex() const override { return 0; }
+  void renderImGui(CommandList &, ImDrawData *) override;
+  void renderFrameGraph(RenderGraph &, const CompiledPlan &, SceneView &,
+                        ImDrawData *) override;
+
 private:
-
   void updatePerFrameResources(const SceneView &view);
-
+  Extent2D queryFramebufferSize() const;
   GpuBackend m_backend_type = GpuBackend::OpenGL;
   Platform *m_platform;
-  ResourceManager* m_rm;
+  ResourceManager *m_rm;
 
   std::unique_ptr<RenderDevice> m_rhi_device;
 
@@ -59,6 +66,7 @@ private:
   std::unique_ptr<ssme::opengl::OpenGLCommandList> m_command_list;
 
   std::shared_ptr<FrameData> m_frame_data = nullptr;
+  RID m_swapchain_rid = RID::INVALID;
 };
 
 } // namespace ssme

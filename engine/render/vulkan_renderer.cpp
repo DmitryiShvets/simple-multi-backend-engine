@@ -21,42 +21,6 @@
 
 namespace ssme {
 
-void execute(RenderGraph &graph, RID back_buffer, RID depth_buffer,
-             CommandList &cmd, const Rect &render_area) {
-  graph.compile();
-
-  const auto &passes = graph.getPasses();
-  for (const auto &pass : passes) {
-    // In a real implementation, RenderingInfo would be constructed based
-    // on the pass's `reads` and `writes` dependencies. For now, we
-    // hardcode it to render to the backbuffer.
-    RenderingInfo rendering_info{};
-    rendering_info.render_area = render_area;
-    rendering_info.color_attachments.push_back(
-        {.texture = back_buffer,
-         .load_op = LoadOp::CLEAR,
-         .store_op = StoreOp::STORE,
-         .clear_value = {0.1f, 0.1f, 0.1f, 1.0f},
-         .initial_layout = ImageLayout::UNDEFINED,
-         .final_layout = ImageLayout::PRESENT_SRC});
-    rendering_info.depth_attachment = {
-        .texture = depth_buffer,
-        .load_op = LoadOp::CLEAR,
-        .store_op = StoreOp::DONT_CARE,
-        .clear_value = 1.0f,
-    };
-    cmd.beginRendering(rendering_info);
-
-    auto &callback = pass->getExecuteCallback();
-    if (callback) {
-      callback(cmd);
-    }
-
-    cmd.endRendering();
-  }
-}
-//================================================================
-
 // Constructor now takes ownership of the low-level device
 VulkanRenderer::VulkanRenderer(Platform *platform, ResourceManager *rm)
     : m_platform(platform), m_rm(rm) {
@@ -127,6 +91,7 @@ void VulkanRenderer::init(ImGuiContext *ctx) {
 VulkanRenderer::~VulkanRenderer() { destroy(); }
 
 void VulkanRenderer::renderFrame(SceneView &view, ImDrawData *ui_draw_data) {
+  throw std::runtime_error("Depreceted render method!");
   acquireNextImage(); // wait for fences and retrives new image
 
   // Update per-frame uniforms (camera, projection)
@@ -204,8 +169,8 @@ void VulkanRenderer::renderFrame(SceneView &view, ImDrawData *ui_draw_data) {
   //   });
   // }
 
-  execute(graph, backbuffer_texture_rid, backbuffer_depth_texture_rid, *cmd,
-          rect);
+  // execute(graph, backbuffer_texture_rid, backbuffer_depth_texture_rid, *cmd,
+  //         rect);
 
   // Barrier 2: Color Attachment -> Present
   BarrierInfo to_present_barrier;
@@ -222,9 +187,55 @@ void VulkanRenderer::renderFrame(SceneView &view, ImDrawData *ui_draw_data) {
   present();
 }
 
+void VulkanRenderer::beginFrame() {
+  acquireNextImage(); // ждёт фенсы, берёт новый image
+}
+
+SwapchainInfo VulkanRenderer::getSwapchain() {
+  auto extent = m_swap_chain->getSwapChainExtent();
+  return {m_swap_chain->getTextureRID(m_acquired_image_index),
+          {extent.width, extent.height}};
+}
+
+uint32_t VulkanRenderer::getCurrentFrameIndex() const {
+  return static_cast<uint32_t>(m_swap_chain->getCurrentFrameIndex());
+}
+
+void VulkanRenderer::renderImGui(CommandList &cmd, ImDrawData *ui) {
+  ImGui::SetCurrentContext(m_imgui_context);
+  ImGui_ImplVulkan_RenderDrawData(
+      ui, static_cast<ssme::vulkan::VulkanCommandList &>(cmd).getHandle());
+}
+
+void VulkanRenderer::renderFrameGraph(RenderGraph &graph,
+                                      const CompiledPlan &plan, SceneView &view,
+                                      ImDrawData *ui) {
+  updatePerFrameResources(view);
+
+  auto extent = m_swap_chain->getSwapChainExtent();
+  Rect rect{.x = 0, .y = 0, .width = extent.width, .height = extent.height};
+
+  auto *cmd = m_command_lists[m_swap_chain->getCurrentFrameIndex()].get();
+  cmd->begin();
+
+  graph.execute(*cmd, plan, rect);
+
+  // финальный переход бэкбуфера TRANSFER_DST -> PRESENT
+  RID bb = m_swap_chain->getTextureRID(m_acquired_image_index);
+  BarrierInfo to_present;
+  to_present.image_barriers.push_back({.image = bb,
+                                       .old_layout = ImageLayout::TRANSFER_DST,
+                                       .new_layout = ImageLayout::PRESENT_SRC});
+  cmd->pipelineBarrier(to_present);
+
+  cmd->end();
+  submitCommands();
+  present();
+}
+
 void VulkanRenderer::destroy() {
   m_device->getHandle().waitIdle();
-  if(m_imgui_context) {
+  if (m_imgui_context) {
     ImGui::SetCurrentContext(m_imgui_context);
     ImGui_ImplVulkan_Shutdown();
   }

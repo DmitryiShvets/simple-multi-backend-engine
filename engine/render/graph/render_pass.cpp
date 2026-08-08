@@ -34,6 +34,14 @@ RenderPass &RenderPass::setLoadOp(LoadOp op) {
   m_load_op = op;
   return *this;
 }
+RenderPass &RenderPass::read(ResourceView resource, ResourceState state) {
+  m_graph->read(m_index, resource, state);
+  return *this;
+}
+RenderPass &RenderPass::write(ResourceView resource, ResourceState state) {
+  m_graph->write(m_index, resource, state);
+  return *this;
+}
 
 void RenderPass::setExecuteCallback(
     std::function<void(CommandList &cmd)> &&callback) {
