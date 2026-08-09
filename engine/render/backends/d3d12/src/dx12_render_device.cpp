@@ -72,13 +72,23 @@ void Dx12RenderDevice::destroyBuffer(RID rid) {
 // -----------------------------------------------------------------------
 
 RID Dx12RenderDevice::createTexture(const TextureDesc &desc, RID id) {
-  return RID::INVALID;
+  auto tex = std::make_unique<Dx12Texture>(m_device, desc);
+  if (id.isNull()) {
+    id = m_storage.add(std::move(tex));
+  } else {
+    m_storage.store(id, std::move(tex));
+  }
+  debug_assert(id != RID::INVALID, "GpuStorage failed to assign a valid RID");
+  return id;
 }
 
-void Dx12RenderDevice::destroyTexture(RID rid) {
-  if (rid.isNull())
+void Dx12RenderDevice::destroyTexture(RID id) {
+  if (id.isNull())
     return;
-  // TODO: Implement when textures are added
+  auto *texture = m_storage.get<Dx12Texture>(id);
+  if (texture) {
+    m_storage.remove<Dx12Texture>(id);
+  }
 }
 
 //------------------------------------------------------------------------
@@ -265,8 +275,13 @@ RID Dx12RenderDevice::createGraphicsPipeline(const GraphicsPipelineDesc &desc,
     throw std::runtime_error(
         "Vertex and Fragment shader paths must be provided");
   }
-  D3D12_RASTERIZER_DESC rasteraizer_desc = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
+  D3D12_RASTERIZER_DESC rasteraizer_desc =
+      CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
   rasteraizer_desc.FrontCounterClockwise = TRUE;
+  DXGI_FORMAT rtv_format = desc.color_attachment_format == Format::R8G8B8A8_SRGB
+                               ? DXGI_FORMAT_R8G8B8A8_UNORM_SRGB
+                               : toDxgiFormat(desc.color_attachment_format);
+  DXGI_FORMAT dsv_format = toDxgiFormat(desc.depth_attachment_format);
   // 5. Create the VulkanPipeLine object
   D3D12_GRAPHICS_PIPELINE_STATE_DESC pso_desc{
       .pRootSignature = dx_pipeline_layout.Get(),
@@ -277,13 +292,19 @@ RID Dx12RenderDevice::createGraphicsPipeline(const GraphicsPipelineDesc &desc,
       .RasterizerState = rasteraizer_desc,
       .DepthStencilState =
           {
-              .DepthEnable = FALSE,
+              .DepthEnable =
+                  desc.depth_stencil_state.depthTestEnable ? TRUE : FALSE,
+              .DepthWriteMask = desc.depth_stencil_state.depthWriteEnable
+                                    ? D3D12_DEPTH_WRITE_MASK_ALL
+                                    : D3D12_DEPTH_WRITE_MASK_ZERO,
+              .DepthFunc = D3D12_COMPARISON_FUNC_LESS,
               .StencilEnable = FALSE,
           },
       .InputLayout = {input_elements.data(), (UINT)input_elements.size()},
       .PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE,
       .NumRenderTargets = 1,
-      .RTVFormats = {DXGI_FORMAT_R8G8B8A8_UNORM_SRGB},
+      .RTVFormats = {rtv_format},
+      .DSVFormat = dsv_format,
       .SampleDesc = {1, 0},
   };
   auto pipeline = std::make_unique<Dx12Pipeline>(m_device, dx_pipeline_layout,

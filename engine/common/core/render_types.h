@@ -102,6 +102,7 @@ enum class Format {
   R32_SFLOAT,
   R8G8B8A8_UNORM,
   R8G8B8A8_SRGB,
+  D32F,
   // Add other formats as needed
 };
 

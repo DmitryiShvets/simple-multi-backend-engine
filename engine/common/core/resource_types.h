@@ -267,8 +267,8 @@ struct RasterizationStateDesc {
 };
 
 struct DepthStencilStateDesc {
-  bool depthTestEnable = true;
-  bool depthWriteEnable = true;
+  bool depthTestEnable = false;
+  bool depthWriteEnable = false;
 
   bool operator==(const DepthStencilStateDesc &other) const {
     return depthTestEnable == other.depthTestEnable &&
@@ -288,18 +288,26 @@ struct GraphicsPipelineDesc {
   RID vert_shader_module; // id of vertex shader module. must be already created
   RID frag_shader_module; // id of fragment shader module. must be already
                           // created
+  DepthStencilStateDesc depth_stencil_state;
+  Format color_attachment_format = Format::R8G8B8A8_SRGB;
+  Format depth_attachment_format = Format::D32F;
 
   std::size_t hash() const {
     std::size_t h = 0;
     hash_combine(h, vertex_layout.hash(), vert_shader_module,
-                 frag_shader_module);
+                 frag_shader_module, depth_stencil_state.hash(),
+                 static_cast<uint32_t>(depth_attachment_format),
+                 static_cast<uint32_t>(color_attachment_format));
     return h;
   }
 
   bool operator==(const GraphicsPipelineDesc &other) const {
     return vertex_layout == other.vertex_layout &&
            vert_shader_module == other.vert_shader_module &&
-           frag_shader_module == other.frag_shader_module;
+           frag_shader_module == other.frag_shader_module &&
+           depth_stencil_state == other.depth_stencil_state &&
+           color_attachment_format == other.color_attachment_format &&
+           depth_attachment_format == other.depth_attachment_format;
   }
 };
 

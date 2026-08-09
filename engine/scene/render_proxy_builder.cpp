@@ -35,7 +35,10 @@ void RenderProxyBuilder::buildProxy(Entity &entity) {
       // TODO: (MAKE IT DATA DRIVEN) set these parameters from entity data
       // or render proxy
       .rasterization_state = RasterizationStateDesc{},
-      .depth_stencil_state = DepthStencilStateDesc{},
+      .depth_stencil_state = DepthStencilStateDesc{
+          .depthTestEnable = true,
+          .depthWriteEnable = true
+      },
   };
   auto pipeline_uuid = params.uuid();
   proxy.pipeline_ref = m_rm.load<Pipeline>(pipeline_uuid, params);
