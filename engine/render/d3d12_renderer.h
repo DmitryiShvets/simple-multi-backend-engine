@@ -28,7 +28,13 @@ public:
 
   void init(ImGuiContext *ctx) override;
 
-  void renderFrame(SceneView &view, ImDrawData *ui_draw_data) override;
+  bool supportsFrameGraph() const override { return true; }
+  void beginFrame() override;
+  SwapchainInfo getSwapchain() override;
+  uint32_t getCurrentFrameIndex() const override;
+  void renderImGui(CommandList &, ImDrawData *) override;
+  void renderFrameGraph(RenderGraph &, const CompiledPlan &, SceneView &,
+                        ImDrawData *) override;
 
   void destroy() override;
 
@@ -41,9 +47,9 @@ public:
   void setFrameResources(std::shared_ptr<FrameData> data) override;
 
   struct ImGuiSrvHandle {
-      D3D12_CPU_DESCRIPTOR_HANDLE cpu = {};
-      D3D12_GPU_DESCRIPTOR_HANDLE gpu = {};
-      bool allocated = false;
+    D3D12_CPU_DESCRIPTOR_HANDLE cpu = {};
+    D3D12_GPU_DESCRIPTOR_HANDLE gpu = {};
+    bool allocated = false;
   };
   ImGuiSrvHandle m_imgui_srv_handle;
 

@@ -9,6 +9,7 @@ endif()
 set(RENDER_SOURCES
     graph/render_graph.cpp
     graph/render_pass.cpp
+    graph/transient_pool.cpp
 
     renderer.cpp
     opengl_renderer.cpp

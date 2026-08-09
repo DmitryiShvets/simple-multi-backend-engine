@@ -5,6 +5,7 @@ set(OPENGL_RENDER_SOURCES
     src/opengl_buffer_objects.cpp
     src/opengl_command_list.cpp
     src/opengl_descriptor_set.cpp
+    src/opengl_texture.cpp
 )
 
 add_library(ssme_opengl STATIC ${OPENGL_RENDER_SOURCES})

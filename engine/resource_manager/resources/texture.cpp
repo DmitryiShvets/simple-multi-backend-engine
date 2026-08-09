@@ -15,6 +15,12 @@ uint32_t Texture::doPrepare() {
 
 void Texture::doSetup(const VecRID &rids) { m_texture_id = rids[0]; }
 
+static bool isRenderTarget(ImageUsage usage) {
+  constexpr uint32_t RT =
+      static_cast<uint32_t>(ImageUsage::COLOR_ATTACHMENT) |
+      static_cast<uint32_t>(ImageUsage::DEPTH_STENCIL);
+  return (static_cast<uint32_t>(usage) & RT) != 0;
+}
 bool Texture::doLoad() {
   // 1. If path specified and no data — load file (stb_image)
   if (!m_desc.source_path.empty() && m_desc.raw_data.empty()) {
@@ -22,7 +28,8 @@ bool Texture::doLoad() {
     // Here we fill width, height and raw_data
   }
 
-  if (m_desc.raw_data.empty())
+  if (m_desc.raw_data.empty() && m_desc.source_path.empty() &&
+      !isRenderTarget(m_desc.usage))
     return false;
 
   // 2. Create texture in all backends

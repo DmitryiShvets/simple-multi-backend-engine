@@ -45,6 +45,13 @@ public:
 
   void setFrameResources(std::shared_ptr<FrameData> data) override;
 
+bool supportsFrameGraph() const override { return true; }
+void beginFrame() override;
+SwapchainInfo getSwapchain() override;
+uint32_t getCurrentFrameIndex() const override;
+void renderImGui(CommandList &, ImDrawData *) override;
+void renderFrameGraph(RenderGraph &, const CompiledPlan &, SceneView &, ImDrawData *) override;
+
 private:
   GpuBackend m_backend_type = GpuBackend::Vulkan;
   Platform * m_platform;

@@ -41,6 +41,7 @@ uint32_t Pipeline::doPrepare() {
   m_pl_desc.vertex_layout = m_params.vertex_layout;
   m_pl_desc.vert_shader_module = m_vert_shader.get()->getModuleId();
   m_pl_desc.frag_shader_module = m_frag_shader.get()->getModuleId();
+  m_pl_desc.depth_stencil_state = m_params.depth_stencil_state;
   // check if the same layout already exists;
   std::size_t layout_hash = m_pl_layout_desc.hash();
   RID hashed_layout = m_devices.at(0).get().containsPipelineLayout(layout_hash);

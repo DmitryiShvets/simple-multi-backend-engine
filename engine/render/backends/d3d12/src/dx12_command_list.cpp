@@ -184,7 +184,20 @@ void Dx12CommandList::beginRendering(const RenderingInfo &info) {
   if (!texture)
     return;
   auto rtvHandle = texture->getRtvHandle();
-  m_command_buffer->OMSetRenderTargets(1, &rtvHandle, FALSE, nullptr);
+
+  D3D12_CPU_DESCRIPTOR_HANDLE dsvHandle = {};
+  bool has_depth = false;
+  if (info.depth_attachment.texture.isValid()) {
+    auto *depth = m_storage.get<Dx12Texture>(info.depth_attachment.texture);
+    if (depth) {
+      dsvHandle = depth->getDsvHandle();
+      has_depth = true;
+    }
+  }
+
+  m_command_buffer->OMSetRenderTargets(1, &rtvHandle, FALSE,
+                                       has_depth ? &dsvHandle : nullptr);
+
   if (info.color_attachments[0].load_op == LoadOp::CLEAR) {
     float c[4] = {
         info.color_attachments[0].clear_value.r,
@@ -193,6 +206,11 @@ void Dx12CommandList::beginRendering(const RenderingInfo &info) {
         info.color_attachments[0].clear_value.a,
     };
     m_command_buffer->ClearRenderTargetView(rtvHandle, c, 0, nullptr);
+  }
+  if (has_depth && info.depth_attachment.load_op == LoadOp::CLEAR) {
+    m_command_buffer->ClearDepthStencilView(dsvHandle, D3D12_CLEAR_FLAG_DEPTH,
+                                            info.depth_attachment.clear_value,
+                                            0, 0, nullptr);
   }
 }
 
@@ -216,6 +234,34 @@ void Dx12CommandList::copyBufferToImage(RID src_buffer, RID dst_image,
 
 void Dx12CommandList::clearColorImage(RID image, const float color[4]) {
   (void)image;
+}
+
+void Dx12CommandList::blitImage(RID src, RID dst, const ImageBlit &region) {
+  auto *src_tex = m_storage.get<Dx12Texture>(src);
+  auto *dst_tex = m_storage.get<Dx12Texture>(dst);
+  if (!src_tex || !dst_tex)
+    return;
+
+  D3D12_TEXTURE_COPY_LOCATION dst_loc = {
+      .pResource = dst_tex->getHandle().Get(),
+      .Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX,
+      .SubresourceIndex = 0,
+  };
+  D3D12_TEXTURE_COPY_LOCATION src_loc = {
+      .pResource = src_tex->getHandle().Get(),
+      .Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX,
+      .SubresourceIndex = 0,
+  };
+  D3D12_BOX src_box = {
+      .left = static_cast<UINT>(region.src_x),
+      .top = static_cast<UINT>(region.src_y),
+      .front = 0,
+      .right = static_cast<UINT>(region.src_x + region.width),
+      .bottom = static_cast<UINT>(region.src_y + region.height),
+      .back = 1,
+  };
+  m_command_buffer->CopyTextureRegion(&dst_loc, region.dst_x, region.dst_y, 0,
+                                      &src_loc, &src_box);
 }
 
 } // namespace ssme::d3d12

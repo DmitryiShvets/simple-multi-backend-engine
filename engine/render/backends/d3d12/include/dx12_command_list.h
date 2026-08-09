@@ -62,6 +62,7 @@ public:
   void copyBufferToImage(RID src_buffer, RID dst_image,
                          const BufferImageCopy &region) override;
   void clearColorImage(RID image, const float color[4]) override;
+  void blitImage(RID src, RID dst, const ImageBlit &region) override;
 
   // --- DirectX-specific methods ---
   Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList> const &

@@ -1,5 +1,6 @@
 #pragma once
 #include "core/gpu_types.h"
+#include "graph/transient_pool.h"
 #include "render_device.h"
 #include "renderer.h"
 #include <memory>
@@ -19,7 +20,8 @@ class ResourceManager;
  */
 class RenderSystem {
 public:
-  RenderSystem(Platform *platform, ResourceManager* rm ) : m_platform(platform), m_rm(rm) {}
+  RenderSystem(Platform *platform, ResourceManager *rm)
+      : m_platform(platform), m_rm(rm), m_transient_pool(rm) {}
   RenderSystem(const RenderSystem &) = delete;
   RenderSystem &operator=(const RenderSystem &) = delete;
 
@@ -60,6 +62,7 @@ public:
 private:
   Platform *m_platform;
   ResourceManager *m_rm;
+  TransientPool m_transient_pool;
   std::vector<std::unique_ptr<IRenderer>> m_renderers;
   std::shared_ptr<FrameData> m_frame_data = nullptr;
 };

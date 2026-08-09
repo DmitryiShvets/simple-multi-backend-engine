@@ -8,10 +8,14 @@ D3D12_RESOURCE_STATES toD3d12State(ImageLayout layout) {
     return D3D12_RESOURCE_STATE_COMMON;
   case ImageLayout::COLOR_ATTACHMENT:
     return D3D12_RESOURCE_STATE_RENDER_TARGET;
+  case ImageLayout::DEPTH_ATTACHMENT:
+    return D3D12_RESOURCE_STATE_DEPTH_WRITE;
   case ImageLayout::PRESENT_SRC:
     return D3D12_RESOURCE_STATE_PRESENT;
   case ImageLayout::TRANSFER_DST:
     return D3D12_RESOURCE_STATE_COPY_DEST;
+  case ImageLayout::TRANSFER_SRC:
+    return D3D12_RESOURCE_STATE_COPY_SOURCE;
   case ImageLayout::SHADER_READ_ONLY:
     return D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
   default:
@@ -31,9 +35,12 @@ DXGI_FORMAT toDxgiFormat(Format format) {
     return DXGI_FORMAT_R32_FLOAT;
   case Format::R8G8B8A8_UNORM:
     return DXGI_FORMAT_R8G8B8A8_UNORM;
+  case Format::R8G8B8A8_SRGB:
+    return DXGI_FORMAT_R8G8B8A8_UNORM; // ресурс; sRGB = свойство вью
+  case Format::D32F:
+    return DXGI_FORMAT_D32_FLOAT;
   default:
     return DXGI_FORMAT_UNKNOWN;
   }
 }
-
 } // namespace ssme::d3d12

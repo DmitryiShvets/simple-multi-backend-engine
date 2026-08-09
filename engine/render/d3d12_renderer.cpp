@@ -37,28 +37,6 @@ void Dx12ImguiSrvFree(ImGui_ImplDX12_InitInfo *info,
 } // namespace
 namespace ssme {
 
-static void execute(RenderGraph &graph, RID back_buffer, RID depth_buffer,
-                    CommandList &cmd, const Rect &render_area) {
-  graph.compile();
-  const auto &passes = graph.getPasses();
-  for (const auto &pass : passes) {
-    RenderingInfo rendering_info{};
-    rendering_info.render_area = render_area;
-    rendering_info.color_attachments.push_back({
-        .texture = back_buffer,
-        .load_op = LoadOp::CLEAR,
-        .store_op = StoreOp::STORE,
-        .clear_value = {0.1f, 0.1f, 0.1f, 1.0f},
-        .initial_layout = ImageLayout::UNDEFINED,
-        .final_layout = ImageLayout::PRESENT_SRC,
-    });
-    cmd.beginRendering(rendering_info);
-    auto &callback = pass->getExecuteCallback();
-    if (callback)
-      callback(cmd);
-    cmd.endRendering();
-  }
-}
 
 Dx12Renderer::Dx12Renderer(Platform *platform, ResourceManager *rm)
     : m_platform(platform), m_rm(rm) {
@@ -123,57 +101,52 @@ void Dx12Renderer::init(ImGuiContext *ctx) {
 // definitions
 Dx12Renderer::~Dx12Renderer() { destroy(); };
 
-void Dx12Renderer::renderFrame(SceneView &view, ImDrawData *ui_draw_data) {
-  // Phase 1: Acquire (CPU ждёт, если GPU занят)
+void Dx12Renderer::beginFrame() {
   m_swap_chain->acquireNextImage();
-  // Update uniforms
+}
+
+SwapchainInfo Dx12Renderer::getSwapchain() {
+  auto frame_index = m_swap_chain->getCurrentFrameIndex();
+  auto extent = m_swap_chain->getSwapChainExtent();
+  return {m_swap_chain->getTextureRID(static_cast<uint32_t>(frame_index)),
+          extent};
+}
+
+uint32_t Dx12Renderer::getCurrentFrameIndex() const {
+  return static_cast<uint32_t>(m_swap_chain->getCurrentFrameIndex());
+}
+
+void Dx12Renderer::renderImGui(CommandList &cmd, ImDrawData *ui) {
+  if (!ui || !m_imgui_initialized)
+    return;
+  ImGui::SetCurrentContext(m_imgui_context);
+  auto &dxcmd = static_cast<ssme::d3d12::Dx12CommandList &>(cmd);
+  ID3D12DescriptorHeap *heaps[] = {m_imgui_srv_heap.Get()};
+  dxcmd.getCommandListHandle()->SetDescriptorHeaps(1, heaps);
+  ImGui_ImplDX12_RenderDrawData(ui, dxcmd.getCommandListHandle().Get());
+}
+
+void Dx12Renderer::renderFrameGraph(RenderGraph &graph,
+                                    const CompiledPlan &plan,
+                                    SceneView &view, ImDrawData *ui) {
   updatePerFrameResources(view);
 
   auto frame_index = m_swap_chain->getCurrentFrameIndex();
+  auto extent = m_swap_chain->getSwapChainExtent();
+  Rect rect{.x = 0, .y = 0, .width = extent.width, .height = extent.height};
+
   auto *cmd = m_command_lists[frame_index].get();
   cmd->begin();
 
-  RID backbuffer_rid = m_swap_chain->getTextureRID(frame_index);
-  auto extent = m_swap_chain->getSwapChainExtent();
-  auto rect = Rect{0, 0, extent.width, extent.height};
-
-  // Barrier 1: PRESENT → COLOR_ATTACHMENT
-  BarrierInfo to_render;
-  to_render.image_barriers.push_back({backbuffer_rid, ImageLayout::PRESENT_SRC,
-                                      ImageLayout::COLOR_ATTACHMENT});
-  cmd->pipelineBarrier(to_render);
-
-  // RenderGraph
-  RenderGraph graph;
-  auto &pass = graph.addPass("Opaque Pass");
-  // Get per-frame descriptor set RID (Set 0)
-  RID per_frame_ds_rid =
-      m_frame_data->uniform_ds[frame_index]->getDescriptorSetId();
-
-  pass.setExecuteCallback([&](CommandList &cmd) {
-    cmd.setViewport(
-        {0.0f, 0.0f, (float)extent.width, (float)extent.height, 0.0f, 1.0f});
-    cmd.setScissor(rect);
-    for (auto &renderable : view.opaque_objects) {
-      renderable.setDescriptor(0, per_frame_ds_rid);
-      draw(cmd, renderable);
-    }
-  });
-
-  execute(graph, backbuffer_rid, RID::INVALID, *cmd, rect);
-
-  if (ui_draw_data && m_imgui_initialized) {
-    ImGui::SetCurrentContext(m_imgui_context);
-    ID3D12DescriptorHeap *heaps[] = {m_imgui_srv_heap.Get()};
-    cmd->getCommandListHandle()->SetDescriptorHeaps(1, heaps);
-    ImGui_ImplDX12_RenderDrawData(ui_draw_data,
-                                  cmd->getCommandListHandle().Get());
-  }
-  // Barrier 2: COLOR_ATTACHMENT → PRESENT
+  graph.execute(*cmd, plan, rect);
+  // вернуть транзиентные ресурсы в COMMON — иначе на след. кадре первый
+  // барьер (UNDEFINED→X) не совпадёт с реальным состоянием GPU
+  graph.resetTransientToCommon(*cmd);
+  // финальный переход backbuffer COPY_DEST -> PRESENT (как у Vulkan)
+  RID bb = m_swap_chain->getTextureRID(static_cast<uint32_t>(frame_index));
   BarrierInfo to_present;
-  to_present.image_barriers.push_back({backbuffer_rid,
-                                       ImageLayout::COLOR_ATTACHMENT,
-                                       ImageLayout::PRESENT_SRC});
+  to_present.image_barriers.push_back(
+      {bb, ImageLayout::TRANSFER_DST, ImageLayout::PRESENT_SRC});
   cmd->pipelineBarrier(to_present);
 
   cmd->end();

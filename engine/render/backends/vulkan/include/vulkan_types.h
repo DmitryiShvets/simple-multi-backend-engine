@@ -73,7 +73,33 @@ getImageMemoryBarrierMasks(vk::ImageLayout old_layout,
     data.dst_mask = {};
     data.src_stages = vk::PipelineStageFlagBits2::eColorAttachmentOutput;
     data.dst_stages = vk::PipelineStageFlagBits2::eBottomOfPipe;
-  } else {
+  } else if (old_layout == vk::ImageLayout::eColorAttachmentOptimal &&
+             new_layout == vk::ImageLayout::eTransferSrcOptimal) {
+    data.src_mask = vk::AccessFlagBits2::eColorAttachmentWrite;
+    data.dst_mask = vk::AccessFlagBits2::eTransferRead;
+    data.src_stages = vk::PipelineStageFlagBits2::eColorAttachmentOutput;
+    data.dst_stages = vk::PipelineStageFlagBits2::eTransfer;
+  } else if (old_layout == vk::ImageLayout::ePresentSrcKHR &&
+             new_layout == vk::ImageLayout::eTransferDstOptimal) {
+    data.src_mask = {};
+    data.dst_mask = vk::AccessFlagBits2::eTransferWrite;
+    data.src_stages = vk::PipelineStageFlagBits2::eTopOfPipe;
+    data.dst_stages = vk::PipelineStageFlagBits2::eTransfer;
+  } else if (old_layout == vk::ImageLayout::eTransferDstOptimal &&
+             new_layout == vk::ImageLayout::ePresentSrcKHR) {
+    data.src_mask = vk::AccessFlagBits2::eTransferWrite;
+    data.dst_mask = {};
+    data.src_stages = vk::PipelineStageFlagBits2::eTransfer;
+    data.dst_stages = vk::PipelineStageFlagBits2::eBottomOfPipe;
+  } else if (old_layout == vk::ImageLayout::eUndefined &&
+             new_layout == vk::ImageLayout::eTransferSrcOptimal) {
+    data.src_mask = {};
+    data.dst_mask = vk::AccessFlagBits2::eTransferRead;
+    data.src_stages = vk::PipelineStageFlagBits2::eTopOfPipe;
+    data.dst_stages = vk::PipelineStageFlagBits2::eTransfer;
+  }
+
+  else {
     throw std::invalid_argument("unsupported layout transition!");
   }
   return data;

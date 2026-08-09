@@ -15,6 +15,8 @@
 #include "opengl_descriptor_set.h"
 #include "opengl_shader_module.h"
 #include "opengl_shader_program.h"
+#include "opengl_texture.h"
+
 namespace ssme {
 class Material; // Forward declare from parent namespace
 }
@@ -169,6 +171,7 @@ private:
   ResourceOwner<OpenGLDescriptorSet> m_descriptor_sets;
   ResourceOwner<OpenGLDescriptorSetLayout> m_descriptor_set_layouts;
   ResourceOwner<OpenGLShaderModule> m_shader_modules;
+  ResourceOwner<OpenGLTexture> m_textures;
 
   // ========================================================================
   // RID Allocator for internal resources
@@ -234,5 +237,6 @@ REGISTER_GL_GPU_RESOURCE(UniformBuffer, m_uniform_buffers);
 REGISTER_GL_GPU_RESOURCE(OpenGLDescriptorSet, m_descriptor_sets);
 REGISTER_GL_GPU_RESOURCE(OpenGLDescriptorSetLayout, m_descriptor_set_layouts);
 REGISTER_GL_GPU_RESOURCE(OpenGLShaderModule, m_shader_modules);
+REGISTER_GL_GPU_RESOURCE(OpenGLTexture, m_textures);
 
 } // namespace ssme::opengl

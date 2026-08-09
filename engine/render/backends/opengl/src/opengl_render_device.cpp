@@ -117,13 +117,26 @@ void OpenGLRenderDevice::destroyBuffer(RID rid) {
 // -----------------------------------------------------------------------
 
 RID OpenGLRenderDevice::createTexture(const TextureDesc &desc, RID id) {
-  return {};
+  auto tex = std::make_unique<OpenGLTexture>(desc);
+
+  if (id.isNull()) {
+    id = m_storage.add(std::move(tex));
+  } else {
+    m_storage.store(id, std::move(tex));
+  }
+  debug_assert(id != RID::INVALID, "GpuStorage failed to assign a valid RID");
+  return id;
 }
 
-void OpenGLRenderDevice::destroyTexture(RID rid) {
-  if (rid.isNull())
-    return;
-  // TODO: Implement when textures are added
+void OpenGLRenderDevice::destroyTexture(RID id) {
+    if (id.isNull())
+      return;
+    // Get buffer from storage
+    auto *ds_layout = m_storage.get<OpenGLTexture>(id);
+    if (ds_layout) {
+      // Remove from storage (this will call OpenGLTexture destructor)
+      m_storage.remove<OpenGLTexture>(id);
+    }
 }
 
 //------------------------------------------------------------------------

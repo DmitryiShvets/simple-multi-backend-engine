@@ -1,4 +1,5 @@
 #pragma once
+#include "core/render_types.h"
 #include <optional>
 #include <string>
 #include <vulkan/vulkan_raii.hpp>
@@ -14,6 +15,10 @@ public:
   VulkanTexture(VulkanDevice &device, vk::Image image, vk::Format format);
   // Constructor for creating depth image
   VulkanTexture(VulkanDevice &device, vk::Extent2D extent, vk::Format format);
+  // Constructor for creating a render-target image (color or depth)
+  VulkanTexture(VulkanDevice &device, uint32_t width, uint32_t height,
+                vk::Format format, ImageUsage usage);
+
   ~VulkanTexture();
   // Non-copyable
   VulkanTexture(const VulkanTexture &) = delete;
@@ -41,6 +46,8 @@ private:
   void createTextureImageView(vk::Format format, vk::ImageAspectFlagBits flags);
   void createTextureImage(const std::string &filepath);
   void createDepthTextureImage(vk::Extent2D extent, vk::Format format);
+  void createRenderTargetImage(uint32_t width, uint32_t height,
+                               vk::Format format, ImageUsage usage);
 };
 
 } // namespace ssme::vulkan
