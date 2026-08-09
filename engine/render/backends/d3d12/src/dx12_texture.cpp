@@ -1,6 +1,9 @@
 #include "dx12_texture.h"
 #include "dx12_device.h"
 #include <d3d12.h>
+#include "com_exception.h"
+#include "d3dx12.h"
+#include "dx12_helpers.h"
 
 namespace ssme::d3d12 {
 
@@ -28,6 +31,7 @@ Dx12Texture::Dx12Texture(Dx12Device &device, const TextureDesc &desc)
 
   if (is_depth) {
     flags = D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
+    m_format = DXGI_FORMAT_R32_TYPELESS;
     view_format = DXGI_FORMAT_D32_FLOAT;
     clear.Format = DXGI_FORMAT_D32_FLOAT;
     clear.DepthStencil.Depth = 1.0f;
@@ -36,6 +40,11 @@ Dx12Texture::Dx12Texture(Dx12Device &device, const TextureDesc &desc)
     if (desc.format == Format::R8G8B8A8_SRGB)
       view_format = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB; // sRGB на уровне вью
     clear.Format = view_format;
+    // TODO: delete hardcode. make it data driven
+    clear.Color[0] = 0.1f;
+    clear.Color[1] = 0.1f;
+    clear.Color[2] = 0.1f;
+    clear.Color[3] = 1.0f;
   }
 
   D3D12_RESOURCE_DESC res_desc = CD3DX12_RESOURCE_DESC::Tex2D(
@@ -46,31 +55,31 @@ Dx12Texture::Dx12Texture(Dx12Device &device, const TextureDesc &desc)
       &heap_props, D3D12_HEAP_FLAG_NONE, &res_desc, D3D12_RESOURCE_STATE_COMMON,
       &clear, IID_PPV_ARGS(&m_texture)));
 
-  auto device = m_device.getHandle();
+  auto dx_device = m_device.getHandle();
   if (is_depth) {
     D3D12_DESCRIPTOR_HEAP_DESC heap_desc{};
     heap_desc.NumDescriptors = 1;
     heap_desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
     heap_desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
     DX::ThrowIfFailed(
-        device->CreateDescriptorHeap(&heap_desc, IID_PPV_ARGS(&m_dsv_heap)));
+        dx_device->CreateDescriptorHeap(&heap_desc, IID_PPV_ARGS(&m_dsv_heap)));
     m_dsv_handle = m_dsv_heap->GetCPUDescriptorHandleForHeapStart();
     D3D12_DEPTH_STENCIL_VIEW_DESC dsv_desc{};
     dsv_desc.Format = DXGI_FORMAT_D32_FLOAT;
     dsv_desc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
-    device->CreateDepthStencilView(m_texture.Get(), &dsv_desc, m_dsv_handle);
+   dx_device->CreateDepthStencilView(m_texture.Get(), &dsv_desc, m_dsv_handle);
   } else {
     D3D12_DESCRIPTOR_HEAP_DESC heap_desc{};
     heap_desc.NumDescriptors = 1;
     heap_desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
     heap_desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
     DX::ThrowIfFailed(
-        device->CreateDescriptorHeap(&heap_desc, IID_PPV_ARGS(&m_rtv_heap)));
+        dx_device->CreateDescriptorHeap(&heap_desc, IID_PPV_ARGS(&m_rtv_heap)));
     m_rtv_handle = m_rtv_heap->GetCPUDescriptorHandleForHeapStart();
     D3D12_RENDER_TARGET_VIEW_DESC rtv_desc{};
     rtv_desc.Format = view_format;
     rtv_desc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
-    device->CreateRenderTargetView(m_texture.Get(), &rtv_desc, m_rtv_handle);
+    dx_device->CreateRenderTargetView(m_texture.Get(), &rtv_desc, m_rtv_handle);
   }
 }
 } // namespace ssme::d3d12

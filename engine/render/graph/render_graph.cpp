@@ -316,6 +316,25 @@ void RenderGraph::emitBarriers(CommandList &cmd,
     cmd.pipelineBarrier(info);
 }
 
+void RenderGraph::resetTransientToCommon(CommandList &cmd) {
+  BarrierInfo info;
+  for (ResourceIndex i = 0; i < m_entries.size(); i++) {
+    if (m_entries[i].imported)
+      continue; // swapchain — уже обрабатывается отдельно
+    if (i >= m_rid_by_view.size() || !m_rid_by_view[i].isValid())
+      continue;
+    const ResourceState cur = m_entries[i].current_state;
+    if (cur == ResourceState::UNDEFINED)
+      continue;
+    info.image_barriers.push_back(
+        {.image = m_rid_by_view[i],
+         .old_layout = ToImageLayout(cur),
+         .new_layout = ImageLayout::UNDEFINED}); // UNDEFINED → D3D12 COMMON
+  }
+  if (!info.image_barriers.empty())
+    cmd.pipelineBarrier(info);
+}
+
 // In declared passes + virtual resources + read/write edges
 // Out ordered passes · aliased memory · barrier list · physical bindings
 

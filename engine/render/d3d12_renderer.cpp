@@ -139,7 +139,9 @@ void Dx12Renderer::renderFrameGraph(RenderGraph &graph,
   cmd->begin();
 
   graph.execute(*cmd, plan, rect);
-
+  // вернуть транзиентные ресурсы в COMMON — иначе на след. кадре первый
+  // барьер (UNDEFINED→X) не совпадёт с реальным состоянием GPU
+  graph.resetTransientToCommon(*cmd);
   // финальный переход backbuffer COPY_DEST -> PRESENT (как у Vulkan)
   RID bb = m_swap_chain->getTextureRID(static_cast<uint32_t>(frame_index));
   BarrierInfo to_present;

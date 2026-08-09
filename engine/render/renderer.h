@@ -16,7 +16,7 @@ class SceneView;
 class CommandList;
 struct RenderItem;
 class RenderGraph;
-class CompiledPlan;
+struct CompiledPlan;
 
 
 struct FrameData {

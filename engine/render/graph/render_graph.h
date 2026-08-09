@@ -60,6 +60,9 @@ public:
   void execute(CommandList &cmd, const CompiledPlan &plan,
                const Rect &render_area);
   void reset();
+  // Reset all transient (non-imported) resources back to COMMON so the next
+  // frame's first transition (UNDEFINED→X) matches D3D12's persistent state.
+  void resetTransientToCommon(CommandList &cmd);
 
 private:
   // new

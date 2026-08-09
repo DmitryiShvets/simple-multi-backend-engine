@@ -4,7 +4,6 @@
 #include "utils/image_loader.h"
 #include <GL/gl.h>
 #include <stdexcept>
-#include <sys/ucontext.h>
 
 namespace ssme::opengl {
 
