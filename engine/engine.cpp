@@ -6,6 +6,7 @@
 #include "hello_widget.h"
 #include "loaders/material_loader.h"
 #include "loaders/shader_loader.h"
+#include "loaders/texture_loader.h"
 #include "objects/objects_utils.h"
 #include "platform.h"
 #include "render/render_system.h"
@@ -106,6 +107,7 @@ bool Engine::initialize(int width, int height) {
 
   m_resource_manager->registerLoader(std::make_unique<ShaderLoader>());
   m_resource_manager->registerLoader(std::make_unique<MaterialLoader>());
+  m_resource_manager->registerLoader(std::make_unique<TextureLoader>());
 
   for (auto& b : kBackends) {
       windows.push_back(m_platform->getWindow(b.backend));
@@ -243,5 +245,8 @@ Entity Engine::createTriangle(const std::string &name, const glm::vec3 &pos,
   // TODO: FIX IT scene must create obj
   return _createTriangle(m_scene.get()->getWorld(), *m_resource_manager, name,
                          pos, mat_name);
+}
+Entity Engine::createQuad(const std::string &name, const glm::vec3 &pos) {
+  return _createQuad(m_scene.get()->getWorld(), *m_resource_manager, name, pos);
 }
 } // namespace ssme
