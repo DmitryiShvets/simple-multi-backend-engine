@@ -1,0 +1,6 @@
+{
+  "vertex_shader": "v_tex",
+  "fragment_shader": "f_tex",
+  "blocks": { "MaterialUBO": { "color": [1.0, 1.0, 1.0] } },
+  "textures": { "albedo": "res/textures/texture.jpg" }
+}

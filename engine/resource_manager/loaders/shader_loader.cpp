@@ -33,7 +33,7 @@ bool ShaderLoader::load(const std::string &path, ResourceManager &rm, void *out_
     for (auto *input : inputs) {
       VertexInputRequirement req;
       req.location = input->location;
-      req.name = input->name;
+      req.name = input->name ? input->name : "";
       req.expected_format = toVertexFormat(input->format);
       refl.vertex_requirements.push_back(req);
     }
@@ -87,7 +87,11 @@ bool ShaderLoader::load(const std::string &path, ResourceManager &rm, void *out_
       info.set = spv_binding->set;
       info.binding = spv_binding->binding;
       info.name = spv_binding->name;
-      info.type_name = spv_binding->type_description->type_name;
+      info.name = spv_binding->name ? spv_binding->name : "";
+      info.type_name = "";
+      if (spv_binding->type_description && spv_binding->type_description->type_name) {
+        info.type_name = spv_binding->type_description->type_name;
+      }
       info.stages = (uint32_t)spv_module.GetShaderStage();
       info.type = toDescriptorType(spv_binding->descriptor_type);
       info.count = spv_binding->count;

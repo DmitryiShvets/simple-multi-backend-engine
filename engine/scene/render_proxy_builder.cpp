@@ -85,9 +85,14 @@ void RenderProxyBuilder::buildProxy(Entity &entity) {
   proxy.render_item.setDescriptor(1,
                                   proxy.obj_uniform_ds->getDescriptorSetId());
   const auto &mat_descriptors = mat_res->getDescriptors();
-  for (int i = 0, j = 2; i < mat_descriptors.size(); i++, j++) {
+  int j = 2;
+  for (int i = 0; i < mat_descriptors.size(); i++, j++) {
     const auto &id = mat_descriptors[i];
     proxy.render_item.setDescriptor(j, id);
+
+  }
+  if (auto tex_ds = mat_res->getTextureDescriptor(); tex_ds.isValid()) {
+    proxy.render_item.setDescriptor(j, tex_ds);
   }
   proxy.local_aabb = mesh_res->getBounds();
   entity.add(std::move(proxy));

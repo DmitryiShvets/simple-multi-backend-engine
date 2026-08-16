@@ -21,13 +21,13 @@ enum class ImageLayout {
 };
 
 enum class ImageUsage : uint32_t {
-    COLOR_ATTACHMENT  = 1 << 0,
-    DEPTH_STENCIL     = 1 << 1,
-    SHADER_READ       = 1 << 2,
-    UNORDERED_ACCESS  = 1 << 3,
-    PRESENT           = 1 << 4,
-    TRANSFER_DST      = 1 << 5,
-    TRANSFER_SRC      = 1 << 6,
+  COLOR_ATTACHMENT = 1 << 0,
+  DEPTH_STENCIL = 1 << 1,
+  SHADER_READ = 1 << 2,
+  UNORDERED_ACCESS = 1 << 3,
+  PRESENT = 1 << 4,
+  TRANSFER_DST = 1 << 5,
+  TRANSFER_SRC = 1 << 6,
 };
 
 enum class LoadOp { DONT_CARE, LOAD, CLEAR, AUTO };
@@ -84,14 +84,15 @@ enum class FrontFace {
 };
 
 enum class Filter {
-   LINEAR,
+  LINEAR,
+  NEAREST,
 };
 
 enum class Wrap {
-   REPEAT,
-   MIRRORED,
-   CLAMP,
-   BORDER,
+  REPEAT,
+  MIRRORED,
+  CLAMP,
+  BORDER,
 };
 
 enum class Format {
@@ -122,12 +123,12 @@ struct Rect {
 };
 
 struct Extent2D {
-    uint32_t width, height;
+  uint32_t width, height;
 };
 
 struct ImageBlit {
-  int32_t src_x, src_y;    // upper left corner of the source
-  uint32_t width, height;  // area size
-  int32_t dst_x, dst_y;    // upper left corner of the receiver
+  int32_t src_x, src_y;   // upper left corner of the source
+  uint32_t width, height; // area size
+  int32_t dst_x, dst_y;   // upper left corner of the receiver
 };
 } // namespace ssme

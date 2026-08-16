@@ -146,6 +146,9 @@ endforeach()
 
 add_custom_target(copy_shaders_to_bin ALL DEPENDS ${SHADER_BIN_OUTPUTS})
 
+file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/res/textures"
+          DESTINATION "${CMAKE_SOURCE_DIR}/build/bin/res/")
+
 add_custom_target(force_recompile_shaders
     COMMAND ${CMAKE_COMMAND} -E echo "🧹 Cleaning compiled shaders..."
     COMMAND ${CMAKE_COMMAND} -E remove_directory "${CMAKE_CURRENT_BINARY_DIR}/res/shaders"

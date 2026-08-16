@@ -12,6 +12,7 @@ set(RESOURCES_SOURCES
 set(LOADER_SOURCES
     loaders/shader_loader.cpp
     loaders/material_loader.cpp
+    loaders/texture_loader.cpp
 )
 
 set(SOURCES
