@@ -10,7 +10,7 @@
 
 namespace ssme {
 class TransientPool;
-
+// based on https://stoleckipawel.dev/posts/frame-graph-build-it/
 // A graph structure that defines all the passes for a single frame
 class RenderGraph {
 public:
