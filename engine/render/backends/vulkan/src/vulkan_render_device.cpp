@@ -83,7 +83,6 @@ void VulkanRenderDevice::destroyBuffer(RID rid) {
 
 RID VulkanRenderDevice::createTexture(const TextureDesc &desc, RID id) {
   if (!desc.source_path.empty()) {
-    // файловая текстура — существующий file-ctor
     auto tex = std::make_unique<VulkanTexture>(m_device, desc.source_path);
     id = id.isNull() ? m_storage.add(std::move(tex))
                      : (m_storage.store(id, std::move(tex)), id);

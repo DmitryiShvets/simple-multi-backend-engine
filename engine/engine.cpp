@@ -54,7 +54,7 @@ static constexpr struct {
   // DXGI factories are created — regardless of which API creates them.
 } kBackends[] = {
     {GpuBackend::OpenGL, "OpenGL Window", 100, 100},
-    // {GpuBackend::DirectX12, "DirectX Window", 500, 400},
+    {GpuBackend::DirectX12, "DirectX Window", 500, 400},
     {GpuBackend::Vulkan, "Vulkan Window", 950, 100},
 };
 

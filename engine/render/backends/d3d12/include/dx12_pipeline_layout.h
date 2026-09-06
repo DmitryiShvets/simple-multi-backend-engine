@@ -13,8 +13,11 @@ class Dx12Device;
 
 class Dx12PipelineLayout {
 public:
-  Dx12PipelineLayout(Dx12Device &device, const std::vector<CD3DX12_ROOT_PARAMETER> &params, uint32_t push_constant_start_index);
-
+      struct ParamBinding { uint32_t index; D3D12_ROOT_PARAMETER_TYPE type; };
+  Dx12PipelineLayout(Dx12Device &device,
+                     std::vector<CD3DX12_ROOT_PARAMETER> params,
+                     std::vector<D3D12_DESCRIPTOR_RANGE> ranges,
+                     uint32_t push_constant_start_index);
   // Non-copyable
   Dx12PipelineLayout(const Dx12PipelineLayout &) = delete;
   Dx12PipelineLayout &operator=(const Dx12PipelineLayout &) = delete;
@@ -22,8 +25,7 @@ public:
   Microsoft::WRL::ComPtr<ID3D12RootSignature> const &getHandle() const {
     return m_root_signature;
   }
-
-  std::vector<uint32_t> const & getParamIndices(uint32_t index) const {
+  std::vector<ParamBinding> const &getParamBindings(uint32_t index) const {
       return m_root_params_map.at(index);
   }
 
@@ -32,8 +34,9 @@ public:
 private:
   Dx12Device &m_device;
   Microsoft::WRL::ComPtr<ID3D12RootSignature> m_root_signature;
-  std::unordered_map<uint32_t, std::vector<uint32_t>> m_root_params_map;
   uint32_t m_push_constant_param_index = UINT32_MAX;
+
+  std::unordered_map<uint32_t, std::vector<ParamBinding>> m_root_params_map;
 
 };
 

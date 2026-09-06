@@ -12,11 +12,13 @@ class Dx12Device;
 
 class Dx12Texture {
 public:
+  // Constructor for loading from file (owns the image)
+  Dx12Texture(Dx12Device &device, const std::string &filepath);
   // Constructor for wrapping a swapchain image (does not own the image)
   Dx12Texture(Dx12Device &device, Microsoft::WRL::ComPtr<ID3D12Resource> image,
               DXGI_FORMAT format, D3D12_CPU_DESCRIPTOR_HANDLE rtv_slot);
   // Render-target owned texture: allocates resource + heaps
-  explicit Dx12Texture(Dx12Device &device, const TextureDesc &desc);
+  Dx12Texture(Dx12Device &device, const TextureDesc &desc);
   // Non-copyable
   Dx12Texture(const Dx12Texture &) = delete;
   Dx12Texture &operator=(const Dx12Texture &) = delete;
@@ -33,6 +35,11 @@ public:
     return m_dsv_handle;
   }
 
+  D3D12_CPU_DESCRIPTOR_HANDLE const &getSrvHandle() const {
+    return m_srv_handle;
+  }
+
+  void upload();
   bool owns() const { return m_owns; }
   bool isDepth() const { return m_is_depth; }
   uint32_t getWidth() const { return m_width; }
@@ -43,13 +50,18 @@ private:
   Microsoft::WRL::ComPtr<ID3D12Resource> m_texture;
   Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_rtv_heap;
   Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_dsv_heap;
+  Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_srv_heap;
   D3D12_CPU_DESCRIPTOR_HANDLE m_rtv_handle;
   D3D12_CPU_DESCRIPTOR_HANDLE m_dsv_handle;
+  D3D12_CPU_DESCRIPTOR_HANDLE m_srv_handle;
   DXGI_FORMAT m_format = DXGI_FORMAT_UNKNOWN;
   bool m_owns = false;
   bool m_is_depth = false;
   uint32_t m_width = 0;
   uint32_t m_height = 0;
+
+  Microsoft::WRL::ComPtr<ID3D12Resource> m_upload_heap;
+  std::vector<unsigned char> m_pixels;
 };
 
 } // namespace ssme::d3d12

@@ -95,12 +95,25 @@ void Dx12CommandList::setDescriptorSet(uint32_t set_index, RID set_rid,
   auto *pipeline = m_storage.get<Dx12Pipeline>(pipeline_rid);
   auto *layout = m_storage.get<Dx12PipelineLayout>(pipeline->getLayoutRID());
 
-  auto &param_indices = layout->getParamIndices(set_index);
-  for (size_t i = 0; i < ds->getBufferCount(); i++) {
-    auto *buffer = m_storage.get<Dx12Buffer>(ds->getBufferRID(i));
-    m_command_buffer->SetGraphicsRootConstantBufferView(param_indices[i],
-                                                        buffer->getAddress());
-  }
+  size_t buffer = 0, texture = 0;
+   for (const auto &p : layout->getParamBindings(set_index)) {
+     switch (p.type) {
+     case D3D12_ROOT_PARAMETER_TYPE_CBV: {
+       auto *buf = m_storage.get<Dx12Buffer>(ds->getBufferRID(buffer++));
+       m_command_buffer->SetGraphicsRootConstantBufferView(p.index, buf->getAddress());
+       break;
+     }
+     case D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE: {
+       ID3D12DescriptorHeap *heap = ds->getSrvHeap();
+       if (heap) {
+         m_command_buffer->SetDescriptorHeaps(1, &heap);
+         m_command_buffer->SetGraphicsRootDescriptorTable(p.index, ds->getSrvGpuHandle(texture++));
+       }
+       break;
+     }
+     default: break;
+     }
+   }
 
   // Get DescriptorSet and bind all resources
 }
