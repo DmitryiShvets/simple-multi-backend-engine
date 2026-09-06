@@ -12,6 +12,7 @@ void OpenGLGpuContextCreator::prepareWindowCreationHints() const {
   glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
   glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
   glfwWindowHint(GLFW_CLIENT_API, GLFW_OPENGL_API);
+  glfwWindowHint(GLFW_SRGB_CAPABLE, GLFW_TRUE);
 }
 
 bool OpenGLGpuContextCreator::createContext(void *window) const {

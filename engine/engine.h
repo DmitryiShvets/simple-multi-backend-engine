@@ -47,6 +47,7 @@ public:
                       const std::string &mat_name = "ads");
   Entity createTriangle(const std::string &name, const glm::vec3 &pos,
                         const std::string &mat_name = "default");
+  Entity createQuad(const std::string &name, const glm::vec3 &pos);
   /**
    * @brief Create a new entity.
    * @param name The name of the entity.

@@ -95,7 +95,8 @@ OpenGLTexture::OpenGLTexture(const TextureDesc &desc)
       throw std::runtime_error("Failed to load texture: " + desc.source_path);
     m_width = img_w;
     m_height = img_h;
-    m_format = Format::R8G8B8A8_UNORM; // loader forces RGBA8
+    // m_format = Format::R8G8B8A8_UNORM; // loader forces RGBA8
+    m_format = desc.format;
     data = file_pixels;
   } else {
     m_width = desc.width;
@@ -123,11 +124,11 @@ OpenGLTexture::OpenGLTexture(const TextureDesc &desc)
   if (desc.generate_mips && has_data)
     glGenerateMipmap(GL_TEXTURE_2D);
   GLenum min_filter =
-      desc.min_filter == Filter::LINEAR ? GL_LINEAR : GL_NEAREST;
+      desc.sampler.min_filter == Filter::LINEAR ? GL_LINEAR : GL_NEAREST;
   GLenum mag_filter =
-      desc.mag_filter == Filter::LINEAR ? GL_LINEAR : GL_NEAREST;
-  GLenum wrap_S = toInternalWrap(desc.wrap_s);
-  GLenum wrap_T = toInternalWrap(desc.wrap_t);
+      desc.sampler.mag_filter == Filter::LINEAR ? GL_LINEAR : GL_NEAREST;
+  GLenum wrap_S = toInternalWrap(desc.sampler.wrap_s);
+  GLenum wrap_T = toInternalWrap(desc.sampler.wrap_t);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, min_filter);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, mag_filter);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, wrap_S);

@@ -64,6 +64,7 @@ public:
   // Public API for Renderer
   const VecRID & getDescriptors() const { return m_ubo_ds;}
   std::map<std::string, RID> getTextures() const;
+  RID getTextureDescriptor() const { return m_tex_ds; }
 
   ResourceHandle<ShaderModule> getVertShader() const { return m_vert_shader; }
   ResourceHandle<ShaderModule> getFragShader() const { return m_frag_shader; }
@@ -83,6 +84,10 @@ private:
 
   VecRID m_ubo_ds;
   VecRID m_ubo_ds_layouts;
+
+  RID m_tex_ds_layout = RID::INVALID;
+  RID m_tex_ds = RID::INVALID;
+
   uint32_t m_requred_components = COMPONENTS;
 
 };

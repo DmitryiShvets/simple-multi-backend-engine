@@ -8,6 +8,7 @@
 #include "dx12_pipeline.h"
 #include "dx12_pipeline_layout.h"
 #include "dx12_shader_module.h"
+#include "dx12_texture.h"
 #include "utils/debug_assert.h"
 #include <d3d12.h>
 #include <d3dx12.h>
@@ -72,6 +73,12 @@ void Dx12RenderDevice::destroyBuffer(RID rid) {
 // -----------------------------------------------------------------------
 
 RID Dx12RenderDevice::createTexture(const TextureDesc &desc, RID id) {
+  if (!desc.source_path.empty()) {
+    auto tex = std::make_unique<Dx12Texture>(m_device, desc.source_path);
+    id = id.isNull() ? m_storage.add(std::move(tex))
+                     : (m_storage.store(id, std::move(tex)), id);
+    return id;
+  }
   auto tex = std::make_unique<Dx12Texture>(m_device, desc);
   if (id.isNull()) {
     id = m_storage.add(std::move(tex));
@@ -130,7 +137,15 @@ void Dx12RenderDevice::destroyDescriptorLayout(RID id) {
 // -----------------------------------------------------------------------
 
 RID Dx12RenderDevice::createDescriptor(const DescriptorDesc &desc, RID id) {
-  auto ds = std::make_unique<Dx12DescriptorSet>(desc);
+  std::vector<D3D12_CPU_DESCRIPTOR_HANDLE> texture_srvs;
+  texture_srvs.reserve(desc.sampled_images.size());
+  for (RID rid : desc.sampled_images) {
+    auto *texture = m_storage.get<Dx12Texture>(rid);
+    if (!texture || !texture->getSrvHandle().ptr)
+      throw std::runtime_error("Invalid texture RID in createDescriptor");
+    texture_srvs.push_back(texture->getSrvHandle());
+  }
+  auto ds = std::make_unique<Dx12DescriptorSet>(m_device, desc, texture_srvs);
   if (id.isNull()) {
     id = m_storage.add(std::move(ds));
   } else {
@@ -167,6 +182,7 @@ RID Dx12RenderDevice::createPipelineLayout(const PipelineLayoutDesc &desc,
     // return existing_rid;
   }
   std::vector<CD3DX12_ROOT_PARAMETER> params;
+  std::vector<D3D12_DESCRIPTOR_RANGE> ranges;
   // collect uniforms
   for (const RID &id : desc.descriptor_layouts) {
     auto *ds_layout = m_storage.get<Dx12DescriptorSetLayout>(id);
@@ -175,6 +191,15 @@ RID Dx12RenderDevice::createPipelineLayout(const PipelineLayoutDesc &desc,
         if (binding.type == DescriptorType::UNIFORM_BUFFER) {
           CD3DX12_ROOT_PARAMETER p;
           p.InitAsConstantBufferView(binding.binding, binding.set);
+          params.push_back(p);
+        }
+        if (binding.type == DescriptorType::COMBINED_IMAGE_SAMPLER ||
+            binding.type == DescriptorType::SAMPLED_IMAGE) {
+          ranges.push_back({D3D12_DESCRIPTOR_RANGE_TYPE_SRV, binding.count,
+                            binding.binding, binding.set});
+          CD3DX12_ROOT_PARAMETER p;
+          p.InitAsDescriptorTable(1, &ranges.back(),
+                                  D3D12_SHADER_VISIBILITY_ALL);
           params.push_back(p);
         }
         // TODO: SRV, UAV, Sampler — когда понадобятся
@@ -194,7 +219,8 @@ RID Dx12RenderDevice::createPipelineLayout(const PipelineLayoutDesc &desc,
   }
 
   auto layout_wrapper = std::move(std::make_unique<Dx12PipelineLayout>(
-      m_device, params, push_constant_start_index));
+      m_device, std::move(params), std::move(ranges),
+      push_constant_start_index));
 
   if (id.isNull()) {
     id = m_storage.add(std::move(layout_wrapper));

@@ -79,6 +79,13 @@ struct MeshDesc {
   AABB bounds;
 };
 
+struct SamplerDesc {
+  Filter min_filter = Filter::LINEAR;
+  Filter mag_filter = Filter::LINEAR;
+  Wrap wrap_s = Wrap::REPEAT;
+  Wrap wrap_t = Wrap::REPEAT;
+};
+
 /**
  * @brief Texture resource requirements
  */
@@ -88,19 +95,14 @@ struct TextureDesc {
   Format format = Format::R8G8B8A8_UNORM;
   ImageUsage usage = ImageUsage::SHADER_READ;
   // Sampler params
-  Filter min_filter = Filter::LINEAR;
-  Filter mag_filter = Filter::LINEAR;
-  Wrap wrap_s = Wrap::REPEAT;
-  Wrap wrap_t = Wrap::REPEAT;
+  SamplerDesc sampler;
 
   bool generate_mips = true;
   std::string source_path = "";  // File path (if loading from disk)
   std::vector<uint8_t> raw_data; // Raw pixels (if procedural)
 };
 
-struct SamplerDesc {
-  // TODO: FILL
-};
+
 
 // ==================== Shader Descriptors ====================
 

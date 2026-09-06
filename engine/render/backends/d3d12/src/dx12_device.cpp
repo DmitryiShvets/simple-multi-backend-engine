@@ -30,7 +30,9 @@ namespace ssme::d3d12 {
 Dx12Device::Dx12Device(ssme::Platform *platform) : m_platform(platform) {
   initialize();
 }
-Dx12Device::~Dx12Device() {}
+Dx12Device::~Dx12Device() {
+    if (m_single_time_fence_event) CloseHandle(m_single_time_fence_event);
+}
 
 void Dx12Device::flushD3D12Messages() {
   ID3D12InfoQueue *q = m_info_queue.Get();
@@ -184,4 +186,38 @@ Dx12Device::getHardwareAdapter(IDXGIFactory1 *pFactory,
 
   *ppAdapter = adapter.Detach();
 }
+
+Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList>
+Dx12Device::beginSingleTimeCommands() {
+  if (!m_single_time_allocator) {
+    DX::ThrowIfFailed(m_device->CreateCommandAllocator(
+        D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&m_single_time_allocator)));
+  }
+  m_single_time_allocator->Reset();  // безопасно: прошлый аплоад уже дождались
+  Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList> cmd_list;
+  DX::ThrowIfFailed(m_device->CreateCommandList(
+      0, D3D12_COMMAND_LIST_TYPE_DIRECT, m_single_time_allocator.Get(),
+      nullptr, IID_PPV_ARGS(&cmd_list)));
+  return cmd_list;
+}
+
+void Dx12Device::endSingleTimeCommands(
+    const Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList>& cmd_list) {
+  DX::ThrowIfFailed(cmd_list->Close());
+  ID3D12CommandList* lists[] = {cmd_list.Get()};
+  m_command_queue->ExecuteCommandLists(1, lists);
+
+  if (!m_single_time_fence) {
+    DX::ThrowIfFailed(m_device->CreateFence(0, D3D12_FENCE_FLAG_NONE,
+                                            IID_PPV_ARGS(&m_single_time_fence)));
+  }
+  UINT64 value = ++m_single_time_fence_value;
+  DX::ThrowIfFailed(m_command_queue->Signal(m_single_time_fence.Get(), value));
+  if (!m_single_time_fence_event) {
+    m_single_time_fence_event = CreateEvent(nullptr, FALSE, FALSE, nullptr);
+  }
+  m_single_time_fence->SetEventOnCompletion(value, m_single_time_fence_event);
+  WaitForSingleObject(m_single_time_fence_event, INFINITE);
+}
+
 } // namespace ssme::d3d12

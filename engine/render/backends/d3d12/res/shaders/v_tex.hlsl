@@ -32,22 +32,17 @@ cbuffer Push : register(b0, space3) {
 
 struct VSOutput {
     float4 position : SV_POSITION;
-    float3 fragColor : ATTRIB1;
+    float2 fragTexCoord : ATTRIB1;
+    float3 fragColor : ATTRIB2;
 };
 
-VSOutput VSMain(float3 position : ATTRIB0, float3 normal : ATTRIB1) {
+VSOutput VSMain(float3 position : ATTRIB0, float3 normal : ATTRIB1, float2 texCoord: ATTRIB2) {
     VSOutput o;
 
     float4 world_pos = mul(model_mat, float4(position, 1.0));
     o.position = mul(view_proj_mat, world_pos);
-
-    float3x3 normal_mat = float3x3(normal_col0, normal_col1, normal_col2);
-    // float3 t_norm = normalize(mul(normal_mat, normal));
-    float3 t_norm = normalize(mul(normal, normal_mat));
-
-    float3 light_dir = normalize(light_pos - world_pos.xyz);
-    float3 lit = Ld * Kd * max(dot(light_dir, t_norm), 0.0);
-    o.fragColor = color * lit;
+    o.fragTexCoord = texCoord;
+    o.fragColor = color;
 
     return o;
 }

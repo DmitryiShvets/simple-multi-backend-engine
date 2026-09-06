@@ -52,7 +52,7 @@ RID OpenGLRenderDevice::createBuffer(const BufferDesc &desc, RID id) {
     debug_assert(stride > 0, "Vertex Buffer must have a non-zero stride");
     // Create Vertex Buffer Object (VBO) with VAO
     uint64_t vertex_count = desc.size / stride;
-    debug_assert(vertex_count > 0,"Vertex Buffer size cannot be empty");
+    debug_assert(vertex_count > 0, "Vertex Buffer size cannot be empty");
     // 1. Create and initialize VBO
     auto vao = std::make_unique<VAO>();
     debug_assert(vao != nullptr, "Failed to allocate VAO");
@@ -77,7 +77,7 @@ RID OpenGLRenderDevice::createBuffer(const BufferDesc &desc, RID id) {
     debug_assert(index_size > 0, "Index Buffer must have a non-zero stride");
     // Create Index Buffer Object (EBO)
     uint64_t index_count = desc.size / index_size;
-    debug_assert(index_count > 0,"Index Buffer size cannot be empty");
+    debug_assert(index_count > 0, "Index Buffer size cannot be empty");
     // 1. Create and initialize VBO
     auto ebo = std::make_unique<EBO>();
     debug_assert(ebo != nullptr, "Failed to allocate EBO");
@@ -129,14 +129,14 @@ RID OpenGLRenderDevice::createTexture(const TextureDesc &desc, RID id) {
 }
 
 void OpenGLRenderDevice::destroyTexture(RID id) {
-    if (id.isNull())
-      return;
-    // Get buffer from storage
-    auto *ds_layout = m_storage.get<OpenGLTexture>(id);
-    if (ds_layout) {
-      // Remove from storage (this will call OpenGLTexture destructor)
-      m_storage.remove<OpenGLTexture>(id);
-    }
+  if (id.isNull())
+    return;
+  // Get buffer from storage
+  auto *ds_layout = m_storage.get<OpenGLTexture>(id);
+  if (ds_layout) {
+    // Remove from storage (this will call OpenGLTexture destructor)
+    m_storage.remove<OpenGLTexture>(id);
+  }
 }
 
 //------------------------------------------------------------------------
@@ -209,6 +209,14 @@ RID OpenGLRenderDevice::createDescriptor(const DescriptorDesc &desc, RID id) {
     }
 
     desc_set->addBinding(binding_point, ubo->getHandle());
+  }
+
+  for (size_t i = 0; i < desc.sampled_images.size(); ++i) {
+    auto *texture = m_storage.get<OpenGLTexture>(desc.sampled_images[i]);
+    if (!texture) {
+      throw std::runtime_error("Invalid texture RID in createDescriptorSet");
+    }
+    desc_set->addBinding(0, texture->getTexture(), true);
   }
 
   if (id.isNull()) {
@@ -329,9 +337,8 @@ RID OpenGLRenderDevice::createShaderModule(const ShaderModuleDesc &desc,
                                            RID id) {
   GLenum stage = desc.stage == ssme::ShaderStage::VERTEX ? GL_VERTEX_SHADER
                                                          : GL_FRAGMENT_SHADER;
- auto path = "res/shaders/" + desc.file_path + ".glsl";
-  auto shader_module =
-      std::make_unique<OpenGLShaderModule>(stage, path);
+  auto path = "res/shaders/" + desc.file_path + ".glsl";
+  auto shader_module = std::make_unique<OpenGLShaderModule>(stage, path);
   if (id.isNull()) {
     id = m_storage.add(std::move(shader_module));
   } else {

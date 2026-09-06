@@ -17,18 +17,24 @@ Material::~Material() {
 }
 
 uint32_t Material::doPrepare() {
-  m_requred_components = m_uniforms.size() * 2;
   m_ubo_ds_layouts.resize(m_uniforms.size());
   m_ubo_ds.resize(m_uniforms.size());
+  uint32_t n_tex_sets = m_textures.empty() ? 0 : 1;
+  m_requred_components = m_uniforms.size() * 2 + n_tex_sets * 2;
   return m_requred_components;
 }
 
 void Material::doSetup(const VecRID &rids) {
   debug_assert(rids.size() == m_requred_components,
-               "Material requires exactly 1 RID for UBO");
-  for (int i = 0, j = 0; i < m_requred_components / 2; i++, j += 2) {
-    m_ubo_ds_layouts[i] = rids[j];
-    m_ubo_ds[i] = rids[j + 1];
+               "Material RID count mismatch");
+  uint32_t j = 0;
+  for (uint32_t i = 0; i < m_uniforms.size(); i++) {
+    m_ubo_ds_layouts[i] = rids[j++];
+    m_ubo_ds[i] = rids[j++];
+  }
+  if (!m_textures.empty()) {
+    m_tex_ds_layout = rids[j++];
+    m_tex_ds = rids[j++];
   }
 }
 
@@ -52,6 +58,31 @@ bool Material::doLoad() {
       };
       rd.get().createDescriptor(desc, m_ubo_ds[i]);
     }
+    // Build one texture descriptor set (combined image samplers)
+    if (!m_textures.empty()) {
+      DescriptorLayout tex_layout;
+      uint32_t b = 0;
+      for (const auto &[name, handle] : m_textures) {
+        tex_layout.bindings.push_back({
+            .binding = b++,
+            .type = DescriptorType::COMBINED_IMAGE_SAMPLER,
+            .count = 1,
+            .stages = static_cast<uint32_t>(ShaderStage::FRAGMENT),
+        });
+      }
+      auto tex_layout_id =
+          rd.get().createDescriptorLayout(tex_layout, m_tex_ds_layout);
+      std::vector<RID> images;
+      for (const auto &[name, handle] : m_textures) {
+        if (auto *tex = handle.get())
+          images.push_back(tex->getTexture());
+      }
+      DescriptorDesc desc{
+          .layout_id = tex_layout_id,
+          .sampled_images = std::move(images),
+      };
+      rd.get().createDescriptor(desc, m_tex_ds);
+    }
     i++;
   }
   return true;
@@ -64,6 +95,10 @@ bool Material::doUnload() {
     for (auto &uni : m_uniforms) {
       rd.get().destroyDescriptor(m_ubo_ds[i]);
       rd.get().destroyDescriptorLayout(m_ubo_ds_layouts[i]);
+      if (m_tex_ds.isValid()) {
+        rd.get().destroyDescriptor(m_tex_ds);
+        rd.get().destroyDescriptorLayout(m_tex_ds_layout);
+      }
     }
     i++;
   }

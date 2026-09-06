@@ -10,6 +10,7 @@ struct IDXGIFactory1;
 struct IDXGIFactory4;
 struct IDXGIAdapter1;
 struct ID3D12InfoQueue;
+struct ID3D12Fence;
 
 namespace ssme {
 class Platform;
@@ -47,6 +48,9 @@ public:
     return m_command_queue;
   }
 
+  Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList> beginSingleTimeCommands();
+  void endSingleTimeCommands(const Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList>& cmd_list);
+
   void flushD3D12Messages();
 private:
   void getHardwareAdapter(_In_ IDXGIFactory1 *pFactory,
@@ -66,7 +70,11 @@ private:
     bool g_enable_validation_layers = false;
   #endif
 
-public:
+  // helpers for single time commands
+  Microsoft::WRL::ComPtr<ID3D12CommandAllocator> m_single_time_allocator = nullptr;
+  Microsoft::WRL::ComPtr<ID3D12Fence> m_single_time_fence = nullptr;
+  UINT64 m_single_time_fence_value = 0;
+  HANDLE m_single_time_fence_event = nullptr;
 
 };
 } // namespace ssme::d3d12

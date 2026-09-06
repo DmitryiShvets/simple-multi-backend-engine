@@ -1,10 +1,10 @@
 #include "vulkan_render_device.h"
 #include "core/resource_types.h"
 #include "core/rid.h"
-#include "vulkan_gpu_storage.h"
 #include "utils/debug_assert.h"
 #include "vulkan_buffer.h"
 #include "vulkan_descriptor_set.h"
+#include "vulkan_gpu_storage.h"
 #include "vulkan_helpers.h"
 #include "vulkan_pipeline.h"
 #include "vulkan_pipeline_layout.h"
@@ -83,7 +83,6 @@ void VulkanRenderDevice::destroyBuffer(RID rid) {
 
 RID VulkanRenderDevice::createTexture(const TextureDesc &desc, RID id) {
   if (!desc.source_path.empty()) {
-    // файловая текстура — существующий file-ctor
     auto tex = std::make_unique<VulkanTexture>(m_device, desc.source_path);
     id = id.isNull() ? m_storage.add(std::move(tex))
                      : (m_storage.store(id, std::move(tex)), id);
@@ -91,12 +90,14 @@ RID VulkanRenderDevice::createTexture(const TextureDesc &desc, RID id) {
   }
   bool is_depth = (static_cast<uint32_t>(desc.usage) &
                    static_cast<uint32_t>(ImageUsage::DEPTH_STENCIL)) != 0;
-  vk::Format vk_format = is_depth ? vk::Format::eD32Sfloat
-                                  : toVkFormat(desc.format);
-  auto tex = std::make_unique<VulkanTexture>(
-      m_device, desc.width, desc.height, vk_format, desc.usage);
-  if (id.isNull()) id = m_storage.add(std::move(tex));
-  else m_storage.store(id, std::move(tex));
+  vk::Format vk_format =
+      is_depth ? vk::Format::eD32Sfloat : toVkFormat(desc.format);
+  auto tex = std::make_unique<VulkanTexture>(m_device, desc.width, desc.height,
+                                             vk_format, desc.usage);
+  if (id.isNull())
+    id = m_storage.add(std::move(tex));
+  else
+    m_storage.store(id, std::move(tex));
   return id;
 }
 
@@ -200,6 +201,30 @@ RID VulkanRenderDevice::createDescriptor(const DescriptorDesc &desc, RID id) {
 
     vk::DescriptorBufferInfo buffer_info = buffer->getDescriptorInfo();
     writer.writeBuffer(binding, &buffer_info);
+  }
+  // Bind sampled images (combined image samplers) to their binding slots.
+  std::vector<uint32_t> image_bindings;
+  for (const auto &[idx, binding_info] : layout->getBindings()) {
+    if (binding_info.descriptorType ==
+        vk::DescriptorType::eCombinedImageSampler) {
+      image_bindings.push_back(binding_info.binding);
+    }
+  }
+  if (desc.sampled_images.size() != image_bindings.size()) {
+    throw std::runtime_error(
+        "DescriptorDesc.sampled_images count != image bindings in layout");
+  }
+  for (size_t i = 0; i < desc.sampled_images.size(); ++i) {
+    auto *texture = m_storage.get<VulkanTexture>(desc.sampled_images[i]);
+    if (!texture) {
+      throw std::runtime_error("Invalid texture RID in createDescriptorSet");
+    }
+    vk::DescriptorImageInfo image_info{
+        .sampler = texture->getSampler(),
+        .imageView = texture->getImageView(),
+        .imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal,
+    };
+    writer.writeImage(image_bindings[i], &image_info);
   }
 
   // Allocate and write descriptor set
@@ -423,9 +448,8 @@ RID VulkanRenderDevice::containsGraphicsPipeline(std::size_t hash) {
 
 RID VulkanRenderDevice::createShaderModule(const ShaderModuleDesc &desc,
                                            RID id) {
- auto path = "res/shaders/" + desc.file_path + ".glsl.spv";
-  auto shader_module =
-      std::make_unique<VulkanShaderModule>(m_device, path);
+  auto path = "res/shaders/" + desc.file_path + ".glsl.spv";
+  auto shader_module = std::make_unique<VulkanShaderModule>(m_device, path);
   if (id.isNull()) {
     id = m_storage.add(std::move(shader_module));
   } else {

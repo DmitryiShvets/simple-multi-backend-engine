@@ -11,6 +11,7 @@ namespace ssme::opengl {
 struct DescriptorBinding {
     GLuint handle;        // Resource handle (UBO, texture, etc.)
     uint32_t binding;     // Binding point (must match shader!)
+    bool is_texture = false;
 };
 
 // OpenGL DescriptorSet - emulates Vulkan DescriptorSet
@@ -21,7 +22,7 @@ public:
     ~OpenGLDescriptorSet() = default;
 
     // Add binding
-    void addBinding(uint32_t binding, GLuint handle);
+    void addBinding(uint32_t binding, GLuint handle, bool is_texture = false);
 
     // Bind all resources to OpenGL context
     void bind(uint32_t bind_point) const;
