@@ -6,6 +6,7 @@
 #include <imgui/imgui.h>
 
 #include <imgui_internal.h>
+#include <iostream>
 #define GLFW_INCLUDE_NONE
 #include <GLFW/glfw3.h>
 #ifdef _WIN32
@@ -144,9 +145,9 @@ void GLFWMainWindow::keyCallback(GLFWwindow *window, int key, int scancode,
   }
 
   if (self && self->m_keyCallback && !event_was_captured) {
-    Action act = (action == GLFW_PRESS)     ? Action::Press
-                 : (action == GLFW_RELEASE) ? Action::Release
-                                            : Action::Repeat;
+    KeyActionType act = (action == GLFW_PRESS)     ? KeyActionType::Press
+                 : (action == GLFW_RELEASE) ? KeyActionType::Release
+                                            : KeyActionType::Repeat;
 
     self->m_keyCallback(fromGLFWKey(key), act, mods);
   }
@@ -169,9 +170,11 @@ void GLFWMainWindow::mouseButtonClickCallback(GLFWwindow *window, int button,
     double xpos, ypos;
     glfwGetCursorPos(window, &xpos, &ypos);
 
-    MouseButton mb = (button == GLFW_MOUSE_BUTTON_LEFT) ? MouseButton::Left
-                                                        : MouseButton::Right;
-    Action act = (action == GLFW_PRESS) ? Action::Press : Action::Release;
+    MouseButton mb = (button == GLFW_MOUSE_BUTTON_LEFT)   ? MouseButton::Left
+                     : (button == GLFW_MOUSE_BUTTON_RIGHT) ? MouseButton::Right
+                                                           : MouseButton::Middle;
+
+    KeyActionType act = (action == GLFW_PRESS) ? KeyActionType::Press : KeyActionType::Release;
 
     self->m_mouseCallback(mb, act, mods, xpos, ypos);
   }
@@ -286,30 +289,65 @@ WindowConfig GLFWMainWindow::getConfig() { return m_config; }
 GpuBackend GLFWMainWindow::getGpuBackend() { return m_backend_type; }
 
 Key GLFWMainWindow::fromGLFWKey(int glfwKey) {
+  if (glfwKey >= GLFW_KEY_0 && glfwKey <= GLFW_KEY_9) {
+    return static_cast<Key>(static_cast<int>(Key::Num0) +
+                            (glfwKey - GLFW_KEY_0));
+  }
+  if (glfwKey >= GLFW_KEY_A && glfwKey <= GLFW_KEY_Z) {
+    return static_cast<Key>(static_cast<int>(Key::A) +
+                            (glfwKey - GLFW_KEY_A));
+  }
   switch (glfwKey) {
   case GLFW_KEY_ESCAPE:
     return Key::Escape;
   case GLFW_KEY_ENTER:
+  case GLFW_KEY_KP_ENTER:
     return Key::Enter;
-  case GLFW_KEY_1:
-    return Key::Num1;
-  case GLFW_KEY_2:
-    return Key::Num2;
+  case GLFW_KEY_TAB:
+    return Key::Tab;
+  case GLFW_KEY_SPACE:
+    return Key::Space;
+  case GLFW_KEY_BACKSPACE:
+    return Key::Backspace;
+  case GLFW_KEY_DELETE:
+    return Key::Delete;
+  case GLFW_KEY_LEFT:
+    return Key::ArrowLeft;
+  case GLFW_KEY_RIGHT:
+    return Key::ArrowRight;
+  case GLFW_KEY_UP:
+    return Key::ArrowUp;
+  case GLFW_KEY_DOWN:
+    return Key::ArrowDown;
+  case GLFW_KEY_LEFT_SHIFT:
+    return Key::LeftShift;
+  case GLFW_KEY_RIGHT_SHIFT:
+    return Key::RightShift;
+  case GLFW_KEY_LEFT_CONTROL:
+    return Key::LeftControl;
+  case GLFW_KEY_RIGHT_CONTROL:
+    return Key::RightControl;
+  case GLFW_KEY_LEFT_ALT:
+    return Key::LeftAlt;
+  case GLFW_KEY_RIGHT_ALT:
+    return Key::RightAlt;
   default:
-    return Key::Escape;
+    return Key::None;
   }
 }
 
 int GLFWMainWindow::toGLFWKey(Key key) {
+  if (key >= Key::Num0 && key <= Key::Num9) {
+    return GLFW_KEY_0 + (static_cast<int>(key) - static_cast<int>(Key::Num0));
+  }
+  if (key >= Key::A && key <= Key::Z) {
+    return GLFW_KEY_A + (static_cast<int>(key) - static_cast<int>(Key::A));
+  }
   switch (key) {
   case Key::Escape:
     return GLFW_KEY_ESCAPE;
   case Key::Enter:
     return GLFW_KEY_ENTER;
-  case Key::Num1:
-    return GLFW_KEY_1;
-  case Key::Num2:
-    return GLFW_KEY_2;
   default:
     return GLFW_KEY_UNKNOWN;
   }

@@ -1,36 +1,12 @@
 #pragma once
 
 #include "core/gpu_types.h"
+#include "core/input_enums.h"
 #include "gpu_context_strategy.h"
 #include <functional>
 #include <string>
 
 namespace ssme {
-
-/**
- * @brief Keyboard key codes.
- */
-enum class Key {
-    Escape,
-    Enter,
-    Space,
-    Num1,
-    Num2,
-    Num3,
-    Num4,
-    // Add more as needed
-};
-
-/**
- * @brief Mouse button codes.
- */
-enum class MouseButton { Left, Right, Middle };
-
-/**
- * @brief Button/key actions.
- */
-enum class Action { Press, Release, Repeat };
-
 
 /**
  * @brief Window configuration for platform creation.
@@ -46,9 +22,9 @@ struct WindowConfig {
  */
 class MainWindow {
 public:
-    using MouseCallback = std::function<void(MouseButton, Action, int, double, double)>;
-    using KeyCallback = std::function<void(Key, Action, int)>;
-    using CursorCallback = std::function<void(int, int)>;
+    using MouseCallback = std::function<void(MouseButton, KeyActionType, int, double, double)>;
+    using KeyCallback = std::function<void(Key, KeyActionType, int)>;
+    using CursorCallback = std::function<void(double, double)>;
     using ResizeCallback = std::function<void(int, int)>;
     using ScrollCallback = std::function<void(double, double)>;
     using CharCallback = std::function<void(unsigned int)>;

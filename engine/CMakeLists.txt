@@ -4,6 +4,8 @@ project(SSME VERSION 1.0.0 LANGUAGES CXX C)
 
 # Internal libs
 add_subdirectory(common)
+add_subdirectory(events)
+add_subdirectory(input)
 add_subdirectory(platform)
 add_subdirectory(ui)
 add_subdirectory(render/rhi)
@@ -40,6 +42,7 @@ target_link_libraries(ssme_engine
     PRIVATE
         ssme::rhi
         ssme::platform
+        ssme::input
         ssme::ui
         ssme::render
         ssme::scene

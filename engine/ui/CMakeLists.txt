@@ -17,4 +17,5 @@ target_link_libraries(ssme_ui
         external::imgui
         external::glfw
         ssme::platform
+        ssme::event
 )

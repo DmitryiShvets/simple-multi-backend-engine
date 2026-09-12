@@ -28,9 +28,8 @@ public:
   void addBackend(std::unique_ptr<ImGuiBackend> backend);
   void addBackend(GpuBackend type);
 
-  void
-  init(const std::vector<std::reference_wrapper<MainWindow>> &windows,
-       const UIBackendConfig &config = UIBackendConfig{});
+  void init(const std::vector<std::reference_wrapper<MainWindow>> &windows,
+            const UIBackendConfig &config = UIBackendConfig{});
 
   void render(const std::function<void()> &draw_fn);
 
