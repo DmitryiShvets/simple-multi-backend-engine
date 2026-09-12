@@ -1,14 +1,22 @@
 #include "engine.h"
+#include "camera.h"
 #include "core/gpu_types.h"
 #include "desktop/desktop_platform.h"
 #include "ecs/entity.h"
 #include "ecs/world.h"
+#include "events/event_bus.h"
+#include "input/input_events.h"
 #include "hello_widget.h"
+#include "events/action_bus.h"
+#include "actions.h"
+#include "camera_action_handler.h"
+#include "input/input_system.h"
 #include "loaders/material_loader.h"
 #include "loaders/shader_loader.h"
 #include "loaders/texture_loader.h"
 #include "objects/objects_utils.h"
 #include "platform.h"
+#include "render/camera_controller.h"
 #include "render/render_system.h"
 #include "render_proxy.h"
 #include "resource_manager.h"
@@ -32,9 +40,9 @@ static constexpr struct {
   //   D3D12GetDebugInterface → EnableDebugLayer() → CreateDXGIFactory2(DEBUG)
   //
   // EnableDebugLayer() installs a GLOBAL DXGI hook (ID3D12Debug intercepts all
-  // IDXGIFactory creation). Later, when Vulkan initializes, glfwCreateWindowSurface
-  // internally calls vkCreateWin32SurfaceKHR, which uses DXGI to enumerate
-  // adapters and create the surface.
+  // IDXGIFactory creation). Later, when Vulkan initializes,
+  // glfwCreateWindowSurface internally calls vkCreateWin32SurfaceKHR, which
+  // uses DXGI to enumerate adapters and create the surface.
   //
   // If D3D12 debug hook is already active, it wraps any subsequent IDXGIFactory
   // creation. Vulkan's internal CreateDXGIFactory call gets the debug-wrapped
@@ -47,16 +55,17 @@ static constexpr struct {
   // DXGI objects. This can cause DXGI internal state mismatch, leading to:
   //   - vkCreateWin32SurfaceKHR failing (ErrorDeviceLost) (I GOT IT)
   //   - IDXGIFactory::EnumAdapters returning unexpected results (I GOT IT)
-  //   - D3D12 reporting false-positive CORRUPTION warnings on shared DXGI objects
+  //   - D3D12 reporting false-positive CORRUPTION warnings on shared DXGI
+  //   objects
   //
-  // This is a known Windows/DXGI limitation. The D3D12 debug layer and Vulkan WSI
-  // share DXGI internally, and the debug hook must be established before any
-  // DXGI factories are created — regardless of which API creates them.
+  // This is a known Windows/DXGI limitation. The D3D12 debug layer and Vulkan
+  // WSI share DXGI internally, and the debug hook must be established before
+  // any DXGI factories are created — regardless of which API creates them.
 } kBackends[] = {
     {GpuBackend::OpenGL, "OpenGL Window", 100, 100},
-    #ifdef _WIN32
+#ifdef _WIN32
     {GpuBackend::DirectX12, "DirectX Window", 500, 400},
-    #endif
+#endif
     {GpuBackend::Vulkan, "Vulkan Window", 950, 100},
 };
 
@@ -74,7 +83,12 @@ bool Engine::initialize(int width, int height) {
   m_window_width = width, m_window_height = height;
   m_platform = std::make_unique<DesktopPlatform>();
   m_platform->initialize("MyApp", width, height);
-   // Register windows in app
+  // Set up input + event pipeline
+  m_event_bus = std::make_unique<EventBus>();
+  m_input_system = std::make_unique<InputSystem>(*m_event_bus);
+  m_event_bus->subscribe(this, static_cast<int>(EventCategory::Keyboard));
+
+  // Register windows in app
   for (auto &b : kBackends) {
     m_platform->addWindow(b.title, width, height, b.backend);
     m_platform->setWindowPosition(b.backend, {b.x, b.y});
@@ -84,17 +98,24 @@ bool Engine::initialize(int width, int height) {
       [this](size_t window_index, int width, int height) {
         handleResize(width, height);
       });
-  // Set mouse callback
-  m_platform->setMouseCallback(
-      [this](size_t window_index, float x, float y, uint32_t buttons) {
-        handleMouseInput(x, y, buttons);
+  // Input callbacks → InputSystem (публикует события + копит состояние)
+  m_platform->setKeyCallback(
+      [this](size_t window_index, Key key, KeyActionType action, int mods) {
+        m_input_system->onKey(window_index, key, action, mods);
       });
-  // Set keyboard callback
-  m_platform->setKeyboardCallback(
-      [this](size_t window_index, uint32_t key, bool pressed) {
-        handleKeyInput(key, pressed);
+  m_platform->setMouseButtonCallback(
+      [this](size_t window_index, MouseButton button, KeyActionType action,
+             int mods, double x, double y) {
+        m_input_system->onMouseButton(window_index, button, action, mods, x, y);
       });
-  // Set char callback
+  m_platform->setCursorPosCallback(
+      [this](size_t window_index, double x, double y) {
+        m_input_system->onMouseMove(window_index, x, y);
+      });
+  m_platform->setScrollCallback(
+      [this](size_t window_index, double xoff, double yoff) {
+        m_input_system->onScroll(window_index, xoff, yoff);
+      });
   m_platform->setCharCallback([this](size_t window_index, uint32_t c) {
     // if (imguiSystem) {
     //   imguiSystem->HandleChar(c);
@@ -105,32 +126,47 @@ bool Engine::initialize(int width, int height) {
   m_render_system = std::make_unique<RenderSystem>(m_platform.get(),
                                                    m_resource_manager.get());
   std::vector<std::reference_wrapper<MainWindow>> windows;
-  std::vector<ImGuiContext*> ui_contexts;
+  std::vector<ImGuiContext *> ui_contexts;
 
   m_resource_manager->registerLoader(std::make_unique<ShaderLoader>());
   m_resource_manager->registerLoader(std::make_unique<MaterialLoader>());
   m_resource_manager->registerLoader(std::make_unique<TextureLoader>());
 
-  for (auto& b : kBackends) {
-      windows.push_back(m_platform->getWindow(b.backend));
-      m_ui_manager->addBackend(b.backend);
+  for (auto &b : kBackends) {
+    windows.push_back(m_platform->getWindow(b.backend));
+    m_ui_manager->addBackend(b.backend);
   }
   m_ui_manager->init(windows);
 
-  for (auto& b : kBackends) {
-      ui_contexts.push_back(m_ui_manager->getContext(b.backend));
-      m_render_system->addBackend(b.backend);
+  for (auto &b : kBackends) {
+    ui_contexts.push_back(m_ui_manager->getContext(b.backend));
+    m_render_system->addBackend(b.backend);
   }
   m_render_system->init(ui_contexts);
 
   // Register render devices with the resource manager
-  for (auto& b : kBackends) {
-      m_resource_manager->registerDevice(b.backend, &m_render_system->getDevice(b.backend));
+  for (auto &b : kBackends) {
+    m_resource_manager->registerDevice(b.backend,
+                                       &m_render_system->getDevice(b.backend));
   }
 
   m_render_system->createPerFrameResources();
 
   m_scene = std::make_unique<Scene>(*m_resource_manager.get());
+
+  for (size_t i = 0; i < std::size(kBackends); ++i) {
+    auto cam = std::make_shared<Camera>();
+    m_cameras.push_back(cam);
+    m_scene->setCamera(i, cam);
+    m_camera_controllers.push_back(std::make_unique<CameraController>(
+        *m_input_system, *cam, /*window_index=*/i));
+  }
+
+  m_action_bus = std::make_unique<ActionBus>();
+  m_camera_actions = std::make_unique<CameraActionHandler>(
+      *m_action_bus, m_camera_controllers);
+  m_test_widget.setActionBus(m_action_bus.get());
+
   m_initialized = true;
   return m_initialized;
 }
@@ -154,6 +190,11 @@ void Engine::cleanup() {
     // Clean up subsystems in reverse order of creation
     m_scene.reset();
     m_render_system.reset();
+
+    m_camera_actions.reset();
+    m_action_bus.reset();
+    m_input_system.reset();
+    m_event_bus.reset();
 
     m_resource_manager.reset();
     m_platform->destroy(); // destroy windows backends
@@ -186,7 +227,18 @@ void Engine::run() {
   }
 }
 
-void Engine::update(TimeDelta deltaTime) { m_scene->update(deltaTime); }
+void Engine::update(TimeDelta deltaTime) {
+  for (size_t i = 0; i < m_camera_controllers.size(); ++i) {
+    int w = 0, h = 0;
+    m_platform->getWindowSize(i, &w, &h);
+    if (w > 0 && h > 0) {
+      m_camera_controllers[i]->update(deltaTime, static_cast<float>(w) /
+                                                     static_cast<float>(h));
+    }
+  }
+  m_scene->update(deltaTime);
+  m_input_system->beginFrame();
+}
 
 void Engine::render() {
   // TODO: ADD SUPPORT FOR USER WIDGETS TO UI MANAGER
@@ -194,7 +246,7 @@ void Engine::render() {
 
   std::vector<SceneView> scenes = m_scene->getSceneViews(std::size(kBackends));
   for (size_t i = 0; i < std::size(kBackends); i++) {
-      scenes[i].x = CUtils::lerp(-3, 3, m_test_widget.m_slider_value);
+    scenes[i].x = CUtils::lerp(-3, 3, m_test_widget.m_slider_value);
   }
 
   std::vector<ImDrawData *> ui_draw_bundle = m_ui_manager->getBundleDrawData();
@@ -203,8 +255,17 @@ void Engine::render() {
 
 // callbacks
 void Engine::handleResize(int width, int height) const {}
-void Engine::handleMouseInput(float x, float y, uint32_t buttons) {}
-void Engine::handleKeyInput(uint32_t key, bool pressed) {}
+
+void Engine::onEvent(const Event &event) {
+  EventDispatcher dispatcher(event);
+  dispatcher.dispatch<KeyPressedEvent>([this](const KeyPressedEvent &e) {
+    if (e.getKey() == Key::R) {
+    m_action_bus->send(ResetViewAction{
+        .window_id = e.getWindowId()
+    });
+    }
+  });
+}
 
 // ============================================================================
 // Private Methods
@@ -233,7 +294,6 @@ TimeDelta Engine::calculateDeltaTimeMs() {
 
   return m_delta_time_ms;
 }
-void Engine::handleMouseHover(float mouseX, float mouseY) {}
 
 Entity Engine::createSphere(const std::string &name, float radius, int stacks,
                             int sectors, const glm::vec3 &pos,

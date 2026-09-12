@@ -135,23 +135,29 @@ void OpenGLRenderer::updatePerFrameResources(const SceneView &view) {
   GLint viewport_dims[4];
   glGetIntegerv(GL_VIEWPORT, viewport_dims);
   float aspect_ratio = viewport_dims[2] / static_cast<float>(viewport_dims[3]);
-  // Calculate view-projection matrix
-  // Camera at (0, 0, 5) looking at (0, 0, 0), up is +Y
-  glm::mat4 view_mat = glm::lookAt(
-      glm::vec3(0.0f + view.x, 0.0f, 5.0f + view.z), // Camera position
-      glm::vec3(0.0f, 0.0f, 0.0f),                   // Look at target
-      glm::vec3(0.0f, 1.0f, 0.0f)                    // Up direction
-  );
-  glm::mat4 proj_mat =
-      glm::perspective(glm::radians(45.0f), aspect_ratio, 0.1f, 100.0f);
-
+  glm::mat4 view_mat;
+  glm::mat4 proj_mat;
+  if (view.camera) {
+    view_mat = view.camera->getView();
+    proj_mat = view.camera->getProjection();
+  } else {
+    // Camera at (0, 0, 5) looking at (0, 0, 0), up is +Y
+    glm::mat4 view_mat = glm::lookAt(
+        glm::vec3(0.0f + view.x, 0.0f, 5.0f + view.z), // Camera position
+        glm::vec3(0.0f, 0.0f, 0.0f),                   // Look at target
+        glm::vec3(0.0f, 1.0f, 0.0f)                    // Up direction
+    );
+    glm::mat4 proj_mat =
+        glm::perspective(glm::radians(45.0f), aspect_ratio, 0.1f, 100.0f);
+  }
   Uniforms::FrameUniforms uniforms{};
   uniforms.view_projection = proj_mat * view_mat;
   uniforms.light_position = glm::vec3(0.0f, 0.0f, 1.0f);
   uniforms.Kd =
       glm::vec3(1.0f, 1.0f, 1.0f); // Diffuse coefficient (white surface)
   uniforms.Ld = glm::vec3(1.0f, 1.0f, 1.0f); // Light intensity (white light)
-  uniforms.camera_position = glm::vec3(0.0f, 5.0f, 5.0f);
+  uniforms.camera_position =
+      view.camera ? view.camera->getPosition() : glm::vec3(0.0f, 5.0f, 5.0f);
   auto packed = Uniforms::FrameUniformsStd140::from(uniforms);
   // Update buffer
   m_rhi_device->updateBuffer(ubo->getUbo(), packed);

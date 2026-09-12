@@ -1,6 +1,7 @@
 #pragma once
 
 #include "core/gpu_types.h"
+#include "core/input_enums.h"
 #include <cstdint>
 #include <functional>
 #include <string>
@@ -123,30 +124,49 @@ public:
           callback) = 0;
 
   /**
-   * @brief Set callback for mouse input events.
-   * @param callback Function called on mouse input.
-   *                 Parameters: (windowIndex, x, y, button)
-   */
-  virtual void setMouseCallback(
-      std::function<void(size_t windowIndex, float x, float y, uint32_t button)>
-          callback) = 0;
-
-  /**
-   * @brief Set callback for keyboard input events.
-   * @param callback Function called on keyboard input.
-   *                 Parameters: (windowIndex, key, pressed)
-   */
-  virtual void setKeyboardCallback(
-      std::function<void(size_t windowIndex, uint32_t key, bool pressed)>
-          callback) = 0;
-
-  /**
    * @brief Set callback for character input events.
    * @param callback Function called on character input.
    *                 Parameters: (windowIndex, codepoint)
    */
   virtual void setCharCallback(
       std::function<void(size_t windowIndex, uint32_t codepoint)> callback) = 0;
+
+  /**
+   * @brief Set callback for keyboard input events.
+   * @param callback Function called on key input.
+   *                 Parameters: (windowIndex, key, action, mods)
+   */
+  virtual void setKeyCallback(
+      std::function<void(size_t windowIndex, Key key, KeyActionType action, int mods)>
+          callback) = 0;
+
+  /**
+   * @brief Set callback for mouse button input events.
+   * @param callback Function called on mouse button input.
+   *                 Parameters: (windowIndex, button, action, mods, x, y)
+   */
+  virtual void setMouseButtonCallback(
+      std::function<void(size_t windowIndex, MouseButton button,
+                         KeyActionType action, int mods, double x, double y)>
+          callback) = 0;
+
+  /**
+   * @brief Set callback for cursor position events.
+   * @param callback Function called on cursor move.
+   *                 Parameters: (windowIndex, x, y)
+   */
+  virtual void setCursorPosCallback(
+      std::function<void(size_t windowIndex, double x, double y)>
+          callback) = 0;
+
+  /**
+   * @brief Set callback for scroll events.
+   * @param callback Function called on scroll.
+   *                 Parameters: (windowIndex, xoffset, yoffset)
+   */
+  virtual void setScrollCallback(
+      std::function<void(size_t windowIndex, double xoffset, double yoffset)>
+          callback) = 0;
 
   // ==================== Window Title ====================
 

@@ -37,7 +37,6 @@ void Dx12ImguiSrvFree(ImGui_ImplDX12_InitInfo *info,
 } // namespace
 namespace ssme {
 
-
 Dx12Renderer::Dx12Renderer(Platform *platform, ResourceManager *rm)
     : m_platform(platform), m_rm(rm) {
   /* -------------INIT STATE-------------- */
@@ -101,9 +100,7 @@ void Dx12Renderer::init(ImGuiContext *ctx) {
 // definitions
 Dx12Renderer::~Dx12Renderer() { destroy(); };
 
-void Dx12Renderer::beginFrame() {
-  m_swap_chain->acquireNextImage();
-}
+void Dx12Renderer::beginFrame() { m_swap_chain->acquireNextImage(); }
 
 SwapchainInfo Dx12Renderer::getSwapchain() {
   auto frame_index = m_swap_chain->getCurrentFrameIndex();
@@ -127,8 +124,8 @@ void Dx12Renderer::renderImGui(CommandList &cmd, ImDrawData *ui) {
 }
 
 void Dx12Renderer::renderFrameGraph(RenderGraph &graph,
-                                    const CompiledPlan &plan,
-                                    SceneView &view, ImDrawData *ui) {
+                                    const CompiledPlan &plan, SceneView &view,
+                                    ImDrawData *ui) {
   updatePerFrameResources(view);
 
   auto frame_index = m_swap_chain->getCurrentFrameIndex();
@@ -173,23 +170,35 @@ void Dx12Renderer::updatePerFrameResources(const SceneView &view) {
   // Get viewport dimensions for aspect ratio
   auto extent = m_swap_chain->getSwapChainExtent();
   float aspect_ratio = extent.width / static_cast<float>(extent.height);
-  // Calculate view-projection matrix
-  // Camera at (0, 0, 5) looking at (0, 0, 0), up is +Y
-  glm::mat4 view_mat = glm::lookAt(
-      glm::vec3(0.0f + view.x, 0.0f, 5.0f + view.z), // Camera position
-      glm::vec3(0.0f, 0.0f, 0.0f),                   // Look at target
-      glm::vec3(0.0f, 1.0f, 0.0f)                    // Up direction
-  );
-  glm::mat4 proj_mat =
-      glm::perspective(glm::radians(45.0f), aspect_ratio, 0.1f, 100.0f);
-
+  glm::mat4 view_mat;
+  glm::mat4 proj_mat;
+  if (view.camera) {
+    view_mat = view.camera->getView();
+    proj_mat = view.camera->getProjection();
+    // OpenGL [-1,1] -> D3D [0,1]
+    glm::mat4 depth_remap(1.0f);
+    depth_remap[2][2] = 0.5f;
+    depth_remap[3][2] = 0.5f;
+    proj_mat = depth_remap * proj_mat;
+  } else {
+    // Calculate view-projection matrix
+    // Camera at (0, 0, 5) looking at (0, 0, 0), up is +Y
+    glm::mat4 view_mat = glm::lookAt(
+        glm::vec3(0.0f + view.x, 0.0f, 5.0f + view.z), // Camera position
+        glm::vec3(0.0f, 0.0f, 0.0f),                   // Look at target
+        glm::vec3(0.0f, 1.0f, 0.0f)                    // Up direction
+    );
+    glm::mat4 proj_mat =
+        glm::perspective(glm::radians(45.0f), aspect_ratio, 0.1f, 100.0f);
+  }
   Uniforms::FrameUniforms uniforms{};
   uniforms.view_projection = proj_mat * view_mat;
   uniforms.light_position = glm::vec3(0.0f, 0.0f, 1.0f);
   uniforms.Kd =
       glm::vec3(1.0f, 1.0f, 1.0f); // Diffuse coefficient (white surface)
   uniforms.Ld = glm::vec3(1.0f, 1.0f, 1.0f); // Light intensity (white light)
-  uniforms.camera_position = glm::vec3(0.0f, 5.0f, 5.0f);
+  uniforms.camera_position =
+      view.camera ? view.camera->getPosition() : glm::vec3(0.0f, 5.0f, 5.0f);
   auto packed = Uniforms::FrameUniformsStd140::from(uniforms);
   // Update buffer
   m_rhi_device->updateBuffer(ubo->getUbo(), packed);

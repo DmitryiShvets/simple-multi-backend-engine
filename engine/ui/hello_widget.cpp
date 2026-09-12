@@ -1,4 +1,6 @@
 #include "hello_widget.h"
+#include "actions.h"
+#include "action_bus.h"
 #include <imgui/imgui.h>
 
 namespace ssme {
@@ -27,6 +29,10 @@ void HelloWidget::render() {
 
   ImGui::Text("Application average %.3f ms/frame (%.1f FPS)",
               1000.0f / io.Framerate, io.Framerate);
+  ImGui::Separator();
+  ImGui::Text("Demo: actions from ImGui");
+  if (ImGui::Button("Reset camera (window 0)"))
+    m_action_bus->send(ResetViewAction{ .window_id = 0 });
   ImGui::End();
 
   if (m_show_another_window) {

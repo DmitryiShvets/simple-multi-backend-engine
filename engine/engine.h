@@ -1,5 +1,6 @@
 #pragma once
 #include "core/time.h"
+#include "events/event.h"
 #include "ui/hello_widget.h"
 #include "world/ecs/entity.h"
 #include <glm/fwd.hpp>
@@ -15,8 +16,14 @@ class UIManager;
 class RenderSystem;
 class ResourceManager;
 class CameraComponent;
+class EventBus;
+class ActionBus;
+class InputSystem;
+class Camera;
+class CameraController;
+class CameraActionHandler;
 
-class Engine {
+class Engine : public EventListener {
 public:
   /**
    * @brief Default constructor.
@@ -83,7 +90,10 @@ public:
    */
   bool removeEntity(const std::string &name);
 
-  // onfy for tests
+  /**
+   * @brief Receive events from the EventBus (hotkeys → actions).
+   */
+  void onEvent(const Event &event) override;
 
 private:
   std::unique_ptr<Platform> m_platform;
@@ -119,6 +129,14 @@ private:
   float m_current_mouse_x = 0.0f;
   float m_current_mouse_y = 0.0f;
 
+  // user input and camera
+  std::unique_ptr<EventBus> m_event_bus;
+  std::unique_ptr<InputSystem> m_input_system;
+  std::unique_ptr<ActionBus> m_action_bus;
+  std::vector<std::shared_ptr<Camera>> m_cameras;
+  std::vector<std::unique_ptr<CameraController>> m_camera_controllers;
+  std::unique_ptr<CameraActionHandler> m_camera_actions;
+
   /**
    * @brief Update the engine state.
    * @param deltaTime The time elapsed since the last update.
@@ -143,42 +161,6 @@ private:
    * @param height The new height of the window.
    */
   void handleResize(int width, int height) const;
-
-  /**
-   * @brief Handles mouse input for interaction and camera control.
-   *
-   * This method processes mouse input for various functionalities, including
-   * interacting with the scene, camera rotation, and delegating handling to
-   * ImGui or hover systems.
-   *
-   * @param x The x-coordinate of the mouse position.
-   * @param y The y-coordinate of the mouse position.
-   * @param buttons A bitmask representing the state of mouse buttons.
-   *                Bit 0 corresponds to the left button, and Bit 1 corresponds
-   * to the right button.
-   */
-  void handleMouseInput(float x, float y, uint32_t buttons);
-
-  /**
-   * @brief Handles keyboard input events for controlling the camera and other
-   * subsystems.
-   *
-   * This method processes key press and release events to update the camera's
-   * movement state. It also forwards the input to other subsystems like the
-   * ImGui interface if applicable.
-   *
-   * @param key The key code of the keyboard input.
-   * @param pressed Indicates whether the key is pressed (true) or released
-   * (false).
-   */
-  void handleKeyInput(uint32_t key, bool pressed);
-
-  /**
-   * @brief Handle mouse hover to track current mouse position.
-   * @param mouseX The x-coordinate of the mouse position.
-   * @param mouseY The y-coordinate of the mouse position.
-   */
-  void handleMouseHover(float mouseX, float mouseY);
 
   /**
    * @brief Update camera controls based on input state.

@@ -44,16 +44,24 @@ public:
         std::function<void(size_t, int, int)> callback
     ) override;
 
-    void setMouseCallback(
-        std::function<void(size_t, float, float, uint32_t)> callback
-    ) override;
-
-    void setKeyboardCallback(
-        std::function<void(size_t, uint32_t, bool)> callback
-    ) override;
-
     void setCharCallback(
         std::function<void(size_t, uint32_t)> callback
+    ) override;
+
+    void setKeyCallback(
+        std::function<void(size_t, Key, KeyActionType, int)> callback
+    ) override;
+
+    void setMouseButtonCallback(
+        std::function<void(size_t, MouseButton, KeyActionType, int, double, double)> callback
+    ) override;
+
+    void setCursorPosCallback(
+        std::function<void(size_t, double, double)> callback
+    ) override;
+
+    void setScrollCallback(
+        std::function<void(size_t, double, double)> callback
     ) override;
 
     // ==================== Window Title ====================
@@ -73,8 +81,10 @@ private:
 
     // Callbacks
     std::function<void(size_t, int, int)> m_resizeCallback;
-    std::function<void(size_t, float, float, uint32_t)> m_mouseCallback;
-    std::function<void(size_t, uint32_t, bool)> m_keyboardCallback;
+    std::function<void(size_t, Key, KeyActionType, int)> m_keyCallback;
+    std::function<void(size_t, MouseButton, KeyActionType, int, double, double)> m_mouseButtonCallback;
+    std::function<void(size_t, double, double)> m_cursorPosCallback;
+    std::function<void(size_t, double, double)> m_scrollCallback;
     std::function<void(size_t, uint32_t)> m_charCallback;
 
     // Internal helper to create window
@@ -83,9 +93,11 @@ private:
 
     // Internal callback adapters
     void onWindowResize(size_t index, int width, int height);
-    void onWindowMouse(size_t index, MouseButton button,
-                       Action action, double x, double y);
-    void onWindowKey(size_t index, Key key, Action action, int scancode);
+    void onWindowMouse(size_t index, MouseButton button, KeyActionType action,
+                       int mods, double x, double y);
+    void onWindowKey(size_t index, Key key, KeyActionType action, int mods);
+    void onWindowCursor(size_t index, double x, double y);
+    void onWindowScroll(size_t index, double xoffset, double yoffset);
     void onWindowChar(size_t index, unsigned int codepoint);
 };
 

@@ -15,6 +15,8 @@ set(RENDER_SOURCES
     opengl_renderer.cpp
     vulkan_renderer.cpp
     render_system.cpp
+    camera_controller.cpp
+    camera.cpp
 )
 # d3d12_renderer.cpp only on Windows
 if(WIN32)
@@ -37,6 +39,7 @@ target_link_libraries(ssme_render
         external::imgui
         ssme::common
         ssme::resources
+        ssme::input
 )
 
 # OpenGL submodule

@@ -249,16 +249,28 @@ void VulkanRenderer::updatePerFrameResources(const SceneView &view) {
   // Get uniform buffer
   auto frame_index = m_swap_chain->getCurrentFrameIndex();
   auto &ubo = m_frame_data->uniform_buffer[frame_index];
-  // Calculate view-projection matrix
-  // Camera at (0, 0, 5) looking at (0, 0, 0), up is +Y
-  glm::mat4 view_mat = glm::lookAt(
-      glm::vec3(0.0f + view.x, 0.0f, 5.0f + view.z), // Camera position
-      glm::vec3(0.0f, 0.0f, 0.0f),                   // Look at target
-      glm::vec3(0.0f, 1.0f, 0.0f)                    // Up direction
-  );
-  // Vulkan uses Y-down clip space, so we need to flip Y axis
-  glm::mat4 proj_mat = glm::perspective(
-      glm::radians(45.0f), m_swap_chain->extentAspectRatio(), 0.1f, 100.0f);
+  glm::mat4 view_mat;
+  glm::mat4 proj_mat;
+  if (view.camera) {
+    view_mat = view.camera->getView();
+    proj_mat = view.camera->getProjection();
+    // OpenGL [-1,1] -> Vulkan [0,1] и Y-flip
+    glm::mat4 depth_remap(1.0f);
+    depth_remap[2][2] = 0.5f;  // масштаб z
+    depth_remap[3][2] = 0.5f;  // сдвиг z на +0.5w
+    proj_mat = depth_remap * proj_mat;
+  } else {
+    // Calculate view-projection matrix
+    // Camera at (0, 0, 5) looking at (0, 0, 0), up is +Y
+    glm::mat4 view_mat = glm::lookAt(
+        glm::vec3(0.0f + view.x, 0.0f, 5.0f + view.z), // Camera position
+        glm::vec3(0.0f, 0.0f, 0.0f),                   // Look at target
+        glm::vec3(0.0f, 1.0f, 0.0f)                    // Up direction
+    );
+    glm::mat4 proj_mat = glm::perspective(
+        glm::radians(45.0f), m_swap_chain->extentAspectRatio(), 0.1f, 100.0f);
+  }
+    // Vulkan uses Y-down clip space, so we need to flip Y axis
   proj_mat[1][1] *= -1.0f; // Flip Y for Vulkan
 
   Uniforms::FrameUniforms uniforms{};
@@ -267,7 +279,8 @@ void VulkanRenderer::updatePerFrameResources(const SceneView &view) {
   uniforms.Kd =
       glm::vec3(1.0f, 1.0f, 1.0f); // Diffuse coefficient (white surface)
   uniforms.Ld = glm::vec3(1.0f, 1.0f, 1.0f); // Light intensity (white light)
-  uniforms.camera_position = glm::vec3(0.0f, 5.0f, 5.0f);
+  uniforms.camera_position =
+      view.camera ? view.camera->getPosition() : glm::vec3(0.0f, 5.0f, 5.0f);
   auto packed = Uniforms::FrameUniformsStd140::from(uniforms);
   m_rhi_device->updateBuffer(ubo->getUbo(), packed);
 }

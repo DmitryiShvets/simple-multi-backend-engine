@@ -82,18 +82,20 @@ void DesktopPlatform::cleanup() {
 // ==================== Per-Window Access ====================
 
 MainWindow &DesktopPlatform::getWindow(GpuBackend type) {
-    auto it = std::find_if(m_windows.begin(), m_windows.end(),
-        [type](auto &w) { return w->getGpuBackend() == type; });
-    if (it == m_windows.end())
-        throw std::runtime_error("Window not found");
-    return **it;
+  auto it = std::find_if(m_windows.begin(), m_windows.end(), [type](auto &w) {
+    return w->getGpuBackend() == type;
+  });
+  if (it == m_windows.end())
+    throw std::runtime_error("Window not found");
+  return **it;
 }
 MainWindow const &DesktopPlatform::getWindow(GpuBackend type) const {
-    auto it = std::find_if(m_windows.begin(), m_windows.end(),
-        [type](auto &w) { return w->getGpuBackend() == type; });
-    if (it == m_windows.end())
-        throw std::runtime_error("Window not found");
-    return **it;
+  auto it = std::find_if(m_windows.begin(), m_windows.end(), [type](auto &w) {
+    return w->getGpuBackend() == type;
+  });
+  if (it == m_windows.end())
+    throw std::runtime_error("Window not found");
+  return **it;
 }
 
 void DesktopPlatform::getWindowSize(size_t index, int *width,
@@ -151,14 +153,25 @@ void DesktopPlatform::setResizeCallback(
   m_resizeCallback = std::move(callback);
 }
 
-void DesktopPlatform::setMouseCallback(
-    std::function<void(size_t, float, float, uint32_t)> callback) {
-  m_mouseCallback = std::move(callback);
+void DesktopPlatform::setKeyCallback(
+    std::function<void(size_t, Key, KeyActionType, int)> callback) {
+  m_keyCallback = std::move(callback);
 }
 
-void DesktopPlatform::setKeyboardCallback(
-    std::function<void(size_t, uint32_t, bool)> callback) {
-  m_keyboardCallback = std::move(callback);
+void DesktopPlatform::setMouseButtonCallback(
+    std::function<void(size_t, MouseButton, KeyActionType, int, double, double)>
+        callback) {
+  m_mouseButtonCallback = std::move(callback);
+}
+
+void DesktopPlatform::setCursorPosCallback(
+    std::function<void(size_t, double, double)> callback) {
+  m_cursorPosCallback = std::move(callback);
+}
+
+void DesktopPlatform::setScrollCallback(
+    std::function<void(size_t, double, double)> callback) {
+  m_scrollCallback = std::move(callback);
 }
 
 void DesktopPlatform::setCharCallback(
@@ -189,17 +202,17 @@ DesktopPlatform::createWindow(const std::string &title, int width, int height,
   // TODO: Make this configurable (OpenGL/Vulkan)
   OpenGLGpuContextCreator gl_gpu_ctx_creator;
   VulkanGpuContextCreator vk_gpu_ctx_creator;
-  #ifdef _WIN32
+#ifdef _WIN32
   Dx12GpuContextCreator dx_gpu_ctx_creator;
-  #endif
+#endif
   if (type == GpuBackend::OpenGL) {
     window->init(gl_gpu_ctx_creator);
   }
-  #ifdef _WIN32
+#ifdef _WIN32
   else if (type == GpuBackend::DirectX12) {
     window->init(dx_gpu_ctx_creator);
   }
-  #endif
+#endif
   else {
     window->init(vk_gpu_ctx_creator);
   }
@@ -212,14 +225,23 @@ DesktopPlatform::createWindow(const std::string &title, int width, int height,
   });
 
   window->setMouseCallback([this, window_index](MouseButton button,
-                                                Action action, int mods,
+                                                KeyActionType action, int mods,
                                                 double x, double y) {
-    onWindowMouse(window_index, button, action, x, y);
+    onWindowMouse(window_index, button, action, mods, x, y);
   });
 
   window->setKeyCallback(
-      [this, window_index](Key key, Action action, int scancode) {
+      [this, window_index](Key key, KeyActionType action, int scancode) {
         onWindowKey(window_index, key, action, scancode);
+      });
+
+  window->setCursorCallback([this, window_index](double x, double y) {
+    onWindowCursor(window_index, x, y);
+  });
+
+  window->setScrollCallback(
+      [this, window_index](double xoffset, double yoffset) {
+        onWindowScroll(window_index, xoffset, yoffset);
       });
 
   window->setCharCallback([this, window_index](unsigned int codepoint) {
@@ -242,20 +264,30 @@ void DesktopPlatform::onWindowResize(size_t index, int width, int height) {
 }
 
 void DesktopPlatform::onWindowMouse(size_t index, MouseButton button,
-                                    Action action, double x, double y) {
-  if (m_mouseCallback) {
-    uint32_t button_code = static_cast<uint32_t>(button);
-    m_mouseCallback(index, static_cast<float>(x), static_cast<float>(y),
-                    button_code);
+                                    KeyActionType action, int mods, double x,
+                                    double y) {
+  if (m_mouseButtonCallback) {
+    m_mouseButtonCallback(index, button, action, mods, x, y);
   }
 }
 
-void DesktopPlatform::onWindowKey(size_t index, Key key, Action action,
-                                  int /*scancode*/) {
-  if (m_keyboardCallback) {
-    uint32_t key_code = static_cast<uint32_t>(key);
-    bool pressed = (action == Action::Press);
-    m_keyboardCallback(index, key_code, pressed);
+void DesktopPlatform::onWindowKey(size_t index, Key key, KeyActionType action,
+                                  int mods) {
+  if (m_keyCallback) {
+    m_keyCallback(index, key, action, mods);
+  }
+}
+
+void DesktopPlatform::onWindowCursor(size_t index, double x, double y) {
+  if (m_cursorPosCallback) {
+    m_cursorPosCallback(index, x, y);
+  }
+}
+
+void DesktopPlatform::onWindowScroll(size_t index, double xoffset,
+                                     double yoffset) {
+  if (m_scrollCallback) {
+    m_scrollCallback(index, xoffset, yoffset);
   }
 }
 
@@ -265,9 +297,10 @@ void DesktopPlatform::onWindowChar(size_t index, unsigned int codepoint) {
   }
 }
 
-void DesktopPlatform::setWindowPosition(GpuBackend type, std::pair<int, int> position) {
-    auto& window = getWindow(type);
-    window.setPosition(position.first, position.second);
+void DesktopPlatform::setWindowPosition(GpuBackend type,
+                                        std::pair<int, int> position) {
+  auto &window = getWindow(type);
+  window.setPosition(position.first, position.second);
 }
 
 void DesktopPlatform::swapOpenGLBuffers() {
@@ -276,8 +309,8 @@ void DesktopPlatform::swapOpenGLBuffers() {
         return e->getGpuBackend() == GpuBackend::OpenGL;
       });
   if (gl_window == m_windows.end()) {
-        // NOTE: USER CAN DISABLE GL WINODW. IT'S OK
-        return;
+    // NOTE: USER CAN DISABLE GL WINODW. IT'S OK
+    return;
   }
   gl_window->get()->swapBuffers();
 }
