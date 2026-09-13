@@ -10,6 +10,12 @@ VulkanShaderModule::VulkanShaderModule(VulkanDevice &device,
   m_shader_module = createShaderModule(code);
 }
 
+VulkanShaderModule::VulkanShaderModule(VulkanDevice &device,
+                                       const std::vector<char> & code)
+    : m_device(device) {
+  m_shader_module = createShaderModule(code);
+}
+
 [[nodiscard]]
 vk::raii::ShaderModule
 VulkanShaderModule::createShaderModule(const std::vector<char> &code) {

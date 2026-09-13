@@ -217,9 +217,16 @@ struct ShaderReflectionData {
   uint32_t required_components = 0;
 };
 
+struct ShaderCodeDesc {
+  std::vector<char> spirv;
+  std::vector<char> glsl;
+  std::vector<char> dxil;
+};
+
 struct ShaderModuleDesc {
   std::string file_path;
   ShaderStage stage;
+  ShaderCodeDesc code;
   ShaderReflectionData reflection;
 };
 

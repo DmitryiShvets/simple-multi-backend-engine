@@ -2,6 +2,7 @@
 
 #include <glad/gl.h>
 #include <string>
+#include <vector>
 
 namespace ssme::opengl {
 class GLType {
@@ -17,6 +18,7 @@ public:
 class OpenGLShaderModule {
 public:
   OpenGLShaderModule(const GLenum type, const std::string &shader_path);
+  OpenGLShaderModule(const GLenum type, const std::vector<char> &code);
   ~OpenGLShaderModule();
 
   GLuint getHandle() const { return m_shader_module; }

@@ -119,3 +119,37 @@ add_library(external::json INTERFACE IMPORTED)
 set_target_properties(external::json PROPERTIES
     INTERFACE_INCLUDE_DIRECTORIES "${JSON_INCLUDE}"
 )
+# ------------------------------------------------------------------------------
+# Slang (pre-built binary, FetchContent)
+# ------------------------------------------------------------------------------
+include(FetchContent)
+
+set(SLANG_RELEASE_TAG 2026.17.1)
+if(WIN32)
+  set(SLANG_URL "https://github.com/shader-slang/slang/releases/download/v${SLANG_RELEASE_TAG}/slang-${SLANG_RELEASE_TAG}-windows-x86_64.zip")
+else()
+  set(SLANG_URL "https://github.com/shader-slang/slang/releases/download/v${SLANG_RELEASE_TAG}/slang-${SLANG_RELEASE_TAG}-linux-x86_64.zip")
+endif()
+
+FetchContent_Declare(
+  slang_bin
+  DOWNLOAD_ONLY TRUE
+  DOWNLOAD_EXTRACT_TIMESTAMP TRUE
+  URL "${SLANG_URL}"
+)
+FetchContent_MakeAvailable(slang_bin)
+
+add_library(external::slang SHARED IMPORTED GLOBAL)
+set_target_properties(external::slang PROPERTIES
+  INTERFACE_INCLUDE_DIRECTORIES "${slang_bin_SOURCE_DIR}/include"
+)
+if(WIN32)
+  set_target_properties(external::slang PROPERTIES
+    IMPORTED_IMPLIB    "${slang_bin_SOURCE_DIR}/lib/slang.lib"
+    IMPORTED_LOCATION  "${slang_bin_SOURCE_DIR}/bin/slang.dll"
+  )
+else()
+  set_target_properties(external::slang PROPERTIES
+    IMPORTED_LOCATION  "${slang_bin_SOURCE_DIR}/lib/libslang.so"
+  )
+endif()
