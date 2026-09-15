@@ -1,7 +1,6 @@
 #pragma once
 
 #include "resource_loader.h"
-// #include "spirv_reflect.h"
 
 namespace ssme {
 

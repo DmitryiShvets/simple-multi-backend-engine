@@ -38,7 +38,9 @@ uint32_t Pipeline::doPrepare() {
   // if exists return 0, if not return 2.
   // if hash found for m_pl_layout_desc assign m_pl_layout_id from hash map
   // if hash found for m_pl_desc assign m_pl_id from hash map
-  m_pl_desc.vertex_layout = m_params.vertex_layout;
+  // m_pl_desc.vertex_layout = m_params.vertex_layout;
+  m_pl_desc.vertex_layout = m_params.vertex_layout.filterByRequirements(
+      m_vert_shader.get()->getVertexInputRequirements());
   m_pl_desc.vert_shader_module = m_vert_shader.get()->getModuleId();
   m_pl_desc.frag_shader_module = m_frag_shader.get()->getModuleId();
   m_pl_desc.depth_stencil_state = m_params.depth_stencil_state;
@@ -84,13 +86,13 @@ void Pipeline::doSetup(const VecRID &rids) {
 }
 
 bool Pipeline::doLoad() {
-    auto requirements = m_vert_shader.get()->getVertexInputRequirements();
+  auto requirements = m_vert_shader.get()->getVertexInputRequirements();
 
-    // TODO: do this during rendering Check compatibility with mesh layout
-    // if (!m_params.vertex_layout.isCompatibleWith(requirements)) {
-    //   debug_assert(false, "Pipeline validation failed: mesh and shader are incompatible");
-    //   return false;
-    // }
+  // TODO: do this during rendering Check compatibility with mesh layout
+  // if (!m_params.vertex_layout.isCompatibleWith(requirements)) {
+  //   debug_assert(false, "Pipeline validation failed: mesh and shader are
+  //   incompatible"); return false;
+  // }
 
   for (auto &rd : m_devices) {
     // create pipeline layout

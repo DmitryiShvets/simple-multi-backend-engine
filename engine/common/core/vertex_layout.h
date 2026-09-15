@@ -220,6 +220,36 @@ public:
       return true;
     }
 
+    /**
+     * @brief Keep only attributes whose locations the shader actually consumes.
+     */
+    VertexLayout filterByRequirements(
+        const std::vector<VertexInputRequirement> &requirements) const {
+      std::vector<uint32_t> used;
+      used.reserve(requirements.size());
+      for (const auto &req : requirements) {
+        used.push_back(req.location);
+      }
+
+      VertexLayout filtered;
+      for (const auto &attr : m_attributes) {
+        if (std::find(used.begin(), used.end(), attr.location) == used.end()) {
+          continue;
+        }
+        filtered.m_attributes.push_back(attr);
+      }
+
+      for (const auto &binding : m_bindings) {
+        const bool still_used = std::any_of(
+            filtered.m_attributes.begin(), filtered.m_attributes.end(),
+            [&](const Attribute &attr) { return attr.binding == binding.binding; });
+        if (still_used) {
+          filtered.m_bindings.push_back(binding);
+        }
+      }
+      return filtered;
+    }
+
     bool operator==(const VertexLayout& other) const {
         return m_bindings == other.m_bindings &&
                m_attributes == other.m_attributes;
