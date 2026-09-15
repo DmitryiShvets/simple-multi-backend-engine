@@ -5,6 +5,7 @@ build/
 
 # IDE settings
 .vs/
+.zed
 
 # External dependensies
 
