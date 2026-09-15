@@ -1,6 +1,7 @@
 #include "dx12_shader_module.h"
 #include "com_exception.h"
 #include <d3dcompiler.h>
+#include <vector>
 
 namespace ssme::d3d12 {
 static std::wstring toWide(const std::string &s) {
@@ -20,4 +21,15 @@ Dx12ShaderModule::Dx12ShaderModule(Dx12Device &device,
       .BytecodeLength = m_blob->GetBufferSize(),
   };
 }
+
+Dx12ShaderModule::Dx12ShaderModule(Dx12Device &device, const std::vector<char> &code)
+    : m_device(device) {
+  DX::ThrowIfFailed(D3DCreateBlob(code.size(), &m_blob));
+  memcpy(m_blob->GetBufferPointer(), code.data(), code.size());
+  m_bytecode = D3D12_SHADER_BYTECODE{
+      .pShaderBytecode = m_blob->GetBufferPointer(),
+      .BytecodeLength = m_blob->GetBufferSize(),
+  };
+}
+
 } // namespace ssme::d3d12

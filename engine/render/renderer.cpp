@@ -29,14 +29,14 @@ void IRenderer::draw(CommandList &cmd, const RenderItem &item) {
   }
 
   // 4. Push Constants
-  if (!item.push_constants.empty()) {
-        auto it = item.push_constants.find("model_mat");
-        assert(it != item.push_constants.end() &&
-               "DrawingData: model_mat push constant is required");
-        cmd.setPushConstant(item.pipeline, item.push_constants.at("model_mat"),
-                            static_cast<uint32_t>(ShaderStage::VERTEX));
-
+  for (const auto &[name, value] : item.push_constants) {
+    auto off_it = item.push_constants_offsets.find(name);
+    const uint32_t offset =
+        off_it != item.push_constants_offsets.end() ? off_it->second : 0u;
+    cmd.setPushConstant(item.pipeline, value,
+                        static_cast<uint32_t>(ShaderStage::VERTEX), offset);
   }
+
   // 5. Choose drawing method: Indexed vs Non-Indexed
   if (item.draw_cmd.index_count > 0) {
     if (item.index_buffer.isValid()) {

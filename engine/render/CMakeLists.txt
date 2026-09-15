@@ -56,3 +56,10 @@ endif()
 if(BUILD_DX12_RENDERER)
     target_link_libraries(ssme_render PRIVATE ssme::dx12)
 endif()
+
+file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/res/shaders
+          DESTINATION ${CMAKE_SOURCE_DIR}/build/bin/res)
+file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/res/materials
+          DESTINATION ${CMAKE_SOURCE_DIR}/build/bin/res)
+file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/res/textures
+          DESTINATION ${CMAKE_SOURCE_DIR}/build/bin/res)

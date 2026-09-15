@@ -1,4 +1,5 @@
 #pragma once
+#include <vector>
 #include <wrl/client.h>
 #include <d3d12.h>
 #include <string>
@@ -10,6 +11,7 @@ class Dx12Device;
 class Dx12ShaderModule {
 public:
   Dx12ShaderModule(Dx12Device &device, const std::string & shader_filepath);
+  Dx12ShaderModule(Dx12Device &device, const std::vector<char> & code);
   // Non-copyable
   Dx12ShaderModule(const Dx12ShaderModule &) = delete;
   Dx12ShaderModule &operator=(const Dx12ShaderModule &) = delete;

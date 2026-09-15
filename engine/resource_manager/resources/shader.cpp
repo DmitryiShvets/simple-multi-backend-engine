@@ -60,8 +60,8 @@ bool ShaderModule::doLoad() {
 bool ShaderModule::doUnload() {
   for (auto &rd : m_devices) {
     rd.get().destroyBuffer(m_module_rid);
-    for (int i = 0; i < m_descriptor_set_count; i++) {
-      rd.get().destroyDescriptorLayout(m_ds_layout_ids[i]);
+    for (auto &[key, rid] : m_ds_layout_ids) {
+        rd.get().destroyDescriptorLayout(rid);
     }
   }
 
@@ -91,6 +91,10 @@ std::vector<PushConstantRange> ShaderModule::getPushConstants() const {
 std::vector<VertexInputRequirement>
 ShaderModule::getVertexInputRequirements() const {
   return m_vertex_requirements;
+}
+
+const std::map<std::string, PushConstantRange> &ShaderModule::getPushConstantsMap() {
+  return m_push_constants;
 }
 
 std::shared_ptr<UniformLayout> ShaderModule::getLayout(const std::string &block_name) const {

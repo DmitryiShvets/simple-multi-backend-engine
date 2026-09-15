@@ -1,11 +1,13 @@
 #pragma once
 #include "vulkan_device.h"
 #include <string>
+#include <vector>
 
 namespace ssme::vulkan {
 class VulkanShaderModule {
 public:
   VulkanShaderModule(VulkanDevice &device, const std::string & shader_filepath);
+  VulkanShaderModule(VulkanDevice &device, const std::vector<char> & code);
   ~VulkanShaderModule();
 
   // Non-copyable

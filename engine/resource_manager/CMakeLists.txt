@@ -18,7 +18,7 @@ set(LOADER_SOURCES
 set(SOURCES
     resource_manager.cpp
     resource_handle_base.cpp
-    spirv_reflect.cpp
+    slang_compiler.cpp
 )
 
 add_library(ssme_resources STATIC ${RESOURCES_SOURCES} ${LOADER_SOURCES} ${SOURCES})
@@ -31,7 +31,9 @@ target_include_directories(ssme_resources
 
 # DEPENDENCIES
 target_link_libraries(ssme_resources
+    PUBLIC
     PRIVATE
         ssme::rhi
         external::json
+        external::slang
 )

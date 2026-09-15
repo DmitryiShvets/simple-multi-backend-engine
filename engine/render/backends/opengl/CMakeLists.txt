@@ -31,10 +31,10 @@ target_link_libraries(ssme_opengl
 )
 
 # POST BUILD
-if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/res)
-    add_custom_command(TARGET ssme_opengl POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy_directory
-            ${CMAKE_CURRENT_SOURCE_DIR}/res
-            $<TARGET_FILE_DIR:ssme_opengl>/res
-    )
-endif()
+# if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/res)
+#     add_custom_command(TARGET ssme_opengl POST_BUILD
+#         COMMAND ${CMAKE_COMMAND} -E copy_directory
+#             ${CMAKE_CURRENT_SOURCE_DIR}/res
+#             $<TARGET_FILE_DIR:ssme_opengl>/res
+#     )
+# endif()

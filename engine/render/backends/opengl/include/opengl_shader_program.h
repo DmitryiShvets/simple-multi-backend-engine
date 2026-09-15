@@ -30,6 +30,7 @@ public:
   void setUniform(const std::string &uniformName, float value);
   void setUniform(const std::string &uniformName, const glm::vec4 &vec4Value);
   void setUniform(const std::string &uniformName, const glm::vec3 &vec3Value);
+  void setPushConstant(const UniformValue &value, uint32_t offset = 0);
 
   ~ShaderProgram();
 
@@ -44,6 +45,9 @@ private:
   bool compiled = false;
 
   GLuint hProgram = 0;
+  GLuint m_push_ubo = 0;
+  uint32_t m_push_size = 0;
+
 };
 
 } // namespace ssme::opengl

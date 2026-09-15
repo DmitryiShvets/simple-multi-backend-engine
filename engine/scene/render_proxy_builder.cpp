@@ -50,11 +50,27 @@ void RenderProxyBuilder::buildProxy(Entity &entity) {
   auto object_ubo_layout = vert_shader->getLayout("ObjectUBO");
   m_packer.fillUniformSet(entity, object_ubo_data, *object_ubo_layout);
 
-  // TODO: MAKE IT DATA DRIVEN
-  glm::mat4 model_mat = entity.get<TransformComponent>()->getModelMatrix();
-  UniformValue model_matrix_val(model_mat);
-  model_matrix_val.setLabel("model_mat");
-  proxy.render_item.push_constants.emplace("model_mat", model_matrix_val);
+  // Push constants (data-driven from shader reflection)
+  for (const auto &[push_name, push_range] :
+       vert_shader->getPushConstantsMap()) {
+    auto push_layout = vert_shader->getLayout(push_name);
+    if (!push_layout) {
+      continue;
+    }
+    UniformSet push_set = vert_shader->createUniformSet(push_name);
+    m_packer.fillUniformSet(entity, push_set, *push_layout);
+    for (const auto &var : push_layout->getVariables()) {
+      UniformValue value = UniformValue::createDefault(var.type);
+      if (const UniformValue *src = push_set.get(var.name)) {
+        value = *src;
+      }
+      value.setLabel(var.name);
+      proxy.render_item.push_constants.emplace(var.name, value);
+      proxy.render_item.push_constants_offsets.emplace(
+          var.name,
+          static_cast<uint32_t>(push_range.offset + var.offset));
+    }
+  }
 
   // creation gpu unifoms for object phase
   DescriptorLayout ds_layout_desc;

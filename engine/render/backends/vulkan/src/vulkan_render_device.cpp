@@ -449,7 +449,8 @@ RID VulkanRenderDevice::containsGraphicsPipeline(std::size_t hash) {
 RID VulkanRenderDevice::createShaderModule(const ShaderModuleDesc &desc,
                                            RID id) {
   auto path = "res/shaders/" + desc.file_path + ".glsl.spv";
-  auto shader_module = std::make_unique<VulkanShaderModule>(m_device, path);
+  // auto shader_module = std::make_unique<VulkanShaderModule>(m_device, path);
+  auto shader_module = std::make_unique<VulkanShaderModule>(m_device, desc.code.spirv);
   if (id.isNull()) {
     id = m_storage.add(std::move(shader_module));
   } else {

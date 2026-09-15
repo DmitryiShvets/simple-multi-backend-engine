@@ -285,7 +285,7 @@ RID Dx12RenderDevice::createGraphicsPipeline(const GraphicsPipelineDesc &desc,
   std::vector<D3D12_INPUT_ELEMENT_DESC> input_elements;
   for (auto &attr : desc.vertex_layout.getAttributes()) {
     input_elements.push_back({
-        .SemanticName = "ATTRIB",            // SemanticName — захардкожено
+        .SemanticName = attr.semantic.data(),// SemanticName
         .SemanticIndex = attr.location,      // SemanticIndex
         .Format = toDxgiFormat(attr.format), // Format
         .InputSlot = attr.binding,           // InputSlot
@@ -373,7 +373,8 @@ RID Dx12RenderDevice::containsGraphicsPipeline(std::size_t hash) {
 
 RID Dx12RenderDevice::createShaderModule(const ShaderModuleDesc &desc, RID id) {
   auto path = "res/shaders/" + desc.file_path + ".hlsl.cso";
-  auto shader_module = std::make_unique<Dx12ShaderModule>(m_device, path);
+  // auto shader_module = std::make_unique<Dx12ShaderModule>(m_device, path);
+  auto shader_module = std::make_unique<Dx12ShaderModule>(m_device, desc.code.dxil);
   if (id.isNull()) {
     id = m_storage.add(std::move(shader_module));
   } else {
