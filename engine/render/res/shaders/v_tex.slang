@@ -19,6 +19,7 @@ struct VSOutput {
   float4 position : SV_POSITION;
   float2 texCoord : TEXCOORD0;
   float3 color : COLOR1;
+  float3 normal : NORMAL1;
 };
 
 [shader("vertex")]
@@ -30,5 +31,7 @@ VSOutput main(float3 position : POSITION0,
                    mul(push.model_mat, float4(position, 1.0)));
   o.texCoord = texCoord;
   o.color = m_ubo.color;
+  o.normal = normal;
+  // (void)normal;
   return o;
 }

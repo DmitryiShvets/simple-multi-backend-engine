@@ -26,8 +26,7 @@ struct VSOutput {
 
 [shader("vertex")]
 VSOutput main(float3 position : POSITION0,
-              float3 normal : NORMAL1,
-              float2 texCoord : TEXCOORD2) {
+              float3 normal : NORMAL1) {
   VSOutput o;
   float4 world_pos = mul(push.model_mat, float4(position, 1.0));
   o.position = mul(g_ubo.view_projection, world_pos);
