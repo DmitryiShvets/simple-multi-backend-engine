@@ -78,7 +78,7 @@ void OpenGLCommandList::setPushConstant(RID pipeline_rid,
   auto *program = m_storage.get<ShaderProgram>(pipeline_rid);
   if (!program)
     return;
-  program->setUniform(value);
+  program->setPushConstant(value, offset);
 }
 
 // --- Drawing ---

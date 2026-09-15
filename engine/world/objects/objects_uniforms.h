@@ -74,6 +74,7 @@ public:
 
   const std::set<std::string> supported_uniforms = {
       "u_model_mat",
+      "model_mat",
       "u_normal_mat",
       "u_test_value",
   };

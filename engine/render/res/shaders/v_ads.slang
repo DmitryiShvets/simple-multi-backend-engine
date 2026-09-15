@@ -10,12 +10,14 @@ struct ObjectUBO {
   float3x3 u_normal_mat;
 };
 struct MaterialUBO { float3 color; };
-struct Push { float4x4 model_mat; };
+struct Push {
+    float4x4 model_mat;
+};
 
-[[vk::binding(0, 0)]] ConstantBuffer<GlobalUBO>   g_ubo    : register(b0, space0);
-[[vk::binding(0, 1)]] ConstantBuffer<ObjectUBO>   o_ubo    : register(b0, space1);
-[[vk::binding(0, 2)]] ConstantBuffer<MaterialUBO> m_ubo    : register(b0, space2);
-[[vk::push_constant]] ConstantBuffer<Push> model_mat : register(b0, space3);
+ConstantBuffer<GlobalUBO>   g_ubo    : register(b0, space0);
+ConstantBuffer<ObjectUBO>   o_ubo    : register(b0, space1);
+ConstantBuffer<MaterialUBO> m_ubo    : register(b0, space2);
+[[vk::push_constant]] ConstantBuffer<Push> push : register(b0, space3);
 
 struct VSOutput {
   float4 position : SV_POSITION;
@@ -27,7 +29,7 @@ VSOutput main(float3 position : POSITION0,
               float3 normal : NORMAL1,
               float2 texCoord : TEXCOORD2) {
   VSOutput o;
-  float4 world_pos = mul(model_mat.model_mat, float4(position, 1.0));
+  float4 world_pos = mul(push.model_mat, float4(position, 1.0));
   o.position = mul(g_ubo.view_projection, world_pos);
   float3 t_norm = normalize(mul(o_ubo.u_normal_mat, normal));
   float3 light_dir = normalize(g_ubo.light_position - world_pos.xyz);

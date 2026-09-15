@@ -1,6 +1,8 @@
 #include "opengl_shader_program.h"
 #include "core/resource_types.h"
 #include "opengl_shader_module.h"
+#include "core/glsl_layout.h"
+#include "core/uniform_value.h"
 
 #include <glm/gtc/type_ptr.hpp>
 #include <iostream>
@@ -38,29 +40,66 @@ void ShaderProgram::use() { glUseProgram(hProgram); }
 
 void ShaderProgram::unbind() { glUseProgram(0); }
 
+// ShaderProgram::~ShaderProgram() {
+//   glDeleteProgram(hProgram);
+//   hProgram = 0;
+// }
 ShaderProgram::~ShaderProgram() {
+  if (m_push_ubo != 0)
+    glDeleteBuffers(1, &m_push_ubo);
   glDeleteProgram(hProgram);
   hProgram = 0;
 }
 
+// ShaderProgram &ShaderProgram::operator=(ShaderProgram &&program) noexcept {
+//   if (this != &program) {
+//     glDeleteProgram(hProgram);
+//     hProgram = program.hProgram;
+//     compiled = program.compiled;
+
+//     program.hProgram = 0;
+//     program.compiled = false;
+//   }
+//   return *this;
+// }
+
 ShaderProgram &ShaderProgram::operator=(ShaderProgram &&program) noexcept {
   if (this != &program) {
+    if (m_push_ubo != 0)
+      glDeleteBuffers(1, &m_push_ubo);
     glDeleteProgram(hProgram);
     hProgram = program.hProgram;
     compiled = program.compiled;
+    m_push_ubo = program.m_push_ubo;
+    m_push_size = program.m_push_size;
 
     program.hProgram = 0;
     program.compiled = false;
+    program.m_push_ubo = 0;
+    program.m_push_size = 0;
   }
   return *this;
 }
 
+
+// ShaderProgram::ShaderProgram(ShaderProgram &&program) noexcept {
+//   hProgram = program.hProgram;
+//   compiled = program.compiled;
+
+//   program.hProgram = 0;
+//   program.compiled = false;
+// }
+
 ShaderProgram::ShaderProgram(ShaderProgram &&program) noexcept {
   hProgram = program.hProgram;
   compiled = program.compiled;
+  m_push_ubo = program.m_push_ubo;
+  m_push_size = program.m_push_size;
 
   program.hProgram = 0;
   program.compiled = false;
+  program.m_push_ubo = 0;
+  program.m_push_size = 0;
 }
 
 GLuint &ShaderProgram::getUintProgram() { return hProgram; }
@@ -110,6 +149,26 @@ void ShaderProgram::setUniform(const std::string &uniformName, float value) {
 
 void ShaderProgram::setUniform(const std::string &uniformName, int value) {
   glUniform1i(glGetUniformLocation(hProgram, uniformName.c_str()), value);
+}
+
+void ShaderProgram::setPushConstant(const UniformValue &value,
+                                    uint32_t offset) {
+  const size_t needed = offset + value.size();
+  if (m_push_ubo == 0)
+    glGenBuffers(1, &m_push_ubo);
+
+  if (needed > m_push_size) {
+    m_push_size = static_cast<uint32_t>(needed);
+    glBindBuffer(GL_UNIFORM_BUFFER, m_push_ubo);
+    glBufferData(GL_UNIFORM_BUFFER, m_push_size, nullptr, GL_DYNAMIC_DRAW);
+    glBindBuffer(GL_UNIFORM_BUFFER, 0);
+  }
+
+  glBindBuffer(GL_UNIFORM_BUFFER, m_push_ubo);
+  glBufferSubData(GL_UNIFORM_BUFFER, static_cast<GLintptr>(offset),
+                  static_cast<GLsizeiptr>(value.size()), value.data());
+  glBindBufferBase(GL_UNIFORM_BUFFER, kOpenglPushBinding, m_push_ubo);
+  glBindBuffer(GL_UNIFORM_BUFFER, 0);
 }
 
 } // namespace ssme::opengl

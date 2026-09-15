@@ -36,6 +36,15 @@ void ObjectUniformRegistry::registerCommonGetters() {
                                      float test_val = 777.0f;
                                      return UniformValue(test_val);
                                    });
+  // =========================================================================
+  // Push constants
+  // =========================================================================
+  ObjectUniformRegistry::addGetter(
+      "model_mat", [](Entity &entity) -> UniformValue {
+        glm::mat4 model_mat =
+            entity.get<TransformComponent>()->getModelMatrix();
+        return UniformValue(model_mat);
+      });
 }
 
 void ObjectUniformsPacker::fillUniformSet(const Entity &ent, UniformSet &u_set,

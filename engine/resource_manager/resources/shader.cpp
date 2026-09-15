@@ -93,6 +93,10 @@ ShaderModule::getVertexInputRequirements() const {
   return m_vertex_requirements;
 }
 
+const std::map<std::string, PushConstantRange> &ShaderModule::getPushConstantsMap() {
+  return m_push_constants;
+}
+
 std::shared_ptr<UniformLayout> ShaderModule::getLayout(const std::string &block_name) const {
     std::shared_ptr<UniformLayout> layout = nullptr;
 

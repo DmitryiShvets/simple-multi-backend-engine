@@ -83,6 +83,10 @@ struct RenderItem {
    */
   UniformMap push_constants;
 
+  /// Byte offset of every push-constant entry inside its push block
+  /// (taken from shader reflection; shared by all backends).
+  std::unordered_map<std::string, uint32_t> push_constants_offsets;
+
   // ========================================================================
   // Pipeline
   // ========================================================================

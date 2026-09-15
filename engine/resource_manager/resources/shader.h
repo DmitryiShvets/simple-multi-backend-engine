@@ -36,6 +36,7 @@ public:
   RID getModuleId() const { return m_module_rid; }
   std::vector<RID> getDescriptorLayouts() const;
   std::vector<PushConstantRange> getPushConstants() const;
+  const std::map<std::string, PushConstantRange> &getPushConstantsMap();
   std::vector<VertexInputRequirement> getVertexInputRequirements() const;
   UniformSet createUniformSet(const std::string &block_name) const;
   bool containsUniformBlock(const std::string &block_name);

@@ -24,7 +24,7 @@ public:
   GLuint getHandle() const { return m_shader_module; }
 
 private:
-  GLuint createShader(const char *source, const GLenum type);
+  GLuint createShader(const char *source, GLint length, const GLenum type);
 
   GLuint m_shader_module;
 };

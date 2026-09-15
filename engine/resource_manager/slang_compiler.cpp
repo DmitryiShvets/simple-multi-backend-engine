@@ -1,4 +1,5 @@
 #include "slang_compiler.h"
+#include "core/glsl_layout.h"
 
 #include <algorithm>
 #include <map>
@@ -14,6 +15,93 @@
 
 #include "core/uniform_layout.h"
 #include "utils/debug_assert.h"
+
+namespace {
+
+constexpr std::string_view kPushConstantLayout = "layout(push_constant)";
+constexpr std::string_view kStd430 = "layout(std430)";
+constexpr std::string_view kStd140 = "layout(std140)";
+constexpr std::string_view kBindingLayout = "layout(binding = ";
+
+uint32_t parseDecimal(std::string_view s) {
+  uint32_t value = 0;
+  for (char c : s) {
+    if (c < '0' || c > '9')
+      break;
+    value = value * 10 + static_cast<uint32_t>(c - '0');
+  }
+  return value;
+}
+
+// Rewrites "layout(binding = B, set = S)" into "layout(binding = B + S*16)".
+bool flattenLayoutSet(std::string &text, size_t pos) {
+  const size_t layout_end = text.find(')', pos);
+  if (layout_end == std::string::npos)
+    return false;
+
+  const std::string_view inner(text.data() + pos, layout_end - pos);
+
+  constexpr std::string_view kBinding = "binding = ";
+  constexpr std::string_view kSet = ", set = ";
+
+  const size_t binding_pos = inner.find(kBinding);
+  const size_t set_pos = inner.find(kSet);
+  if (binding_pos == std::string::npos || set_pos == std::string::npos)
+    return false;
+
+  const uint32_t binding =
+      parseDecimal(inner.substr(binding_pos + kBinding.size(),
+                                set_pos - binding_pos - kBinding.size()));
+  const uint32_t set = parseDecimal(inner.substr(set_pos + kSet.size()));
+
+  const std::string replacement =
+      "layout(binding = " +
+      std::to_string(binding + set * ssme::kOpenglSetStride);
+  text.replace(pos, layout_end - pos, replacement);
+  return true;
+}
+
+// Converts Slang's Vulkan-dialect GLSL into desktop GLSL:
+//  1) layout(push_constant) layout(std430) uniform ...  →
+//     layout(binding = 31) layout(std140) uniform ...
+//  2) layout(binding = B, set = S) uniform ...           →
+//     layout(binding = B + S*16) uniform ...
+void patchGlslForDesktop(std::vector<char> &glsl_bytes) {
+  std::string text(glsl_bytes.begin(), glsl_bytes.end());
+
+  // Push-constant block -> plain UBO at the reserved binding.
+  {
+    const std::string multi_line =
+        std::string(kPushConstantLayout) + '\n' + std::string(kStd430);
+    const std::string single_line =
+        std::string(kPushConstantLayout) + ' ' + std::string(kStd430);
+    const std::string replacement =
+        "layout(binding = " + std::to_string(ssme::kOpenglPushBinding) + ")\n" +
+        std::string(kStd140);
+
+    for (const auto &pair : {multi_line, single_line}) {
+      size_t pos = 0;
+      while ((pos = text.find(pair, pos)) != std::string::npos) {
+        text.replace(pos, pair.size(), replacement);
+        pos += replacement.size();
+      }
+    }
+  }
+
+  // Flatten descriptor bindings: drop ", set = S", recompute binding.
+  {
+    size_t pos = 0;
+    while ((pos = text.find(kBindingLayout, pos)) != std::string::npos) {
+      flattenLayoutSet(text, pos);
+      pos += kBindingLayout.size();
+    }
+  }
+
+  glsl_bytes.assign(text.begin(), text.end());
+}
+
+} // namespace
+
 
 namespace ssme {
 
@@ -180,6 +268,9 @@ bool SlangCompiler::compile(ShaderStage stage, const std::string &name,
       break;
     }
   }
+  // Desktop GL consumes GLSL text: flatten bindings to a single GL binding
+  // space and turn the push-constant block into a plain UBO block.
+  patchGlslForDesktop(out.code.glsl);
 
   // getLayout() is valid while `linked` stays alive; do reflection before it is
   // released.
