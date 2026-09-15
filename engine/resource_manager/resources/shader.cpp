@@ -60,8 +60,8 @@ bool ShaderModule::doLoad() {
 bool ShaderModule::doUnload() {
   for (auto &rd : m_devices) {
     rd.get().destroyBuffer(m_module_rid);
-    for (int i = 0; i < m_descriptor_set_count; i++) {
-      rd.get().destroyDescriptorLayout(m_ds_layout_ids[i]);
+    for (auto &[key, rid] : m_ds_layout_ids) {
+        rd.get().destroyDescriptorLayout(rid);
     }
   }
 

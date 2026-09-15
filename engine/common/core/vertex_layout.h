@@ -38,18 +38,20 @@ public:
         Format format;          ///< Data format (R32G32B32_SFLOAT, etc.)
         uint32_t offset;        ///< Offset in bytes from start of vertex buffer
         std::string name;       ///< Attribute name (for debugging/validation)
+        std::string semantic;   ///< Attribute semantic
 
         bool operator==(const Attribute& other) const {
             return binding == other.binding &&
                    location == other.location &&
                    format == other.format &&
                    offset == other.offset &&
-                   name == other.name;
+                   name == other.name &&
+                   semantic == other.semantic;
         }
 
         std::size_t hash() const {
             std::size_t h = 0;
-            hash_combine(h, binding, location, static_cast<uint32_t>(format), offset);
+            hash_combine(h, binding, location, static_cast<uint32_t>(format), offset, semantic);
             return h;
         }
     };
@@ -119,9 +121,9 @@ public:
      * @param name Attribute name (for debugging)
      */
     VertexLayout& addAttribute(uint32_t binding, uint32_t location,
-                                Format format, uint32_t offset,
+                                Format format, uint32_t offset, const std::string& semantic,
                                 const std::string& name = "") {
-        m_attributes.push_back({binding, location, format, offset, name});
+        m_attributes.push_back({binding, location, format, offset, name, semantic});
         return *this;
     }
 
@@ -129,28 +131,28 @@ public:
      * @brief Add position attribute (vec3)
      */
     VertexLayout& addPosition(uint32_t binding, uint32_t location, uint32_t offset) {
-        return addAttribute(binding, location, Format::R32G32B32_SFLOAT, offset, "position");
+        return addAttribute(binding, location, Format::R32G32B32_SFLOAT, offset, "POSITION", "position");
     }
 
     /**
      * @brief Add normal attribute (vec3)
      */
     VertexLayout& addNormal(uint32_t binding, uint32_t location, uint32_t offset) {
-        return addAttribute(binding, location, Format::R32G32B32_SFLOAT, offset, "normal");
+        return addAttribute(binding, location, Format::R32G32B32_SFLOAT, offset, "NORMAL", "normal");
     }
 
     /**
      * @brief Add texture coordinate attribute (vec2)
      */
     VertexLayout& addTexCoord(uint32_t binding, uint32_t location, uint32_t offset) {
-        return addAttribute(binding, location, Format::R32G32_SFLOAT, offset, "tex_coord");
+        return addAttribute(binding, location, Format::R32G32_SFLOAT, offset, "TEXCOORD", "tex_coord");
     }
 
     /**
      * @brief Add color attribute (vec4)
      */
     VertexLayout& addColor(uint32_t binding, uint32_t location, uint32_t offset) {
-        return addAttribute(binding, location, Format::R32G32B32_SFLOAT, offset, "color");
+        return addAttribute(binding, location, Format::R32G32B32_SFLOAT, offset, "COLOR" ,"color");
     }
 
     // ========================================================================

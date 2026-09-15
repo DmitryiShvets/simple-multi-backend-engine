@@ -27,18 +27,40 @@ bool SlangCompiler::init() {
     return false;
   }
 
+  slang::CompilerOptionEntry vk_macro_entry{};
+  vk_macro_entry.name = slang::CompilerOptionName::MacroDefine;
+  vk_macro_entry.value.kind = slang::CompilerOptionValueKind::String;
+  vk_macro_entry.value.stringValue0 = "TARGET_VULKAN";
+  vk_macro_entry.value.stringValue1 = "1";
+
+  slang::CompilerOptionEntry gl_macro_entry{};
+  gl_macro_entry.name = slang::CompilerOptionName::MacroDefine;
+  gl_macro_entry.value.kind = slang::CompilerOptionValueKind::String;
+  gl_macro_entry.value.stringValue0 = "TARGET_GLSL";
+  gl_macro_entry.value.stringValue1 = "1";
+
+  slang::CompilerOptionEntry dx_macro_entry{};
+  dx_macro_entry.name = slang::CompilerOptionName::MacroDefine;
+  dx_macro_entry.value.kind = slang::CompilerOptionValueKind::String;
+  dx_macro_entry.value.stringValue0 = "TARGET_DIRECTX";
+  dx_macro_entry.value.stringValue1 = "1";
+
   slang::TargetDesc targets[3];
   int t = 0;
 
   targets[t] = {};
   targets[t].format = SLANG_SPIRV;
   targets[t].profile = m_global_session->findProfile("spirv_1_5");
+  targets[t].compilerOptionEntries = &vk_macro_entry;
+  targets[t].compilerOptionEntryCount = 1;
   m_target_formats[t] = SLANG_SPIRV;
   ++t;
 
   targets[t] = {};
   targets[t].format = SLANG_GLSL;
   targets[t].profile = m_global_session->findProfile("glsl_450");
+  targets[t].compilerOptionEntries = &gl_macro_entry;
+  targets[t].compilerOptionEntryCount = 1;
   m_target_formats[t] = SLANG_GLSL;
   ++t;
 
@@ -46,6 +68,8 @@ bool SlangCompiler::init() {
     targets[t] = {};
     targets[t].format = SLANG_DXIL;
     targets[t].profile = m_global_session->findProfile("sm_6_0");
+    targets[t].compilerOptionEntries = &dx_macro_entry;
+    targets[t].compilerOptionEntryCount = 1;
     m_target_formats[t] = SLANG_DXIL;
     ++t;
   }
@@ -66,8 +90,8 @@ bool SlangCompiler::init() {
   desc.targets = targets;
   desc.targetCount = m_target_count;
   desc.defaultMatrixLayoutMode = SLANG_MATRIX_LAYOUT_COLUMN_MAJOR;
-  desc.compilerOptionEntries = &opt_entry;   // <-- новое
-  desc.compilerOptionEntryCount = 1;          // <-- новое
+  desc.compilerOptionEntries = &opt_entry;
+  desc.compilerOptionEntryCount = 1;
   desc.searchPaths = search_paths;
   desc.searchPathCount = 2;
 
@@ -320,7 +344,12 @@ bool SlangCompiler::buildReflection(slang::IComponentType *program,
       b.binding = static_cast<uint32_t>(
           var->getOffset(slang::ParameterCategory::DescriptorTableSlot));
       b.name = name;
-      b.type = DescriptorType::SAMPLED_IMAGE;
+      slang::TypeReflection *type = tl->getType();
+      b.type = (type && (type->getResourceShape() &
+                         SLANG_TEXTURE_COMBINED_FLAG))
+                   ? DescriptorType::COMBINED_IMAGE_SAMPLER
+                   : DescriptorType::SAMPLED_IMAGE;
+      // b.type = DescriptorType::SAMPLED_IMAGE;
       pending.push_back(b);
       texture_binding_index[{b.set, b.binding}] = pending.size() - 1;
       continue;
@@ -363,8 +392,9 @@ bool SlangCompiler::buildReflection(slang::IComponentType *program,
     dsl.count = 1;
     dsl.stages = stage_bits;
     refl.ds_layouts[p.set].bindings.push_back(std::move(dsl));
-    refl.descriptor_set_count = std::max(refl.descriptor_set_count, p.set + 1);
+    // refl.descriptor_set_count = std::max(refl.descriptor_set_count, p.set + 1);
   }
+  refl.descriptor_set_count = static_cast<uint32_t>(refl.ds_layouts.size());
   refl.required_components = refl.descriptor_set_count + 1;
 
   return true;
@@ -492,7 +522,11 @@ SlangCompiler::toUniformType(slang::TypeLayoutReflection *typeLayout) {
     }
   }
   if (kind == slang::TypeReflection::Kind::Matrix) {
-    return UniformValue::Type::Mat4; // current shaders use float4x4 only
+    switch (type->getColumnCount()) {
+    case 2: return UniformValue::Type::Mat2;
+    case 3: return UniformValue::Type::Mat3;
+    default: return UniformValue::Type::Mat4;
+    }
   }
   return UniformValue::Type::Float;
 }

@@ -59,3 +59,7 @@ endif()
 
 file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/res/shaders
           DESTINATION ${CMAKE_SOURCE_DIR}/build/bin/res)
+file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/res/materials
+          DESTINATION ${CMAKE_SOURCE_DIR}/build/bin/res)
+file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/res/textures
+          DESTINATION ${CMAKE_SOURCE_DIR}/build/bin/res)

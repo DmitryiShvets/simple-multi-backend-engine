@@ -7,17 +7,12 @@ struct GlobalUBO {
 };
 struct ObjectUBO { float u_test_value; };
 struct MaterialUBO { float3 color; };
-
-[[vk::binding(0, 0)]]
-ConstantBuffer<GlobalUBO> g_ubo;
-[[vk::binding(0, 1)]]
-ConstantBuffer<ObjectUBO> o_ubo;
-[[vk::binding(0, 2)]]
-ConstantBuffer<MaterialUBO> m_ubo;
-
 struct Push { float4x4 model_mat; };
-[[vk::push_constant]]
-ConstantBuffer<Push> model_mat;
+
+[[vk::binding(0, 0)]] ConstantBuffer<GlobalUBO>   g_ubo    : register(b0, space0);
+[[vk::binding(0, 1)]] ConstantBuffer<ObjectUBO>   o_ubo    : register(b0, space1);
+[[vk::binding(0, 2)]] ConstantBuffer<MaterialUBO> m_ubo    : register(b0, space2);
+[[vk::push_constant]] ConstantBuffer<Push> model_mat : register(b0, space3);
 
 struct VSOutput {
   float4 position : SV_POSITION;
