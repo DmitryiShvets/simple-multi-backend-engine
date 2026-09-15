@@ -3,6 +3,7 @@
 #include "utils/hash_utils.h"
 #include "utils/debug_assert.h"
 #include <vector>
+#include <algorithm>
 #include <string>
 #include <cstdint>
 
