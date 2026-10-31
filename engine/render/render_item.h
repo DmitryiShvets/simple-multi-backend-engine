@@ -45,7 +45,8 @@ struct RenderItem {
   // ========================================================================
   EntityID ent;
   DrawCommand draw_cmd;
-
+  bool cast_shadows = true;
+  bool receives_shadows = false;
   // ========================================================================
   // Geometry
   // ========================================================================
@@ -93,7 +94,7 @@ struct RenderItem {
 
   /// Graphics pipeline RID (from material template)
   RID pipeline = RID::INVALID;
-
+  RID shadow_pipeline = RID::INVALID;
   // ========================================================================
   // Helper Methods
   // ========================================================================

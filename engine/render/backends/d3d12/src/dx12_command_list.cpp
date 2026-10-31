@@ -191,27 +191,36 @@ void Dx12CommandList::pipelineBarrier(const BarrierInfo &barrier) {
 
 // --- Render Pass Management ---
 void Dx12CommandList::beginRendering(const RenderingInfo &info) {
-  if (info.color_attachments.empty())
-    return;
-  auto *texture = m_storage.get<Dx12Texture>(info.color_attachments[0].texture);
-  if (!texture)
-    return;
-  auto rtvHandle = texture->getRtvHandle();
+  const bool has_color = !info.color_attachments.empty();
+  const bool has_depth = info.depth_attachment.texture.isValid();
 
+  if (!has_color && !has_depth)
+    return;
+
+  D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle = {};
   D3D12_CPU_DESCRIPTOR_HANDLE dsvHandle = {};
-  bool has_depth = false;
-  if (info.depth_attachment.texture.isValid()) {
-    auto *depth = m_storage.get<Dx12Texture>(info.depth_attachment.texture);
-    if (depth) {
-      dsvHandle = depth->getDsvHandle();
-      has_depth = true;
-    }
+
+  if (has_color) {
+    auto *texture =
+        m_storage.get<Dx12Texture>(info.color_attachments[0].texture);
+    if (!texture)
+      return;
+    rtvHandle = texture->getRtvHandle();
   }
 
-  m_command_buffer->OMSetRenderTargets(1, &rtvHandle, FALSE,
-                                       has_depth ? &dsvHandle : nullptr);
+  if (has_depth) {
+    auto *depth =
+        m_storage.get<Dx12Texture>(info.depth_attachment.texture);
+    if (!depth)
+      return;
+    dsvHandle = depth->getDsvHandle();
+  }
 
-  if (info.color_attachments[0].load_op == LoadOp::CLEAR) {
+  m_command_buffer->OMSetRenderTargets(
+      has_color ? 1 : 0, has_color ? &rtvHandle : nullptr, FALSE,
+      has_depth ? &dsvHandle : nullptr);
+
+  if (has_color && info.color_attachments[0].load_op == LoadOp::CLEAR) {
     float c[4] = {
         info.color_attachments[0].clear_value.r,
         info.color_attachments[0].clear_value.g,
@@ -221,9 +230,9 @@ void Dx12CommandList::beginRendering(const RenderingInfo &info) {
     m_command_buffer->ClearRenderTargetView(rtvHandle, c, 0, nullptr);
   }
   if (has_depth && info.depth_attachment.load_op == LoadOp::CLEAR) {
-    m_command_buffer->ClearDepthStencilView(dsvHandle, D3D12_CLEAR_FLAG_DEPTH,
-                                            info.depth_attachment.clear_value,
-                                            0, 0, nullptr);
+    m_command_buffer->ClearDepthStencilView(
+        dsvHandle, D3D12_CLEAR_FLAG_DEPTH,
+        info.depth_attachment.clear_value, 0, 0, nullptr);
   }
 }
 

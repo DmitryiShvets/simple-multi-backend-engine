@@ -382,19 +382,22 @@ RID VulkanRenderDevice::createGraphicsPipeline(const GraphicsPipelineDesc &desc,
         {attr.location, attr.binding, toVkFormat(attr.format), attr.offset});
   }
 
-  // TODO: Get swapchain format properly
-  std::vector<vk::Format> color_formats = {vk::Format::eB8G8R8A8Srgb};
+  std::vector<vk::Format> color_formats;
+  if (desc.color_attachment_count > 0) {
+    color_formats.push_back(toVkFormat(desc.color_attachment_format));
+  }
 
   PipelineConfigInfo::Builder pipeline_config_builder;
   pipeline_config_builder.setPipelineLayout(vk_pipeline_layout)
       .setVertexInputInfo(binding_descriptions, attribute_descriptions)
       .setColorAttachmentFormats(color_formats)
+      .setDepthAttachmentFormat(toVkFormat(desc.depth_attachment_format))
       .setCullMode(vk::CullModeFlagBits::eBack)
       // .setCullMode(vk::CullModeFlagBits::eNone)
       .setFrontFace(vk::FrontFace::eCounterClockwise)
       // .setFrontFace(vk::FrontFace::eClockwise)
-      .enableDepthTest(true)
-      .enableDepthWrite(true);
+      .enableDepthTest(desc.depth_stencil_state.depthTestEnable)
+      .enableDepthWrite(desc.depth_stencil_state.depthWriteEnable);
 
   auto pipeline_config = pipeline_config_builder.build();
 
@@ -450,7 +453,8 @@ RID VulkanRenderDevice::createShaderModule(const ShaderModuleDesc &desc,
                                            RID id) {
   auto path = "res/shaders/" + desc.file_path + ".glsl.spv";
   // auto shader_module = std::make_unique<VulkanShaderModule>(m_device, path);
-  auto shader_module = std::make_unique<VulkanShaderModule>(m_device, desc.code.spirv);
+  auto shader_module =
+      std::make_unique<VulkanShaderModule>(m_device, desc.code.spirv);
   if (id.isNull()) {
     id = m_storage.add(std::move(shader_module));
   } else {

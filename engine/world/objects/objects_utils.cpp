@@ -60,4 +60,22 @@ Entity _createQuad(World &world, ResourceManager &rm, const std::string &name,
   return obj;
 }
 
+Entity _createPlane(World &world, ResourceManager &rm, const std::string &name,
+                    const glm::vec3 &pos, float size,
+                    const std::string &mat_name) {
+  Entity obj = world.createEntity(name);
+  obj.add<TransformComponent>(pos, glm::vec3{-90.0f, 0.0f, 0.0f},
+                              glm::vec3{size, size, 1.0f});
+
+  MeshDesc desc = GeometryGenerator::createQuad();
+  ResourceHandle mesh = rm.load<Mesh>("quad", desc);
+  ResourceHandle mat = rm.load<Material>(mat_name);
+
+  MaterialComponent mat_comp(mat);
+  MeshComponent mesh_comp(mesh);
+  world.addComponent(obj, std::move(mesh_comp));
+  world.addComponent(obj, std::move(mat_comp));
+  return obj;
+}
+
 } // namespace ssme

@@ -21,6 +21,8 @@ int main() {
     engine.createSphere("1", 0.5f, 32, 32, glm::vec3{0.0f, 0.0f, -1.0f}, "ads.json");
     engine.createSphere("2", 0.5f, 32, 32, glm::vec3{1.f, 0.0f, -1.0f}, "ads.json");
     engine.createSphere("3", 0.5f, 32, 32, glm::vec3{1.f, 1.0f, -1.0f}, "textured.json");
+    engine.createPlane("ground", glm::vec3{0.0f, -1.75f, -1.0f}, 10.0f,
+                       "ads_shadow.json");
     engine.createQuad("quad", glm::vec3{-1.f, -1.0f, -1.0f});
     engine.createTriangle("4", glm::vec3{-1.f, 1.0f, -1.0f});
     engine.run();

@@ -59,12 +59,20 @@ public:
   RenderDevice &getDevice(GpuBackend type);
   void waitIdleAll();
 
+  void ensureShadowDescriptor(RID shadow_texture);
+
 private:
   Platform *m_platform;
   ResourceManager *m_rm;
   TransientPool m_transient_pool;
   std::vector<std::unique_ptr<IRenderer>> m_renderers;
   std::shared_ptr<FrameData> m_frame_data = nullptr;
+
+  ResourceHandle<DescriptorSetLayout> m_shadow_ds_layout;
+  ResourceHandle<DescriptorSet> m_shadow_ds;
+  RID m_shadow_texture_rid = RID::INVALID;
+  RID m_shadow_ds_rid = RID::INVALID;
+
 };
 
 } // namespace ssme

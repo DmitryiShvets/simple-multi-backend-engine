@@ -70,10 +70,12 @@ public:
   }
   void onResolve(RenderGraph &graph) override {
     // у этого прохода нету зависимостей
+    m_shadow_map = graph.getResource("shadow_map");
   }
 
   void onBuild(RenderGraph &graph) override {
     graph.addPass("OpaqueScene")
+        .read(m_shadow_map, ResourceState::SHADER_READ)
         .write(m_scene_color)
         .write(m_scene_depth)
         .setExecuteCallback([this](CommandList &cmd) {
@@ -84,6 +86,7 @@ public:
 
 private:
   ResourceView m_scene_color, m_scene_depth;
+  ResourceView m_shadow_map;
 };
 
 class ImGuiSlot : public RenderSlot {
@@ -108,6 +111,39 @@ public:
 
 private:
   ResourceView m_scene_color;
+};
+
+class ShadowCastingSlot : public RenderSlot {
+public:
+  std::string_view name() const override { return "SHADOW_CASTING"; }
+
+  void onSetup(RenderGraph &graph) override {
+    ResourceDesc shadow_map_desc{
+        .width = 1024,
+        .height = 1024,
+        .format = ResourceFormat::D32F,
+    };
+    m_shadow_map = graph.addResource("shadow_map", shadow_map_desc);
+  }
+  void onResolve(RenderGraph &graph) override {
+    // у этого прохода нету зависимостей
+  }
+
+  void onBuild(RenderGraph &graph) override {
+    graph.addPass("ShadowCasting")
+        .write(m_shadow_map, ResourceState::DEPTH_ATTACHMENT)
+        .setLoadOp(LoadOp::CLEAR)
+        .setExecuteCallback([this](CommandList &cmd) {
+          if (m_draw)
+            m_draw(cmd);
+        });
+  }
+
+  ResourceView getShadowMap() const { return m_shadow_map; }
+
+
+private:
+  ResourceView m_shadow_map;
 };
 
 } // namespace ssme

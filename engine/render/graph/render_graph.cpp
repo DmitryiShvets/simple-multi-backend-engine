@@ -41,7 +41,7 @@ static Format ToFormat(ResourceFormat fmt) {
   case ResourceFormat::RGBA16F:
     return Format::R32G32B32A32_SFLOAT;
   case ResourceFormat::D32F:
-    return Format::R32_SFLOAT;
+    return Format::D32F;
   case ResourceFormat::R8:
     debug_assert(false, "R8 transient not supported yet");
     return Format::R32_SFLOAT;
@@ -50,8 +50,11 @@ static Format ToFormat(ResourceFormat fmt) {
 }
 
 static ImageUsage UsageFor(ResourceFormat fmt) {
-  if (fmt == ResourceFormat::D32F)
-    return ImageUsage::DEPTH_STENCIL;
+  if (fmt == ResourceFormat::D32F) {
+      constexpr uint32_t DT = static_cast<uint32_t>(ImageUsage::DEPTH_STENCIL) |
+                              static_cast<uint32_t>(ImageUsage::SHADER_READ);
+       return static_cast<ImageUsage>(DT);
+  }
   constexpr uint32_t RT = static_cast<uint32_t>(ImageUsage::COLOR_ATTACHMENT) |
                           static_cast<uint32_t>(ImageUsage::SHADER_READ) |
                           static_cast<uint32_t>(ImageUsage::TRANSFER_SRC);
@@ -514,13 +517,16 @@ void RenderGraph::execute(CommandList &cmd, const CompiledPlan &plan,
         info0.depth_attachment.texture.isValid();
     if (has_attachments) {
       RenderingInfo info = info0;
-      info.render_area = render_area;
+      Rect area = info.render_area;
+      if (area.width == 0 || area.height == 0)
+          area = render_area;
+      info.render_area = area;
       cmd.beginRendering(info);
       cmd.setViewport({.x = 0.0f, .y = 0.0f,
-                       .width = (float)render_area.width,
-                       .height = (float)render_area.height,
+                       .width = static_cast<float>(area.width),
+                       .height = static_cast<float>(area.height),
                        .minDepth = 0.0f, .maxDepth = 1.0f});
-      cmd.setScissor(render_area);
+      cmd.setScissor(area);
 
     }
     auto &cb = m_render_passes[passIdx]->getExecuteCallback();
@@ -623,6 +629,10 @@ RenderGraph::buildRenderingInfo(const PassNode &pass,
                                 : ImageLayout::COLOR_ATTACHMENT,
           .final_layout = ImageLayout::COLOR_ATTACHMENT,
       });
+    }
+    if (info.render_area.width == 0 || info.render_area.height == 0) {
+      const auto &desc = m_entries[v.index].desc;
+      info.render_area = {0, 0, desc.width, desc.height};
     }
   }
   return info;

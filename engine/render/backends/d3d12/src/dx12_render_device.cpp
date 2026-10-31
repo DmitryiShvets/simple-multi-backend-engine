@@ -285,11 +285,11 @@ RID Dx12RenderDevice::createGraphicsPipeline(const GraphicsPipelineDesc &desc,
   std::vector<D3D12_INPUT_ELEMENT_DESC> input_elements;
   for (auto &attr : desc.vertex_layout.getAttributes()) {
     input_elements.push_back({
-        .SemanticName = attr.semantic.data(),// SemanticName
-        .SemanticIndex = attr.location,      // SemanticIndex
-        .Format = toDxgiFormat(attr.format), // Format
-        .InputSlot = attr.binding,           // InputSlot
-        .AlignedByteOffset = attr.offset,    // AlignedByteOffset
+        .SemanticName = attr.semantic.data(), // SemanticName
+        .SemanticIndex = attr.location,       // SemanticIndex
+        .Format = toDxgiFormat(attr.format),  // Format
+        .InputSlot = attr.binding,            // InputSlot
+        .AlignedByteOffset = attr.offset,     // AlignedByteOffset
         .InputSlotClass = D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA,
         .InstanceDataStepRate = 0,
     });
@@ -304,9 +304,12 @@ RID Dx12RenderDevice::createGraphicsPipeline(const GraphicsPipelineDesc &desc,
   D3D12_RASTERIZER_DESC rasteraizer_desc =
       CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
   rasteraizer_desc.FrontCounterClockwise = TRUE;
-  DXGI_FORMAT rtv_format = desc.color_attachment_format == Format::R8G8B8A8_SRGB
-                               ? DXGI_FORMAT_R8G8B8A8_UNORM_SRGB
-                               : toDxgiFormat(desc.color_attachment_format);
+  DXGI_FORMAT rtv_format = DXGI_FORMAT_UNKNOWN;
+  if (desc.color_attachment_count > 0) {
+    rtv_format = desc.color_attachment_format == Format::R8G8B8A8_SRGB
+                     ? DXGI_FORMAT_R8G8B8A8_UNORM_SRGB
+                     : toDxgiFormat(desc.color_attachment_format);
+  }
   DXGI_FORMAT dsv_format = toDxgiFormat(desc.depth_attachment_format);
   // 5. Create the VulkanPipeLine object
   D3D12_GRAPHICS_PIPELINE_STATE_DESC pso_desc{
@@ -328,7 +331,7 @@ RID Dx12RenderDevice::createGraphicsPipeline(const GraphicsPipelineDesc &desc,
           },
       .InputLayout = {input_elements.data(), (UINT)input_elements.size()},
       .PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE,
-      .NumRenderTargets = 1,
+      .NumRenderTargets = desc.color_attachment_count,
       .RTVFormats = {rtv_format},
       .DSVFormat = dsv_format,
       .SampleDesc = {1, 0},
@@ -374,7 +377,8 @@ RID Dx12RenderDevice::containsGraphicsPipeline(std::size_t hash) {
 RID Dx12RenderDevice::createShaderModule(const ShaderModuleDesc &desc, RID id) {
   auto path = "res/shaders/" + desc.file_path + ".hlsl.cso";
   // auto shader_module = std::make_unique<Dx12ShaderModule>(m_device, path);
-  auto shader_module = std::make_unique<Dx12ShaderModule>(m_device, desc.code.dxil);
+  auto shader_module =
+      std::make_unique<Dx12ShaderModule>(m_device, desc.code.dxil);
   if (id.isNull()) {
     id = m_storage.add(std::move(shader_module));
   } else {

@@ -9,12 +9,11 @@
 #include <map>
 #include <string>
 
-
-// Material does not include pipeline.. these are different entities with different
-// goals. Material — is Data (parameters + textures). Pipeline — is State
-// (shader + GPU settings + vertex format). The same material (e.g.
-// "Red plastic") can be rendered by different pipelines (one for regular
-// meshes, another for instancing, third for shadows).
+// Material does not include pipeline.. these are different entities with
+// different goals. Material — is Data (parameters + textures). Pipeline — is
+// State (shader + GPU settings + vertex format). The same material (e.g. "Red
+// plastic") can be rendered by different pipelines (one for regular meshes,
+// another for instancing, third for shadows).
 
 /**
  * @brief Material resource
@@ -23,10 +22,12 @@
  * - Universality (Type Erasure): No AdsMaterial, WaterMaterial in engine code.
  *   Class works with any data set via UniformLayout.
  * - Binding: Material knows which Pipeline (shader + GPU settings) it needs.
- * - Data isolation: Parameters (color, gloss, transparency) stored in raw binary
- *   form, packed by std140 standard, so GPU can read them without intermediate conversions.
- * - Resource management: Material owns texture handles (ResourceHandle<Texture>),
- *   so textures won't be unloaded while material exists.
+ * - Data isolation: Parameters (color, gloss, transparency) stored in raw
+ * binary form, packed by std140 standard, so GPU can read them without
+ * intermediate conversions.
+ * - Resource management: Material owns texture handles
+ * (ResourceHandle<Texture>), so textures won't be unloaded while material
+ * exists.
  * - Single RID (Uniform Buffer): Each material instance creates its own small
  *   Uniform Buffer (or share in large pool) for storing unique settings.
  */
@@ -37,6 +38,8 @@ namespace ssme {
  * @brief Material params for creating a Material instance.
  */
 struct MaterialParams {
+  bool casts_shadows = true;
+  bool receives_shadows = false;
   ResourceHandle<ShaderModule> vert_shader;
   ResourceHandle<ShaderModule> frag_shader;
   // Named uniform blocks (e.g., "MaterialBlock", "LightingBlock")
@@ -62,7 +65,7 @@ public:
   bool doUnload() override;
 
   // Public API for Renderer
-  const VecRID & getDescriptors() const { return m_ubo_ds;}
+  const VecRID &getDescriptors() const { return m_ubo_ds; }
   std::map<std::string, RID> getTextures() const;
   RID getTextureDescriptor() const { return m_tex_ds; }
 
@@ -74,6 +77,9 @@ public:
    * @return UniformSet&
    */
   UniformSet &block(const std::string &block_name);
+
+  bool castsShadows() const { return m_casts_shadows; }
+  bool receivesShadows() const { return m_receives_shadows; }
 
 private:
   ResourceHandle<ShaderModule> m_vert_shader;
@@ -90,6 +96,8 @@ private:
 
   uint32_t m_requred_components = COMPONENTS;
 
+  bool m_casts_shadows = true;
+  bool m_receives_shadows = false;
 };
 
 } // namespace ssme

@@ -73,12 +73,27 @@ void RenderSystem::render(std::vector<SceneView> &scenes,
                            ->getDescriptorSetId();
 
     RenderGraph graph;
+    auto &shadow_cast = graph.addSlot<ShadowCastingSlot>();
+    shadow_cast.setDrawCallback(
+        [&r, &scenes, i, frame_ds_rid](CommandList &cmd) {
+          for (auto &src : scenes[i].opaque_objects) {
+            if (!src.cast_shadows || !src.shadow_pipeline.isValid())
+              continue;
+
+            RenderItem item = src;
+            item.pipeline = src.shadow_pipeline;
+            item.descriptor_sets = {frame_ds_rid};
+            r.draw(cmd, item);
+          }
+        });
     auto &opaque = graph.addSlot<MainOpaqueSlot>();
     opaque.setExtent(sw.extent);
     opaque.setDrawCallback(
-        [&r, &scenes, i, frame_ds_rid](CommandList &cmd) {
+        [&r, &scenes, i, frame_ds_rid, this](CommandList &cmd) {
           for (auto &obj : scenes[i].opaque_objects) {
             obj.setDescriptor(0, frame_ds_rid);
+            if (obj.receives_shadows && m_shadow_ds_rid.isValid())
+              obj.setDescriptor(3, m_shadow_ds_rid);
             r.draw(cmd, obj);
           }
         });
@@ -94,6 +109,8 @@ void RenderSystem::render(std::vector<SceneView> &scenes,
 
     graph.build();
     auto plan = graph.compile(&m_transient_pool);
+    RID shadow_texture = graph.ridOf(shadow_cast.getShadowMap());
+    ensureShadowDescriptor(shadow_texture);
     r.renderFrameGraph(graph, plan, scenes[i], ui_draw_data[i]);
   }
 }
@@ -181,6 +198,40 @@ void RenderSystem::createPerFrameResources() {
       m_renderers[i]->setFrameResources(m_frame_data);
     }
   }
+}
+
+void RenderSystem::ensureShadowDescriptor(RID shadow_texture) {
+  if (!shadow_texture.isValid())
+    return;
+
+  if (shadow_texture == m_shadow_texture_rid && m_shadow_ds_rid.isValid())
+    return;
+
+  DescriptorLayout layout;
+  layout.bindings.push_back({
+      .set = 3,
+      .binding = 0,
+      .name = "shadow_map",
+      .type_name = "Sampler2D",
+      .type = DescriptorType::COMBINED_IMAGE_SAMPLER,
+      .count = 1,
+      .stages = static_cast<uint32_t>(ShaderStage::FRAGMENT),
+  });
+
+  m_shadow_ds_layout =
+      m_rm->load<DescriptorSetLayout>(layout.uuid(), layout);
+
+  const std::string ds_uuid =
+      "shadow_ds_" + std::to_string(shadow_texture.id);
+
+  DescriptorDesc desc{
+      .layout_id = m_shadow_ds_layout.get()->getLayoutId(),
+      .sampled_images = std::vector<RID>{shadow_texture},
+  };
+
+  m_shadow_ds = m_rm->load<DescriptorSet>(ds_uuid, desc);
+  m_shadow_texture_rid = shadow_texture;
+  m_shadow_ds_rid = m_shadow_ds.get()->getDescriptorSetId();
 }
 
 } // namespace ssme

@@ -1,0 +1,11 @@
+{
+  "vertex_shader": "v_ads_shadow",
+  "fragment_shader": "f_ads_shadow",
+  "blocks": {
+    "MaterialUBO": {
+      "color": [0.75, 0.8, 1.0]
+    }
+  },
+  "cast_shadows": true,
+  "receives_shadows": true
+}
