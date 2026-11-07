@@ -202,12 +202,15 @@ void Dx12Renderer::updatePerFrameResources(const SceneView &view) {
   light_depth_remap[2][2] = 0.5f;
   light_depth_remap[3][2] = 0.5f;
 
-  glm::mat4 light_vp = light_depth_remap * (light_proj * light_view);
+
+  glm::mat4 light_proj_vk = light_depth_remap * light_proj;
+  glm::mat4 light_vp = light_proj_vk * light_view;
 
   Uniforms::FrameUniforms uniforms{};
   uniforms.view_projection = proj_mat * view_mat;
   uniforms.light_position = light_pos;
   uniforms.shadow_depth_scale = 1.0f;
+  uniforms.shadow_uv_scale = -1.0f;
   uniforms.light_view_projection = light_vp;
   uniforms.Kd =
       glm::vec3(1.0f, 1.0f, 1.0f); // Diffuse coefficient (white surface)

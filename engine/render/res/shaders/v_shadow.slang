@@ -3,6 +3,7 @@ struct GlobalUBO {
   float3 light_position;
   float shadow_depth_scale;
   float3 Kd;
+  float shadow_uv_scale;
   float3 Ld;
   float3 camera_position;
   float4x4 light_view_projection;

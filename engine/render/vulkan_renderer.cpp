@@ -292,6 +292,7 @@ void VulkanRenderer::updatePerFrameResources(const SceneView &view) {
   uniforms.view_projection = proj_mat * view_mat;
   uniforms.light_position = light_pos;
   uniforms.shadow_depth_scale = 1.0f;
+  uniforms.shadow_uv_scale = 1.0f;
   uniforms.light_view_projection = light_vp;
   uniforms.Kd =
       glm::vec3(1.0f, 1.0f, 1.0f); // Diffuse coefficient (white surface)

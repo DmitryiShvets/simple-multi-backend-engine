@@ -4,9 +4,11 @@
 float4 main(float4 position : SV_POSITION,
             float3 fragColor : COLOR0,
             float4 shadow_pos : TEXCOORD0,
-            float shadow_depth_scale : TEXCOORD1) : SV_TARGET0 {
+            float shadow_depth_scale : TEXCOORD1,
+            float shadow_uv_scale : TEXCOORD2
+) : SV_TARGET0 {
   float3 ndc = shadow_pos.xyz / shadow_pos.w;
-  float2 uv = ndc.xy * 0.5 + 0.5;
+  float2 uv = float2(ndc.x * 0.5 + 0.5,  0.5 + (ndc.y * 0.5) * shadow_uv_scale);
 
   float current_depth =
       ndc.z * shadow_depth_scale + (1.0 - shadow_depth_scale);

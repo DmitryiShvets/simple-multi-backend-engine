@@ -17,6 +17,7 @@ struct FrameUniforms {
   glm::vec3 light_position = glm::vec3(0.0f);
   float shadow_depth_scale = 1.0f;
   glm::vec3 Kd = glm::vec3(0.0f);
+  float shadow_uv_scale = 1.0f;
   glm::vec3 Ld = glm::vec3(0.0f);
   glm::vec3 camera_position = glm::vec3(0.0f);
   glm::mat4 light_view_projection = glm::mat4(1.0f);
@@ -30,7 +31,8 @@ struct alignas(16) FrameUniformsStd140 {
     // float _pad0;                 // 4 bytes padding
     float shadow_depth_scale = 1.0f;
     glm::vec3 Kd;       // 12 bytes
-    float _pad1;                 // 4 bytes padding
+    // float _pad1;                 // 4 bytes padding
+    float shadow_uv_scale = 1.0f;
     glm::vec3 Ld;       // 12 bytes
     float _pad2;                 // 4 bytes padding
     glm::vec3 camera_position;
@@ -40,7 +42,7 @@ struct alignas(16) FrameUniformsStd140 {
     FrameUniformsStd140()
         : view_projection(1.0f)
         , light_position(0.0f), shadow_depth_scale(1.0f)
-        , Kd(0.0f), _pad1(0.0f)
+        , Kd(0.0f), shadow_uv_scale(1.0f)
         , Ld(0.0f), _pad2(0.0f)
         , camera_position(1.0f),_pad3(0.0f)
         , light_view_projection(1.0f) {}
@@ -52,6 +54,7 @@ struct alignas(16) FrameUniformsStd140 {
         dst.light_position = src.light_position;
         dst.shadow_depth_scale = src.shadow_depth_scale;
         dst.Kd = src.Kd;
+        dst.shadow_uv_scale = src.shadow_uv_scale;
         dst.Ld = src.Ld;
         dst.camera_position = src.camera_position;
         dst.light_view_projection = src.light_view_projection;
@@ -65,6 +68,7 @@ struct alignas(16) FrameUniformsStd140 {
         dst.light_position = src.light_position;
         dst.shadow_depth_scale = src.shadow_depth_scale;
         dst.Kd = src.Kd;
+        dst.shadow_uv_scale = src.shadow_uv_scale;
         dst.Ld = src.Ld;
         dst.camera_position = src.camera_position;
         dst.light_view_projection = src.light_view_projection;

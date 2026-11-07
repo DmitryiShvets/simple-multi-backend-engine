@@ -3,6 +3,7 @@ struct GlobalUBO {
   float3 light_position;
   float shadow_depth_scale;
   float3 Kd;
+  float shadow_uv_scale;
   float3 Ld;
   float3 camera_position;
   float4x4 light_view_projection;
@@ -31,6 +32,7 @@ struct VSOutput {
   float3 color : COLOR0;
   float4 shadow_pos : TEXCOORD0;
   float shadow_depth_scale : TEXCOORD1;
+  float shadow_uv_scale : TEXCOORD2;
 };
 
 [shader("vertex")]
@@ -42,6 +44,7 @@ VSOutput main(float3 position : POSITION0,
   o.position = mul(g_ubo.view_projection, world_pos);
   o.shadow_pos = mul(g_ubo.light_view_projection, world_pos);
   o.shadow_depth_scale = g_ubo.shadow_depth_scale;
+  o.shadow_uv_scale = g_ubo.shadow_uv_scale;
 
   float3 t_norm = normalize(mul(o_ubo.u_normal_mat, normal));
   float3 light_dir = normalize(g_ubo.light_position - world_pos.xyz);
