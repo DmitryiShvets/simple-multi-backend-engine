@@ -139,11 +139,18 @@ void VulkanTexture::createRenderTargetImage(uint32_t width, uint32_t height,
                                             ImageUsage usage) {
   bool is_depth = (static_cast<uint32_t>(usage) &
                    static_cast<uint32_t>(ImageUsage::DEPTH_STENCIL)) != 0;
+  const bool wants_sampled =
+      (static_cast<uint32_t>(usage) &
+       static_cast<uint32_t>(ImageUsage::SHADER_READ)) != 0;
+
   vk::ImageUsageFlags image_usage =
       is_depth ? vk::ImageUsageFlagBits::eDepthStencilAttachment
                : (vk::ImageUsageFlagBits::eColorAttachment |
                   vk::ImageUsageFlagBits::eSampled |
                   vk::ImageUsageFlagBits::eTransferSrc);
+
+  if (wants_sampled)
+    image_usage |= vk::ImageUsageFlagBits::eSampled;
 
   vk::ImageCreateInfo create_info{
       .imageType = vk::ImageType::e2D,
@@ -167,6 +174,9 @@ void VulkanTexture::createRenderTargetImage(uint32_t width, uint32_t height,
   createTextureImageView(
       format, is_depth ? vk::ImageAspectFlagBits::eDepth
                        : vk::ImageAspectFlagBits::eColor);
+
+  if (wants_sampled)
+    createTextureSampler();
 
   m_device.transitionImageLayout(
       *m_owned_image.value(), format, vk::ImageLayout::eUndefined,

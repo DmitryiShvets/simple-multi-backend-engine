@@ -43,6 +43,9 @@ uint32_t Pipeline::doPrepare() {
   m_pl_desc.vert_shader_module = m_vert_shader.get()->getModuleId();
   m_pl_desc.frag_shader_module = m_frag_shader.get()->getModuleId();
   m_pl_desc.depth_stencil_state = m_params.depth_stencil_state;
+  m_pl_desc.color_attachment_count = m_params.color_attachment_count;
+  m_pl_desc.color_attachment_format = m_params.color_attachment_format;
+  m_pl_desc.depth_attachment_format = m_params.depth_attachment_format;
   // check if the same layout already exists;
   std::size_t layout_hash = m_pl_layout_desc.hash();
   RID hashed_layout = m_devices.at(0).get().containsPipelineLayout(layout_hash);
@@ -58,7 +61,7 @@ uint32_t Pipeline::doPrepare() {
     RID hashed_pipeline =
         m_devices.at(0).get().containsGraphicsPipeline(pipeline_hash);
     if (hashed_pipeline) {
-      m_pl_id = hashed_layout;
+      m_pl_id = hashed_pipeline;
       m_requred_components--;
       m_need_to_create_pl = false;
     }

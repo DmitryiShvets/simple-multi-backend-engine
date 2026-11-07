@@ -75,7 +75,8 @@ PipelineConfigInfo::Builder::Builder() {
   // this state can actually be changed without recreating the pipeline at draw
   // time
   m_config->dynamic_state_info = vk::PipelineDynamicStateCreateInfo{
-      .dynamicStateCount = static_cast<uint32_t>(m_config->dynamic_states.size()),
+      .dynamicStateCount =
+          static_cast<uint32_t>(m_config->dynamic_states.size()),
       .pDynamicStates = m_config->dynamic_states.data()};
 }
 // Default special members for PIMPL
@@ -98,6 +99,16 @@ PipelineConfigInfo::Builder &
 PipelineConfigInfo::Builder::setColorAttachmentFormats(
     const std::vector<vk::Format> &formats) {
   m_config->dynamic_color_attachment_formats = formats;
+  m_config->color_blend_info.attachmentCount =
+      static_cast<uint32_t>(formats.size());
+  m_config->color_blend_info.pAttachments =
+      formats.empty() ? nullptr : &m_config->color_blend_attachment;
+  return *this;
+}
+
+PipelineConfigInfo::Builder &
+PipelineConfigInfo::Builder::setDepthAttachmentFormat(vk::Format format) {
+  m_config->depth_attachment_format = format;
   return *this;
 }
 
@@ -191,10 +202,13 @@ void VulkanPipeLine::createGraphicsPipeline(
   vk::PipelineRenderingCreateInfo rendering_create_info{
       .colorAttachmentCount =
           static_cast<uint32_t>(config.dynamic_color_attachment_formats.size()),
-      .pColorAttachmentFormats = config.dynamic_color_attachment_formats.data(),
-      // TODO: Set depth/stencil formats here later if needed
-      .depthAttachmentFormat = vk::Format::eD32Sfloat,
-      .stencilAttachmentFormat = ::vk::Format::eUndefined};
+      .pColorAttachmentFormats =
+          config.dynamic_color_attachment_formats.empty()
+              ? nullptr
+              : config.dynamic_color_attachment_formats.data(),
+      .depthAttachmentFormat = config.depth_attachment_format,
+      .stencilAttachmentFormat = vk::Format::eUndefined,
+  };
 
   vk::GraphicsPipelineCreateInfo create_info{
       .pNext = &rendering_create_info,

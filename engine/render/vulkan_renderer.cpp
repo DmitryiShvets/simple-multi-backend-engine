@@ -254,28 +254,46 @@ void VulkanRenderer::updatePerFrameResources(const SceneView &view) {
   if (view.camera) {
     view_mat = view.camera->getView();
     proj_mat = view.camera->getProjection();
-    // OpenGL [-1,1] -> Vulkan [0,1] и Y-flip
-    glm::mat4 depth_remap(1.0f);
-    depth_remap[2][2] = 0.5f;  // масштаб z
-    depth_remap[3][2] = 0.5f;  // сдвиг z на +0.5w
-    proj_mat = depth_remap * proj_mat;
   } else {
     // Calculate view-projection matrix
     // Camera at (0, 0, 5) looking at (0, 0, 0), up is +Y
-    glm::mat4 view_mat = glm::lookAt(
+    view_mat = glm::lookAt(
         glm::vec3(0.0f + view.x, 0.0f, 5.0f + view.z), // Camera position
         glm::vec3(0.0f, 0.0f, 0.0f),                   // Look at target
         glm::vec3(0.0f, 1.0f, 0.0f)                    // Up direction
     );
-    glm::mat4 proj_mat = glm::perspective(
+    proj_mat = glm::perspective(
         glm::radians(45.0f), m_swap_chain->extentAspectRatio(), 0.1f, 100.0f);
   }
-    // Vulkan uses Y-down clip space, so we need to flip Y axis
+  // OpenGL [-1,1] -> Vulkan [0,1] и Y-flip
+  glm::mat4 depth_remap(1.0f);
+  depth_remap[2][2] = 0.5f;  // масштаб z
+  depth_remap[3][2] = 0.5f;  // сдвиг z на +0.5w
+  proj_mat = depth_remap * proj_mat;
+  // Vulkan uses Y-down clip space, so we need to flip Y axis
   proj_mat[1][1] *= -1.0f; // Flip Y for Vulkan
+
+  const glm::vec3 light_pos{4.0f, 6.0f, 3.0f};
+  const glm::mat4 light_view = glm::lookAt(
+      light_pos, glm::vec3(0.0f, 0.0f, -1.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+  glm::mat4 light_proj =
+      glm::ortho(-5.0f, 5.0f, -5.0f, 5.0f, 0.1f, 20.0f);
+
+  glm::mat4 light_depth_remap(1.0f);
+  light_depth_remap[2][2] = 0.5f;
+  light_depth_remap[3][2] = 0.5f;
+
+  glm::mat4 light_proj_vk = light_depth_remap * light_proj;
+  light_proj_vk[1][1] *= -1.0f;
+
+  glm::mat4 light_vp = light_proj_vk * light_view;
 
   Uniforms::FrameUniforms uniforms{};
   uniforms.view_projection = proj_mat * view_mat;
-  uniforms.light_position = glm::vec3(0.0f, 0.0f, 1.f);
+  uniforms.light_position = light_pos;
+  uniforms.shadow_depth_scale = 1.0f;
+  uniforms.shadow_uv_scale = 1.0f;
+  uniforms.light_view_projection = light_vp;
   uniforms.Kd =
       glm::vec3(1.0f, 1.0f, 1.0f); // Diffuse coefficient (white surface)
   uniforms.Ld = glm::vec3(1.0f, 1.0f, 1.0f); // Light intensity (white light)

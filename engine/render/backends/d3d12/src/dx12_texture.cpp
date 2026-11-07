@@ -119,6 +119,26 @@ Dx12Texture::Dx12Texture(Dx12Device &device, const TextureDesc &desc)
     dsv_desc.Format = DXGI_FORMAT_D32_FLOAT;
     dsv_desc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
     dx_device->CreateDepthStencilView(m_texture.Get(), &dsv_desc, m_dsv_handle);
+    if (hasFlag(desc.usage, ImageUsage::SHADER_READ)) {
+      D3D12_DESCRIPTOR_HEAP_DESC srv_heap_desc{};
+      srv_heap_desc.NumDescriptors = 1;
+      srv_heap_desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+      srv_heap_desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
+      DX::ThrowIfFailed(dx_device->CreateDescriptorHeap(
+          &srv_heap_desc, IID_PPV_ARGS(&m_srv_heap)));
+
+      m_srv_handle = m_srv_heap->GetCPUDescriptorHandleForHeapStart();
+
+      D3D12_SHADER_RESOURCE_VIEW_DESC srv_desc{};
+      srv_desc.Shader4ComponentMapping =
+          D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+      srv_desc.Format = DXGI_FORMAT_R32_FLOAT;
+      srv_desc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+      srv_desc.Texture2D.MipLevels = 1;
+
+      dx_device->CreateShaderResourceView(m_texture.Get(), &srv_desc,
+                                          m_srv_handle);
+    }
   } else {
     D3D12_DESCRIPTOR_HEAP_DESC heap_desc{};
     heap_desc.NumDescriptors = 1;

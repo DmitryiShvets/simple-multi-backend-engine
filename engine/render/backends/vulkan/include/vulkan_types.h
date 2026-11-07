@@ -97,6 +97,18 @@ getImageMemoryBarrierMasks(vk::ImageLayout old_layout,
     data.dst_mask = vk::AccessFlagBits2::eTransferRead;
     data.src_stages = vk::PipelineStageFlagBits2::eTopOfPipe;
     data.dst_stages = vk::PipelineStageFlagBits2::eTransfer;
+  } else if (old_layout == vk::ImageLayout::eDepthAttachmentOptimal &&
+             new_layout == vk::ImageLayout::eShaderReadOnlyOptimal) {
+    data.src_mask = vk::AccessFlagBits2::eDepthStencilAttachmentWrite;
+    data.dst_mask = vk::AccessFlagBits2::eShaderRead;
+    data.src_stages = vk::PipelineStageFlagBits2::eLateFragmentTests;
+    data.dst_stages = vk::PipelineStageFlagBits2::eFragmentShader;
+  } else if (old_layout == vk::ImageLayout::eShaderReadOnlyOptimal &&
+             new_layout == vk::ImageLayout::eDepthAttachmentOptimal) {
+    data.src_mask = vk::AccessFlagBits2::eShaderRead;
+    data.dst_mask = vk::AccessFlagBits2::eDepthStencilAttachmentWrite;
+    data.src_stages = vk::PipelineStageFlagBits2::eFragmentShader;
+    data.dst_stages = vk::PipelineStageFlagBits2::eEarlyFragmentTests;
   }
 
   else {

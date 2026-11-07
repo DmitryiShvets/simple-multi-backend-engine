@@ -19,5 +19,8 @@ Entity _createTriangle(World &world, ResourceManager &rm,
 Entity _createQuad(World &world, ResourceManager &rm, const std::string &name,
                    const glm::vec3 &pos);
 
+Entity _createPlane(World &world, ResourceManager &rm, const std::string &name,
+                    const glm::vec3 &pos, float size,
+                    const std::string &mat_name);
 
 } // namespace ssme

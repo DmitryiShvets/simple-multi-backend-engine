@@ -142,17 +142,27 @@ void OpenGLRenderer::updatePerFrameResources(const SceneView &view) {
     proj_mat = view.camera->getProjection();
   } else {
     // Camera at (0, 0, 5) looking at (0, 0, 0), up is +Y
-    glm::mat4 view_mat = glm::lookAt(
+    view_mat = glm::lookAt(
         glm::vec3(0.0f + view.x, 0.0f, 5.0f + view.z), // Camera position
         glm::vec3(0.0f, 0.0f, 0.0f),                   // Look at target
         glm::vec3(0.0f, 1.0f, 0.0f)                    // Up direction
     );
-    glm::mat4 proj_mat =
+    proj_mat =
         glm::perspective(glm::radians(45.0f), aspect_ratio, 0.1f, 100.0f);
   }
+
+  const glm::vec3 light_pos{4.0f, 6.0f, 3.0f};
+  const glm::mat4 light_view = glm::lookAt(
+      light_pos, glm::vec3(0.0f, 0.0f, -1.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+  const glm::mat4 light_proj =
+      glm::ortho(-5.0f, 5.0f, -5.0f, 5.0f, 0.1f, 20.0f);
+
   Uniforms::FrameUniforms uniforms{};
   uniforms.view_projection = proj_mat * view_mat;
-  uniforms.light_position = glm::vec3(0.0f, 0.0f, 1.0f);
+  uniforms.light_position = light_pos;
+  uniforms.shadow_depth_scale = 0.5f;
+  uniforms.shadow_uv_scale = 1.0f;
+  uniforms.light_view_projection = light_proj * light_view;
   uniforms.Kd =
       glm::vec3(1.0f, 1.0f, 1.0f); // Diffuse coefficient (white surface)
   uniforms.Ld = glm::vec3(1.0f, 1.0f, 1.0f); // Light intensity (white light)

@@ -13,6 +13,7 @@ struct RenderProxy {
   // 1. Identification (link to logic)
   EntityID entity_id;
   ResourceHandle<Pipeline> pipeline_ref;
+  ResourceHandle<Pipeline> shadow_pipeline_ref;
   ResourceHandle<UniformBuffer> obj_uniforms;
   ResourceHandle<DescriptorSet> obj_uniform_ds;
   ResourceHandle<DescriptorSetLayout> obj_uniform_ds_layout;

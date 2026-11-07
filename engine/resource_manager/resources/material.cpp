@@ -10,7 +10,9 @@ Material::Material(std::string uuid, const VecRefRD &devices,
       m_frag_shader(std::move(desc.frag_shader)),
       m_blocks_data(std::move(desc.blocks_data)),
       m_textures(std::move(desc.textures)),
-      m_uniforms(std::move(desc.uniforms)) {}
+      m_uniforms(std::move(desc.uniforms)),
+      m_casts_shadows(desc.casts_shadows),
+      m_receives_shadows(desc.receives_shadows) {}
 
 Material::~Material() {
   // doUnload();

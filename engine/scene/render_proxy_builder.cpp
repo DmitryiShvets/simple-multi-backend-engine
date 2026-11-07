@@ -44,6 +44,36 @@ void RenderProxyBuilder::buildProxy(Entity &entity) {
   proxy.pipeline_ref = m_rm.load<Pipeline>(pipeline_uuid, params);
   proxy.render_item.pipeline = proxy.pipeline_ref.get()->getPipelineID();
 
+  proxy.cast_shadows = mat_res->castsShadows();
+  proxy.render_item.cast_shadows = proxy.cast_shadows;
+  proxy.render_item.receives_shadows = mat_res->receivesShadows();
+
+  if (proxy.cast_shadows) {
+    auto shadow_vs = m_rm.load<ShaderModule>("v_shadow");
+    auto shadow_fs = m_rm.load<ShaderModule>("f_shadow");
+
+    PipelineParams shadow_params{
+        .vert_shader = shadow_vs,
+        .frag_Shader = shadow_fs,
+        .vertex_layout = mesh_res->getVertexLayout(),
+        .rasterization_state = RasterizationStateDesc{},
+        .depth_stencil_state =
+            DepthStencilStateDesc{
+                .depthTestEnable = true,
+                .depthWriteEnable = true,
+            },
+        .color_attachment_count = 0,
+        .color_attachment_format = Format::R8G8B8A8_SRGB,
+        .depth_attachment_format = Format::D32F,
+    };
+
+    proxy.shadow_pipeline_ref =
+        m_rm.load<Pipeline>(shadow_params.uuid(), shadow_params);
+
+    proxy.render_item.shadow_pipeline =
+        proxy.shadow_pipeline_ref.get()->getPipelineID();
+  }
+
   // TODO: compare it with vertex_layout
   auto req = vert_shader->getVertexInputRequirements();
   UniformSet object_ubo_data;

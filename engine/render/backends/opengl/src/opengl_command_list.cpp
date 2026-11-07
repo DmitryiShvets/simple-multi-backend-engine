@@ -126,18 +126,25 @@ void OpenGLCommandList::pipelineBarrier(const BarrierInfo &barrier) {
 void OpenGLCommandList::beginRendering(const RenderingInfo &info) {
   GLuint fbo = 0;
   if (!info.color_attachments.empty()) {
-    auto *tex = m_storage.get<OpenGLTexture>(info.color_attachments[0].texture);
+    auto *tex =
+        m_storage.get<OpenGLTexture>(info.color_attachments[0].texture);
+    if (tex)
+      fbo = tex->getFbo();
+  } else if (info.depth_attachment.texture.isValid()) {
+    auto *tex =
+        m_storage.get<OpenGLTexture>(info.depth_attachment.texture);
     if (tex)
       fbo = tex->getFbo();
   }
   glBindFramebuffer(GL_FRAMEBUFFER, fbo);
 
-  // GL требует depth и color в одном FBO — привязываем depth на лету
-  if (fbo != 0 && info.depth_attachment.texture.isValid()) {
-    auto *tex = m_storage.get<OpenGLTexture>(info.depth_attachment.texture);
+  if (!info.color_attachments.empty() &&
+      info.depth_attachment.texture.isValid()) {
+    auto *tex =
+        m_storage.get<OpenGLTexture>(info.depth_attachment.texture);
     if (tex)
-      glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D,
-                             tex->getTexture(), 0);
+      glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT,
+                             GL_TEXTURE_2D, tex->getTexture(), 0);
   }
 
   if (!info.color_attachments.empty()) {

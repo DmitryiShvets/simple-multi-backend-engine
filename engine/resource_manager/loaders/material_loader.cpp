@@ -78,6 +78,12 @@ bool MaterialLoader::load(const std::string &path, ResourceManager &rm,
     }
   }
 
+  if (data.contains("cast_shadows"))
+    params->casts_shadows = data["cast_shadows"].get<bool>();
+
+  if (data.contains("receives_shadows"))
+    params->receives_shadows = data["receives_shadows"].get<bool>();
+
   return true;
 }
 } // namespace ssme

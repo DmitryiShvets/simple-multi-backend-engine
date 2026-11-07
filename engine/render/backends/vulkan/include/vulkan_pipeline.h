@@ -20,6 +20,7 @@ public:
     // Fluent interface setters
     Builder &setPipelineLayout(vk::PipelineLayout layout);
     Builder &setColorAttachmentFormats(const std::vector<vk::Format> &formats);
+    Builder &setDepthAttachmentFormat(vk::Format format);
     Builder &setVertexInputInfo(
         const std::vector<vk::VertexInputBindingDescription> &binding_desc,
         const std::vector<vk::VertexInputAttributeDescription> &attrib_desc);
@@ -51,6 +52,7 @@ public:
   vk::PipelineColorBlendStateCreateInfo color_blend_info;
   vk::PipelineLayout pipeline_layout = nullptr;
   std::vector<vk::Format> dynamic_color_attachment_formats;
+  vk::Format depth_attachment_format = vk::Format::eD32Sfloat;
   std::vector<vk::DynamicState> dynamic_states;
 };
 

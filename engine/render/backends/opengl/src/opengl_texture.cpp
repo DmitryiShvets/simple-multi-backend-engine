@@ -145,6 +145,13 @@ OpenGLTexture::OpenGLTexture(const TextureDesc &desc)
     glBindFramebuffer(GL_FRAMEBUFFER, m_fbo);
     glFramebufferTexture2D(GL_FRAMEBUFFER, attachment, GL_TEXTURE_2D, m_texture,
                            0);
+    if (is_depth_attachment) {
+      glDrawBuffer(GL_NONE);
+      glReadBuffer(GL_NONE);
+    } else {
+      GLenum draw_buffer = GL_COLOR_ATTACHMENT0;
+      glDrawBuffers(1, &draw_buffer);
+    }
     bool complete =
         glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE;
     glBindFramebuffer(GL_FRAMEBUFFER, 0);

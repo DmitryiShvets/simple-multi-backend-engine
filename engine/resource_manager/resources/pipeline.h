@@ -19,14 +19,21 @@ struct PipelineParams {
   PrimitiveTopology primitive_topology = PrimitiveTopology::TRIANGLE_LIST;
   RasterizationStateDesc rasterization_state;
   DepthStencilStateDesc depth_stencil_state;
+  uint32_t color_attachment_count = 1;
+  Format color_attachment_format = Format::R8G8B8A8_SRGB;
+  Format depth_attachment_format = Format::D32F;
 
   std::size_t hash() const {
     std::size_t h = 0;
     // Shader IDs
     hash_combine(h, vert_shader->id(), frag_Shader->id());
+    hash_combine(h, vertex_layout.hash());
     // Vertex layout + pipeline states
     hash_combine(h, static_cast<uint32_t>(primitive_topology),
-                 rasterization_state.hash(), depth_stencil_state.hash());
+                 rasterization_state.hash(), depth_stencil_state.hash(),
+                 color_attachment_count,
+                 static_cast<uint32_t>(depth_attachment_format),
+                 static_cast<uint32_t>(color_attachment_format));
     return h;
   }
 
@@ -35,9 +42,13 @@ struct PipelineParams {
   bool operator==(const PipelineParams &other) const {
     return vert_shader->id() == other.vert_shader->id() &&
            frag_Shader->id() == other.frag_Shader->id() &&
+           vertex_layout == other.vertex_layout &&
            primitive_topology == other.primitive_topology &&
            rasterization_state == other.rasterization_state &&
-           depth_stencil_state == other.depth_stencil_state;
+           depth_stencil_state == other.depth_stencil_state &&
+           color_attachment_count == other.color_attachment_count &&
+           color_attachment_format == other.color_attachment_format &&
+           depth_attachment_format == other.depth_attachment_format;
   }
 };
 

@@ -1,15 +1,15 @@
 #include "engine.h"
+#include "actions.h"
 #include "camera.h"
+#include "camera_action_handler.h"
 #include "core/gpu_types.h"
 #include "desktop/desktop_platform.h"
 #include "ecs/entity.h"
 #include "ecs/world.h"
-#include "events/event_bus.h"
-#include "input/input_events.h"
-#include "hello_widget.h"
 #include "events/action_bus.h"
-#include "actions.h"
-#include "camera_action_handler.h"
+#include "events/event_bus.h"
+#include "hello_widget.h"
+#include "input/input_events.h"
 #include "input/input_system.h"
 #include "loaders/material_loader.h"
 #include "loaders/shader_loader.h"
@@ -260,9 +260,7 @@ void Engine::onEvent(const Event &event) {
   EventDispatcher dispatcher(event);
   dispatcher.dispatch<KeyPressedEvent>([this](const KeyPressedEvent &e) {
     if (e.getKey() == Key::R) {
-    m_action_bus->send(ResetViewAction{
-        .window_id = e.getWindowId()
-    });
+      m_action_bus->send(ResetViewAction{.window_id = e.getWindowId()});
     }
   });
 }
@@ -310,5 +308,10 @@ Entity Engine::createTriangle(const std::string &name, const glm::vec3 &pos,
 }
 Entity Engine::createQuad(const std::string &name, const glm::vec3 &pos) {
   return _createQuad(m_scene.get()->getWorld(), *m_resource_manager, name, pos);
+}
+Entity Engine::createPlane(const std::string &name, const glm::vec3 &pos,
+                           float size, const std::string &mat_name) {
+  return _createPlane(m_scene.get()->getWorld(), *m_resource_manager, name, pos,
+                      size, mat_name);
 }
 } // namespace ssme
